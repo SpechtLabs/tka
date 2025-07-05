@@ -115,7 +115,7 @@ jobs:
     name: Prepare build steps
     runs-on: ubuntu-latest
     outputs:
-      goreleaser_extra_args: ${{ steps.set.outputs.goreleaser_args }}
+      goreleaser_extra_args: ${{ steps.set.outputs.goreleaser_extra_args }}
       arch_matrix: ${{ steps.set.outputs.arch_matrix }}
     steps:
       - id: set
