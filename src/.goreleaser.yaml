@@ -15,6 +15,8 @@ builds:
     goarch: &goarch
       - arm64
       - amd64
+    goarm: &goarm
+      - 7
     binary: tailscale-k8s-auth
     dir: ./cmd/server/
     mod_timestamp: "{{ .CommitTimestamp }}"
@@ -32,6 +34,7 @@ builds:
     goarch:
       - amd64
       - arm64
+    goarm: *goarm
     binary: tka
     dir: ./cmd/cli/
     mod_timestamp: "{{ .CommitTimestamp }}"

@@ -115,16 +115,16 @@ jobs:
     name: Prepare build steps
     runs-on: ubuntu-latest
     outputs:
-      goreleaser_args: ${{ steps.set.outputs.goreleaser_args }}
+      goreleaser_extra_args: ${{ steps.set.outputs.goreleaser_args }}
       arch_matrix: ${{ steps.set.outputs.arch_matrix }}
     steps:
       - id: set
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            echo "goreleaser_args=release --clean --config .goreleaser.yaml" >> "$GITHUB_OUTPUT"
+          echo "goreleaser_extra_args=" >> "$GITHUB_OUTPUT"
             echo "arch_matrix=[{\"platform\":\"linux/arm64\",\"os\":\"linux\",\"arch\":\"arm64\"},{\"platform\":\"linux/amd64\",\"os\":\"linux\",\"arch\":\"amd64\"}]" >> "$GITHUB_OUTPUT"
           else
-            echo "goreleaser_args=release --snapshot --clean --skip sign,nfpm --config .goreleaser.yaml" >> "$GITHUB_OUTPUT"
+            echo "goreleaser_extra_args=--snapshot" >> "$GITHUB_OUTPUT"
             echo "arch_matrix=[{\"platform\":\"linux/arm64\",\"os\":\"linux\",\"arch\":\"arm64\"}]" >> "$GITHUB_OUTPUT"
           fi
 
@@ -154,7 +154,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          args: ${{ needs.prepare.outputs.goreleaser_args }}
+          args: release --clean --config .goreleaser.yaml ${{ needs.prepare.outputs.goreleaser_extra_args }}
           workdir: src/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
