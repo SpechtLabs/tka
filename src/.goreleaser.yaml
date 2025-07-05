@@ -1,0 +1,79 @@
+version: 2
+
+project_name: tailscale-k8s-auth
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: server
+    env: &env
+      - CGO_ENABLED=0
+    goos: &goos
+      - linux
+    goarch: &goarch
+      - arm64
+      - amd64
+    binary: tailscale-k8s-auth
+    dir: ./cmd/server/
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags: &ldflags
+      - -X=main.Version={{.Version}}
+      - -X=main.Commit={{.Commit}}
+      - -X=main.Date={{ .CommitTimestamp }}
+
+  - id: cli
+    env: *env
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: tka
+    dir: ./cmd/cli/
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags: *ldflags
+
+# Sign everything else
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - --oidc-issuer=https://token.actions.githubusercontent.com
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+    artifacts: all
+
+# Regular OS packages (for now only systemd based OSes)
+nfpms:
+  - id: cli
+    package_name: tka
+    ids:
+      - cli
+    maintainer: Cedric Specht <cedric@specht-labs.de>
+    description: tka is a CLI tool for tailscale-k8s-auth, a tailnet-native Kubernetes access system. It allows users to securely log in to Kubernetes clusters using their Tailscale identity, receiving short-lived, auto-expiring kubeconfigs with scoped permissions.
+    homepage: https://tailscale-k8s-auth.specht-labs.de
+    vendor: Specht Labs
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+      - archlinux
+    bindir: /usr/bin
+
+archives:
+  - id: tailscale-k8s-auth
+    ids:
+      - server
+    name_template: 'tailscale-k8s-auth_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+
+  - id: cli
+    ids:
+      - cli
+    name_template: 'tka_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
