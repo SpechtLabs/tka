@@ -115,16 +115,17 @@ jobs:
     name: Prepare build steps
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set.outputs.matrix }}
+      goreleaser_args: ${{ steps.set.outputs.goreleaser_args }}
+      arch_matrix: ${{ steps.set.outputs.arch_matrix }}
     steps:
       - id: set
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            echo '::set-output name=goreleaser_args::release --clean --config .goreleaser.yaml'
-            echo '::set-output name=arch_matrix::[{"platform":"linux/arm64","os":"linux","arch":"arm64"},{"platform":"linux/amd64","os":"linux","arch":"amd64"}]'
+            echo "goreleaser_args=release --clean --config .goreleaser.yaml" >> "$GITHUB_OUTPUT"
+            echo "arch_matrix=[{\"platform\":\"linux/arm64\",\"os\":\"linux\",\"arch\":\"arm64\"},{\"platform\":\"linux/amd64\",\"os\":\"linux\",\"arch\":\"amd64\"}]" >> "$GITHUB_OUTPUT"
           else
-            echo '::set-output name=goreleaser_args::release --snapshot --clean --config .goreleaser.yaml'
-            echo '::set-output name=arch_matrix::[{"platform":"linux/arm64","os":"linux","arch":"arm64"}]'
+            echo "goreleaser_args=release --snapshot --clean --config .goreleaser.yaml" >> "$GITHUB_OUTPUT"
+            echo "arch_matrix=[{\"platform\":\"linux/arm64\",\"os\":\"linux\",\"arch\":\"arm64\"}]" >> "$GITHUB_OUTPUT"
           fi
 
   goreleaser:
