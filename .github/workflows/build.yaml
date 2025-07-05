@@ -317,7 +317,6 @@ jobs:
         run: |
           tag="${{ steps.meta.outputs.version }}"
           cosign verify \
-            --yes \
             --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/${{ github.workflow }}" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             "${FULL_IMAGE_NAME}:${tag}"
