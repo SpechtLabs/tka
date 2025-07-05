@@ -1,0 +1,59 @@
+{
+  "name": "tailscale-k8s-auth-docs",
+  "version": "1.1.0",
+  "description": "The documentation website for tailscale-k8s-auth, generated with VuePress",
+  "type": "module",
+  "author": "Cedric Kienzler <cedric@specht-labs.de>",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": "^18.20.0 || >=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpechtLabs/tailscale-k8s-auth.git"
+  },
+  "keywords": [
+    "tailscale-k8s-auth",
+    "kubernetes",
+    "tailscale",
+    "restapi",
+    "rest",
+    "grpc",
+    "documentation",
+    "vuepress",
+    "website",
+    "docs"
+  ],
+  "bugs": {
+    "url": "https://github.com/SpechtLabs/tailscale-k8s-auth/issues"
+  },
+  "homepage": "https://github.com/SpechtLabs/tailscale-k8s-auth#readme",
+  "devDependencies": {
+    "@vuepress/bundler-vite": "^2.0.0-rc.23",
+    "@vuepress/plugin-register-components": "2.0.0-rc.103",
+    "http-server": "^14.1.1",
+    "sass-embedded": "^1.89.0",
+    "typescript": "^5.7.3",
+    "vue": "^3.5.13",
+    "vuepress": "2.0.0-rc.23",
+    "vuepress-theme-plume": "1.0.0-rc.152"
+  },
+  "dependencies": {
+    "@vue/component-compiler-utils": "^3.3.0",
+    "lru-cache": "^11.0.0",
+    "markdown-it-emoji": "^3.0.0",
+    "mermaid": "^11.5.0",
+    "vue-template-compiler": "^2.7.16"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.38.0",
+    "sass-embedded-linux-x64": "latest"
+  },
+  "scripts": {
+    "dev": "vuepress dev",
+    "dev-clean": "vuepress dev . --clean-cache --clean-temp",
+    "build": "vuepress build . --clean-cache --clean-temp",
+    "preview": "http-server ./.vuepress/dist",
+    "vp-update": "npx vp-update"
+  }
+}

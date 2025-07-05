@@ -1,0 +1,96 @@
+name: Documentation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/**/*
+      - .github/workflows/**
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+    paths:
+      - docs/**/*
+      - .github/workflows/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build (Docs)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install Dependencies
+        run: cd docs && npm ci
+
+      - name: Build
+        run: cd docs && npm run build
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/.vuepress/dist
+
+  deploy-gh-pages:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+
+    permissions:
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Download Artifacts for Website
+        uses: actions/download-artifact@v4
+        with:
+          name: docs
+          path: ./dist
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  deploy-static-pages:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+
+    permissions:
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Download Artifacts for Website
+        uses: actions/download-artifact@v4
+        with:
+          name: docs
+          path: ./dist
+
+      - name: Upload to Static Pages
+        uses: SpechtLabs/StaticPages-Upload@main
+        with:
+          endpoint: https://tailscale-k8s-auth.specht-labs.de
+          site-dir: dist/

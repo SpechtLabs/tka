@@ -1,0 +1,9 @@
+/* TEAM */
+Lead Developer: Cedric Specht
+Site: https://specht-labs.de
+Location: Hamburg, Germany
+
+/* SITE */
+Standards: HTML5, CSS3, ES6
+Components: VuePress
+Software: GoLand, zsh, VuePress, GitHub Pages
