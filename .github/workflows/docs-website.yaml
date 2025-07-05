@@ -92,5 +92,5 @@ jobs:
       - name: Upload to Static Pages
         uses: SpechtLabs/StaticPages-Upload@main
         with:
-          endpoint: https://tailscale-k8s-auth.specht-labs.de
+          endpoint: https://pages.specht-labs.de
           site-dir: dist/
