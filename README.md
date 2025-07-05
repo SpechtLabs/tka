@@ -1,10 +1,7 @@
 # tailscale-k8s-auth
 
-<!--
-[![Release](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/release.yaml/badge.svg?branch=main)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/release.yaml)
-[![Continuous Integration](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/build.yaml/badge.svg?branch=main)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/build.yaml)
-[![Documentation](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/docs-website.yaml/badge.svg?branch=main)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/docs-website.yaml)
--->
+[![Go Build & Docker Build](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/build.yaml/badge.svg)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/build.yaml)
+[![Documentation](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/docs-website.yaml/badge.svg)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/docs-website.yaml)
 
 Forget complex auth proxies, VPNs, or OIDC setups. `tailscale-k8s-auth` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.
 
