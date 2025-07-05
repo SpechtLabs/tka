@@ -21,7 +21,7 @@ export default defineThemeConfig({
   createTime: true,
 
   footer: {
-    message: '<a target="_self" href="/notes/impressum">Impressum</a> - <a target="_self" href="/notes/datenschutz">Datenschutz</a> - Powered by <a target="_blank" href="https://v2.vuepress.vuejs.org/">VuePress</a>',
+    message: '<a target="_self" href="https://specht-labs.de/impressum/">Impressum</a> - <a target="_self" href="https://specht-labs.de/datenschutz/">Datenschutz</a> - Powered by <a target="_blank" href="https://v2.vuepress.vuejs.org/">VuePress</a>',
     copyright: '&#169; 2025 Cedric Specht - <a target="_self" href="https://specht-labs.de/">Specht Labs</a>',
   },
 
