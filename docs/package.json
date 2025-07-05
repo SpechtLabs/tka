@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "The documentation website for tailscale-k8s-auth, generated with VuePress",
   "type": "module",
-  "author": "Cedric Kienzler <cedric@specht-labs.de>",
+  "author": "Cedric Specht <cedric@specht-labs.de>",
   "license": "Apache-2.0",
   "engines": {
     "node": "^18.20.0 || >=20.0.0"
