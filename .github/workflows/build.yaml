@@ -259,10 +259,13 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
+      id-token: write # Required for Cosign to use GitHub OIDC
 
     steps:
-      - name: set environment variables
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Set environment variables
         run: |
           image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           image="$(echo $image | tr '[:upper:]' '[:lower:]')"
@@ -297,6 +300,19 @@ jobs:
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.FULL_IMAGE_NAME }}@sha256:%s ' *)
 
+      - name: Sign image manifest with Cosign
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          echo "Signing image: ${{ env.FULL_IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+          cosign sign --yes "${{ env.FULL_IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.FULL_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect "${{ env.FULL_IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+
+      - name: Verify image signature
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign verify "${{ env.FULL_IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
