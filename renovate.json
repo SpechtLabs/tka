@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Automatically merge minor and patch-level updates",
+      "matchUpdateTypes": [
+        "patch",
+        "bump",
+        "minor"
+      ],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "Automatically merge updates to GitHub workflows",
+      "matchUpdateTypes": [
+        "patch",
+        "bump",
+        "minor",
+        "major"
+      ],
+      "automerge": true,
+      "matchFileNames": [
+        ".github/**",
+        ".github/workflows/**"
+      ],
+      "automergeType": "branch"
+    },
+    {
+      "description": "Request review for major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["update/major"],
+      "assignees": ["cedi"]
+    }
+  ]
+}
