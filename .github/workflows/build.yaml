@@ -215,13 +215,7 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: >
-            type=image,
-            name=${{ env.FULL_IMAGE_NAME }},
-            push-by-digest=true,
-            name-canonical=true,
-            push=true,
-            annotation-index.org.opencontainers.image.description="tailscale-k8s-auth provides secure, ephemeral Kubernetes access using your Tailscale identity and network."
+          outputs: type=image,name=${{ env.FULL_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
 
       - name: Export digest
