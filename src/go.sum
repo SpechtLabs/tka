@@ -269,6 +269,8 @@ github.com/safchain/ethtool v0.3.0 h1:gimQJpsI6sc1yIqP/y8GYgiXn/NjgvpM0RNoWLVVmP
 github.com/safchain/ethtool v0.3.0/go.mod h1:SA9BwrgyAqNo7M+uaL6IYbxpm5wk3L7Mm6ocLW+CJUs=
 github.com/sierrasoftworks/humane-errors-go v0.0.0-20241125132722-d032d7dd359e h1:TRjhbclA0br24WOCSltVovqcwOLTKRLRzQmuSBY5mQc=
 github.com/sierrasoftworks/humane-errors-go v0.0.0-20241125132722-d032d7dd359e/go.mod h1:j7jIbd4vmh7c8kUuM4wNOqqEaMcG+UWVyem6d26pai4=
+github.com/sierrasoftworks/humane-errors-go v0.0.0-20250507223502-4bb667dc1e16 h1:9vtY3febGroV+aPR5OlI3fekkesi+lMVsVWyxBp/rfk=
+github.com/sierrasoftworks/humane-errors-go v0.0.0-20250507223502-4bb667dc1e16/go.mod h1:CbJLj9L1qHdzLg4YRh2Lzr0noe9pR6QrVEqfLbITRKw=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/spechtlabs/go-otel-utils/otelprovider v0.0.10 h1:Q5p+5KGA587GfzR6FdXGje4XBfxhi1u4NSu6lSnWCGA=
