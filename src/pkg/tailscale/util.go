@@ -30,6 +30,6 @@ func IsFunnelRequest(r *http.Request) bool {
 	if _, ok := netConn.(*ipn.FunnelConn); ok {
 		return true
 	}
-	
+
 	return false
 }
