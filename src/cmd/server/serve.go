@@ -2,59 +2,111 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+
 	"tailscale.com/tailcfg"
 )
 
-var serveCmd = &cobra.Command{
-	Use:     "serve",
-	Short:   "Shows version information",
-	Example: "meetingepd version",
-	Args:    cobra.ExactArgs(0),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if debug {
-			file, err := os.ReadFile(viper.GetViper().ConfigFileUsed())
-			if err != nil {
-				return fmt.Errorf("fatal error reading config file: %w", err)
-			}
-			otelzap.L().Sugar().With("config_file", string(file)).Debug("Config file used")
-		}
-
-		ctx := context.Background()
-
-		tkaServer, err := tailscale.NewTKAServer(ctx, hostname,
-			tailscale.WithDebug(debug),
-			tailscale.WithPort(port),
-			tailscale.WithStateDir(tsNetStateDir),
-			tailscale.WithPeerCapName(tailcfg.PeerCapability(capName)),
-		)
-		if err != nil {
-			return fmt.Errorf(err.Display())
-
-		}
-
-		tkaServer.ServeAsync(cmd.Context())
-
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		<-c
-
-		if err := tkaServer.Shutdown(); err != nil {
-			return fmt.Errorf(err.Display())
-		}
-
-		return nil
-	},
-}
+var (
+	serveCmd = &cobra.Command{
+		Use:     "serve",
+		Short:   "Shows version information",
+		Example: "meetingepd version",
+		Args:    cobra.ExactArgs(0),
+		RunE:    runE,
+	}
+)
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
+}
+
+func runE(cmd *cobra.Command, args []string) error {
+	if debug {
+		file, err := os.ReadFile(viper.GetViper().ConfigFileUsed())
+		if err != nil {
+			return fmt.Errorf("fatal error reading config file: %w", err)
+		}
+		otelzap.L().Sugar().With("config_file", string(file)).Debug("Config file used")
+	}
+
+	ctx, cancelFn := context.WithCancelCause(cmd.Context())
+	interruptHandler(ctx, cancelFn)
+
+	tkaServer, err := tailscale.NewTKAServer(ctx, hostname,
+		tailscale.WithDebug(debug),
+		tailscale.WithPort(port),
+		tailscale.WithStateDir(tsNetStateDir),
+		tailscale.WithPeerCapName(tailcfg.PeerCapability(capName)),
+	)
+	if err != nil {
+		cancelFn(err)
+		return fmt.Errorf(err.Display())
+	}
+
+	if err := operator.NewK8sOperator(); err != nil {
+		cancelFn(err)
+		return fmt.Errorf(err.Display())
+	}
+
+	go func() {
+		if err := tkaServer.Serve(ctx); err != nil {
+			cancelFn(err.Cause())
+			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA server")
+		}
+	}()
+
+	// Wait for context done
+	<-ctx.Done()
+	// No more logging to ctx from here onwards
+
+	if err := tkaServer.Shutdown(); err != nil {
+		return fmt.Errorf(err.Display())
+	}
+
+	// Terminate accordingly
+	if err := ctx.Err(); !errors.Is(err, context.Canceled) {
+		otelzap.L().WithError(err).Fatal("Exiting")
+	} else {
+		otelzap.L().Info("Exiting")
+	}
+
+	return nil
+}
+
+func interruptHandler(ctx context.Context, cancelCtx context.CancelCauseFunc) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		select {
+		// Wait for context cancel
+		case <-ctx.Done():
+
+		// Wait for signal
+		case sig := <-sigs:
+			switch sig {
+			case syscall.SIGTERM:
+				fallthrough
+			case syscall.SIGINT:
+				fallthrough
+			case syscall.SIGQUIT:
+				// On terminate signal, cancel context causing the program to terminate
+				cancelCtx(context.Canceled)
+
+			default:
+				otelzap.L().WarnContext(ctx, "Received unknown signal", zap.String("signal", sig.String()))
+			}
+		}
+	}()
 }

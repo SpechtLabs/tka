@@ -11,8 +11,6 @@ import (
 	// misc
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
-	"go.opentelemetry.io/otel"
-	"tailscale.com/client/local"
 
 	// Logging
 	ginzap "github.com/gin-contrib/zap"
@@ -20,12 +18,15 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	// Observability
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	// Tailscale
+	"tailscale.com/client/local"
 	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tailcfg"
 	"tailscale.com/tsnet"
@@ -78,6 +79,9 @@ func NewTKAServer(ctx context.Context, hostname string, opts ...Option) (*TKASer
 
 	if tkaServer.debug {
 		tkaServer.ts.Logf = otelzap.L().Sugar().Debugf
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// Setup Gin router
@@ -118,16 +122,10 @@ func NewTKAServer(ctx context.Context, hostname string, opts ...Option) (*TKASer
 	tkaServer.router.DELETE("/login", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
 	tkaServer.router.GET("/logout", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
 
-	return tkaServer, nil
-}
+	// Use custom handler that serves both
+	tkaServer.router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
 
-// ServeAsync starts the TKA server asynchronously in a separate goroutine, logging fatal errors if startup fails.
-func (t *TKAServer) ServeAsync(ctx context.Context) {
-	go func() {
-		if err := t.Serve(ctx); err != nil {
-			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA server")
-		}
-	}()
+	return tkaServer, nil
 }
 
 // Serve starts the TKA server with TLS setup and HTTP server functionality, handling Tailnet connection and request serving.

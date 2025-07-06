@@ -9,7 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var debug bool
+var (
+	debug bool = false
+)
 
 func main() {
 	//logProvider := otelprovider.NewLogger(
