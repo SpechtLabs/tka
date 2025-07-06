@@ -24,9 +24,17 @@ We believe Kubernetes access should be:
 We love [Teleport][gh-teleport] dearly, and it was a major inspiration for this project.
 It's a robust, production-proven system that handles multi-protocol access with powerful SSO, audit, and session recording features.
 
-That said, we needed something just for Kubernetes, something much lighter weight, and most importantly, something that works with our existing Tailscale setup.
+That said, we needed something just for Kubernetes, something much lighter weight, and most importantly, something that works with our existing Tailscale setup. Why have two ZTNA systems that provide _almost_ the same features, when you can go out of your way to waste time building your own thing, learn a ton in the process, and make it integrate better into your existing setup? 
 
-Why have two ZTNA systems that provide _almost_ the same features, when you can go out of your way to waste time building your own thing, learn a ton in the process, and make it integrate better into your existing setup? 
+### What about [Tailscale's API server proxy]
+
+Tailscale’s Kubernetes Operator is a fantastic way to access your Kubernetes cluster over the tailnet.
+It can proxy requests to the Kubernetes API and impersonate users or groups based on tailnet identity, allowing you to define fine-grained access via standard Kubernetes RBAC.
+It’s a great fit for many use cases.
+
+However, we wanted a different model of access.
+Our idea around access is about dynamically provisioning ephemeral Service Accounts for users, with the Cluster Role Bindings configured via the tailscale ACL file.
+With `tka`, we can define ephemeral access with zero-permission-by-default but still tie in to a kube-native experience.
 
 ## How It Works
 
@@ -77,3 +85,4 @@ Contributions are welcome! Please open an issue or submit a pull request.
 [Tailscale ACLs and Grants]: https://tailscale.com/kb/1393/access-control
 [Teleport]: https://goteleport.com
 [gh-teleport]: https://github.com/gravitational/teleport
+[Tailscale's API server proxy]: https://tailscale.com/kb/1437/kubernetes-operator-api-server-proxy
