@@ -8,8 +8,8 @@ import (
 )
 
 func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, validUntil time.Time) humane.Error {
-	ctx, span := t.tracer.Start(ctx, "KubeOperator.SignInUser")
-	defer span.End()
+	//ctx, span := t.tracer.Start(ctx, "KubeOperator.SignInUser")
+	//defer span.End()
 
 	//client := t.mgr.GetClient()
 	//scheme := t.mgr.GetScheme()
@@ -24,5 +24,5 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 	// Notes:
 	// Attach the validUntil value to the ServiceAccount && Cluster-Role-Binding
 
-	return nil
+	panic("not implemented")
 }

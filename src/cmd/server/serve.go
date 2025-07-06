@@ -47,7 +47,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	operator, err := operator.NewK8sOperator()
 	if err != nil {
 		cancelFn(err)
-		return fmt.Errorf(err.Display())
+		return fmt.Errorf("%s", err.Display())
 	}
 
 	tkaServer, err := tailscale.NewTKAServer(ctx, hostname, operator,
@@ -58,7 +58,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	)
 	if err != nil {
 		cancelFn(err)
-		return fmt.Errorf(err.Display())
+		return fmt.Errorf("%s", err.Display())
 	}
 
 	go func() {
@@ -73,7 +73,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	// No more logging to ctx from here onwards
 
 	if err := tkaServer.Shutdown(); err != nil {
-		return fmt.Errorf(err.Display())
+		return fmt.Errorf("%s", err.Display())
 	}
 
 	// Terminate accordingly
