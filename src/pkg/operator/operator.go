@@ -4,8 +4,8 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tailscale-k8s-auth/api/v1alpha1"
-	"github.com/spechtlabs/tailscale-k8s-auth/internal/controller"
-	"k8s.io/client-go/rest"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
@@ -17,7 +17,29 @@ import (
 
 var scheme = runtime.NewScheme()
 
-func NewK8sOperator() humane.Error {
+type KubeOperator struct {
+	mgr    ctrl.Manager
+	tracer trace.Tracer
+}
+
+func NewOperator(mgr ctrl.Manager) *KubeOperator {
+	op := &KubeOperator{
+		mgr:    mgr,
+		tracer: otel.Tracer("tka_controller"),
+	}
+
+	err := ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.TKA{}).
+		Named("tailscale-k8s-auth").
+		Complete(op)
+	if err != nil {
+		otelzap.L().WithError(err).Fatal("failed to create controller")
+	}
+
+	return op
+}
+
+func NewK8sOperator() (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		otelzap.L().WithError(err).Fatal("failed to add clientgoscheme to scheme")
@@ -30,8 +52,8 @@ func NewK8sOperator() humane.Error {
 	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
 
 	// GetConfigOrDie creates a *rest.Config for talking to a Kubernetes API server.
-	// If --kubeconfig is set, will use the kubeconfig file at that location.  Otherwise will assume running
-	// in cluster and use the cluster provided kubeconfig.
+	// If --kubeconfig.go is set, will use the kubeconfig.go file at that location.  Otherwise will assume running
+	// in cluster and use the cluster provided kubeconfig.go.
 	//
 	// The returned `*rest.Config` has client-side ratelimting disabled as we can rely on API priority and
 	// fairness. Set its QPS to a value equal or bigger than 0 to re-enable it.
@@ -41,7 +63,7 @@ func NewK8sOperator() humane.Error {
 	//
 	// Config precedence:
 	//
-	// * --kubeconfig flag pointing at a file
+	// * --kubeconfig.go flag pointing at a file
 	//
 	// * KUBECONFIG environment variable pointing at a file
 	//
@@ -71,14 +93,5 @@ func NewK8sOperator() humane.Error {
 		otelzap.L().WithError(err).Fatal("failed to start manager")
 	}
 
-	if err := controller.NewTKAReconciler(mgr.GetClient(), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
-		otelzap.L().WithError(err).Fatal("failed to create controller")
-	}
-
-	return nil
-}
-
-func isInCluster() bool {
-	_, err := rest.InClusterConfig()
-	return err == nil
+	return NewOperator(mgr), nil
 }

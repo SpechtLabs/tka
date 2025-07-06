@@ -11,22 +11,24 @@ type ClusterRoleMapping struct {
 }
 
 type TkaSpec struct {
-	// +kubebuilder:validation:Required
-	RoleMap []ClusterRoleMapping `json:"roleMap"`
-
 	// +kubebuilder:validation:Optional
 	AdditionalClusterRole []rbacv1.ClusterRole `json:"additionalClusterRoles,omitempty"`
 }
 
+type TkaStatus struct {
+	ActiveUsers int `json:"numActive"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced
-
+// +kubebuilder:resource:scope=Cluster,shortName=tka
+// +kubebuilder:printcolumn:name="active",type=int,JSONPath=`.status.numActive`,description="Number of users currelty having access to the cluster"
 type TKA struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec TkaSpec `json:"spec,omitempty"`
+	Spec   TkaSpec   `json:"spec,omitempty"`
+	Status TkaStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

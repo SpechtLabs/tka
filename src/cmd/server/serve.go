@@ -44,18 +44,19 @@ func runE(cmd *cobra.Command, args []string) error {
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
 	interruptHandler(ctx, cancelFn)
 
-	tkaServer, err := tailscale.NewTKAServer(ctx, hostname,
+	operator, err := operator.NewK8sOperator()
+	if err != nil {
+		cancelFn(err)
+		return fmt.Errorf(err.Display())
+	}
+
+	tkaServer, err := tailscale.NewTKAServer(ctx, hostname, operator,
 		tailscale.WithDebug(debug),
 		tailscale.WithPort(port),
 		tailscale.WithStateDir(tsNetStateDir),
 		tailscale.WithPeerCapName(tailcfg.PeerCapability(capName)),
 	)
 	if err != nil {
-		cancelFn(err)
-		return fmt.Errorf(err.Display())
-	}
-
-	if err := operator.NewK8sOperator(); err != nil {
 		cancelFn(err)
 		return fmt.Errorf(err.Display())
 	}

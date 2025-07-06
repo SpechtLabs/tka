@@ -11,6 +11,7 @@ import (
 	// misc
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 
 	// Logging
 	ginzap "github.com/gin-contrib/zap"
@@ -49,9 +50,12 @@ type TKAServer struct {
 	srv    *http.Server
 	router *gin.Engine
 	tracer trace.Tracer
+
+	// Kuberneters Operator
+	operator *operator.KubeOperator
 }
 
-func NewTKAServer(ctx context.Context, hostname string, opts ...Option) (*TKAServer, humane.Error) {
+func NewTKAServer(ctx context.Context, hostname string, operator *operator.KubeOperator, opts ...Option) (*TKAServer, humane.Error) {
 	tkaServer := &TKAServer{
 		debug:     false,
 		port:      443,
@@ -64,6 +68,7 @@ func NewTKAServer(ctx context.Context, hostname string, opts ...Option) (*TKASer
 		srv:       nil,
 		router:    nil,
 		tracer:    otel.Tracer("tka"),
+		operator:  operator,
 	}
 
 	// Apply Options

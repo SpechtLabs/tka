@@ -72,6 +72,12 @@ func (t *TKAServer) login(ct *gin.Context) {
 	}
 	until := now.Add(period)
 
+	if err := t.operator.SignInUser(ctx, userName, role, until); err != nil {
+		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
+		ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error signing in user", "internal_error": err.Error()})
+		return
+	}
+
 	otelzap.L().InfoContext(ctx,
 		"User is now logged in and has assigned a role",
 		zap.String("user", userName),
