@@ -20,11 +20,9 @@ import (
 
 var (
 	serveCmd = &cobra.Command{
-		Use:     "serve",
-		Short:   "Shows version information",
-		Example: "meetingepd version",
-		Args:    cobra.ExactArgs(0),
-		RunE:    runE,
+		Use:  "serve",
+		Args: cobra.ExactArgs(0),
+		RunE: runE,
 	}
 )
 
@@ -34,23 +32,21 @@ func init() {
 
 func runE(cmd *cobra.Command, args []string) error {
 	if debug {
-		file, err := os.ReadFile(viper.GetViper().ConfigFileUsed())
-		if err != nil {
-			return fmt.Errorf("fatal error reading config file: %w", err)
+		if file, err := os.ReadFile(viper.GetViper().ConfigFileUsed()); err == nil && len(file) > 0 {
+			otelzap.L().Sugar().With("config_file", string(file)).Debug("Config file used")
 		}
-		otelzap.L().Sugar().With("config_file", string(file)).Debug("Config file used")
 	}
 
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
 	interruptHandler(ctx, cancelFn)
 
-	operator, err := operator.NewK8sOperator()
+	k8sOperator, err := operator.NewK8sOperator()
 	if err != nil {
 		cancelFn(err)
 		return fmt.Errorf("%s", err.Display())
 	}
 
-	tkaServer, err := tailscale.NewTKAServer(ctx, hostname, operator,
+	tkaServer, err := tailscale.NewTKAServer(ctx, hostname, k8sOperator,
 		tailscale.WithDebug(debug),
 		tailscale.WithPort(port),
 		tailscale.WithStateDir(tsNetStateDir),
@@ -65,6 +61,13 @@ func runE(cmd *cobra.Command, args []string) error {
 		if err := tkaServer.Serve(ctx); err != nil {
 			cancelFn(err.Cause())
 			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA server")
+		}
+	}()
+
+	go func() {
+		if err := k8sOperator.Start(ctx); err != nil {
+			cancelFn(err.Cause())
+			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start k8s operator")
 		}
 	}()
 

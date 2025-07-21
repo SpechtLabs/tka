@@ -1,0 +1,4 @@
+namespace: tka-dev
+resources:
+  - crd/bases/tka.specht-labs.de_tkasignins.yaml
+  - rbac/

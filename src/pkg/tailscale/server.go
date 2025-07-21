@@ -121,7 +121,7 @@ func NewTKAServer(ctx context.Context, hostname string, operator *operator.KubeO
 	tkaServer.router.GET("/login", tkaServer.login)
 	tkaServer.router.POST("/login", tkaServer.login)
 
-	tkaServer.router.GET("/kubeconfig", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
+	tkaServer.router.GET("/kubeconfig", tkaServer.getKubeconfig)
 
 	tkaServer.router.DELETE("/kubeconfig", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
 	tkaServer.router.DELETE("/login", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
@@ -142,7 +142,8 @@ func (t *TKAServer) Serve(ctx context.Context) humane.Error {
 		return humane.Wrap(err, "failed to connect to tailnet", "check (debug) logs for more details")
 	}
 
-	listener, err := t.ts.ListenTLS("tcp", fmt.Sprintf(":%d", t.port))
+	//listener, err := t.ts.ListenTLS("tcp", fmt.Sprintf(":%d", t.port))
+	listener, err := t.ts.Listen("tcp", fmt.Sprintf(":%d", t.port))
 	if err != nil {
 		return humane.Wrap(err, "failed to listen on port",
 			"check (debug) logs for more details",

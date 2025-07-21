@@ -3,18 +3,18 @@ package tailscale
 import (
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"go.uber.org/zap"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/tools/clientcmd"
 	"tailscale.com/tailcfg"
 )
 
-func (t *TKAServer) login(ct *gin.Context) {
+func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	req := ct.Request
 
-	ctx, span := t.tracer.Start(req.Context(), "TKAServer.login")
+	ctx, span := t.tracer.Start(req.Context(), "TKAServer.getKubeconfig")
 	defer span.End()
 
 	// This URL is visited by the user who is being authenticated. If they are
@@ -62,30 +62,23 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	role := rules[0].Role
-	period, err := time.ParseDuration(rules[0].Period)
-	if err != nil {
-		otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
-		ct.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing duration", "internal_error": err.Error()})
+	if kubecfg, err := t.operator.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil {
+		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
+
+		if err.Cause() != nil && k8serrors.IsNotFound(err.Cause()) {
+			ct.JSON(http.StatusUnauthorized, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
+		} else {
+			ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
+		}
+
 		return
+	} else {
+		out, err := clientcmd.Write(*kubecfg)
+		if err != nil {
+			otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
+			ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
+			return
+		}
+		ct.String(http.StatusOK, string(out))
 	}
-	until := now.Add(period)
-
-	if err := t.operator.SignInUser(ctx, userName, role, until); err != nil {
-		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
-		ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error signing in user", "internal_error": err.Error()})
-		return
-	}
-
-	otelzap.L().InfoContext(ctx,
-		"User login request was successful and is now awaiting the provisioning of the Kubernetes credentials",
-		zap.String("user", userName),
-		zap.String("role", role),
-		zap.String("now", now.Format(time.RFC3339)),
-		zap.String("period", period.String()),
-		zap.String("until", until.Format(time.RFC3339)),
-	)
-
-	ct.JSON(http.StatusAccepted, gin.H{"user": userName, "role": role, "until": until.Format(time.RFC3339)})
 }

@@ -1,0 +1,88 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: tkasignins.tka.specht-labs.de
+spec:
+  group: tka.specht-labs.de
+  names:
+    kind: TkaSignin
+    listKind: TkaSigninList
+    plural: tkasignins
+    shortNames:
+    - signin
+    singular: tkasignin
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: true if the user signin was processed and the ServiceAccount was
+        created
+      jsonPath: .status.provisioned
+      name: provisioned
+      type: boolean
+    - description: timestamp when the user signed in
+      jsonPath: .status.signed_in
+      name: since
+      type: string
+    - description: For how long this session is valid
+      jsonPath: .status.validity_period
+      name: period
+      type: string
+    - description: timestamp until when the signin is valid
+      jsonPath: .spec.valid_until
+      name: until
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              role:
+                type: string
+              username:
+                type: string
+              valid_until:
+                type: string
+            required:
+            - role
+            - username
+            - valid_until
+            type: object
+          status:
+            properties:
+              provisioned:
+                type: boolean
+              signed_in:
+                type: string
+              validity_period:
+                type: string
+            required:
+            - provisioned
+            - signed_in
+            - validity_period
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

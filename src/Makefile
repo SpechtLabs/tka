@@ -20,3 +20,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: manifests
+manifests: controller-gen
+	$(CONTROLLER_GEN) rbac:roleName=tka-role crd paths="./..." output:crd:artifacts:config=config/crd/bases

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -84,7 +83,7 @@ func initConfig() {
 	// Find and read the config file
 	if err := viper.ReadInConfig(); err != nil {
 		// Handle errors reading the config file
-		otelzap.L().WithError(err).Warn("Failed to read config file. This might be still valid if you provided all the environment variables or command line flags.")
+		//otelzap.L().WithError(err).Warn("Failed to read config file. This might be still valid if you provided all the environment variables or command line flags.")
 	}
 
 	hostname = viper.GetString("server.hostname")
