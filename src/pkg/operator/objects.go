@@ -97,12 +97,15 @@ func newRoleRef(signIn *v1alpha1.TkaSignin) rbacv1.RoleRef {
 	}
 }
 
-func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBinding {
+func getClusterRoleBindingName(signIn *v1alpha1.TkaSignin) string {
 	username := formatSigninObjectName(signIn.Spec.Username)
+	return fmt.Sprintf("%s-binding", username)
+}
 
+func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-binding", username),
+			Name:      getClusterRoleBindingName(signIn),
 			Namespace: signIn.Namespace,
 			Annotations: map[string]string{
 				ValidUntilAnnotation: signIn.Spec.ValidUntil,
@@ -111,7 +114,7 @@ func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBindin
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      username,
+				Name:      formatSigninObjectName(signIn.Spec.Username),
 				Namespace: "tka-dev", // TODO(cedi): make dynamic
 			},
 		},

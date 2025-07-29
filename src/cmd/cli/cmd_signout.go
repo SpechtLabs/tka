@@ -30,7 +30,8 @@ var cmdSignout = &cobra.Command{
 		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-			return renderError(resp)
+			renderError(resp)
+			return nil
 		}
 
 		fmt.Println("👋 You have been signed out.")

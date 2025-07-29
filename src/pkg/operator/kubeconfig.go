@@ -38,6 +38,8 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 	return nil
 }
 
+var NotReadyYetError = humane.New("Not ready yet", "Please wait for the TKA signin to be ready")
+
 func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api.Config, humane.Error) {
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.GetKubeconfig")
 	defer span.End()
@@ -55,6 +57,10 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 			return nil, humane.Wrap(err, "User not signed in", "Please sign in before requesting kubeconfig")
 		}
 		return nil, humane.Wrap(err, "Failed to load sign-in request")
+	}
+
+	if signIn.Status.Provisioned == false {
+		return nil, NotReadyYetError
 	}
 
 	// Generate token for ServiceAccount

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,9 +21,6 @@ It talks to a tka-api instance and helps you fetch ephemeral kubeconfigs.`,
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	cmdRoot.PersistentFlags().StringP("output", "o", "text", "Output format: text or json")
-	_ = viper.BindPFlag("output", cmdRoot.PersistentFlags().Lookup("output"))
 }
 
 func initConfig() {
@@ -38,21 +34,15 @@ func initConfig() {
 	viper.Set("server", os.Getenv("TKA_SERVER"))
 }
 
-func renderError(resp *http.Response) error {
+func renderError(resp *http.Response) {
 	var body map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&body)
-	if viper.GetString("output") == "json" {
-		enc := json.NewEncoder(os.Stderr)
-		enc.SetIndent("", "  ")
-		_ = enc.Encode(body)
+
+	msg := ""
+	if errMsg, ok := body["error"].(string); ok {
+		msg = errMsg
 	} else {
-		msg := ""
-		if errMsg, ok := body["error"].(string); ok {
-			msg = errMsg
-		} else {
-			msg = resp.Status
-		}
-		fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
+		msg = resp.Status
 	}
-	return errors.New(resp.Status)
+	fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
 }

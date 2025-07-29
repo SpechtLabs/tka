@@ -33,6 +33,12 @@ import (
 	"tailscale.com/tsnet"
 )
 
+const (
+	LoginApiRoute      = "/login"
+	KubeconfigApiRoute = "/kubeconfig"
+	LogoutApiRoute     = "/logout"
+)
+
 type TKAServer struct {
 	// Options
 	debug    bool
@@ -117,16 +123,16 @@ func NewTKAServer(ctx context.Context, hostname string, operator *operator.KubeO
 	p.Use(tkaServer.router)
 
 	// Set-up routes
-	tkaServer.router.POST("/kubeconfig", tkaServer.login)
-	tkaServer.router.GET("/login", tkaServer.login)
-	tkaServer.router.POST("/login", tkaServer.login)
+	tkaServer.router.POST(KubeconfigApiRoute, tkaServer.login)
+	tkaServer.router.GET(LoginApiRoute, tkaServer.login)
+	tkaServer.router.POST(LoginApiRoute, tkaServer.login)
 
-	tkaServer.router.GET("/kubeconfig", tkaServer.getKubeconfig)
+	tkaServer.router.GET(KubeconfigApiRoute, tkaServer.getKubeconfig)
 
-	tkaServer.router.DELETE("/kubeconfig", tkaServer.logout)
-	tkaServer.router.DELETE("/login", tkaServer.logout)
-	tkaServer.router.DELETE("/logout", tkaServer.logout)
-	tkaServer.router.GET("/logout", tkaServer.logout)
+	tkaServer.router.DELETE(KubeconfigApiRoute, tkaServer.logout)
+	tkaServer.router.DELETE(LoginApiRoute, tkaServer.logout)
+	tkaServer.router.DELETE(LogoutApiRoute, tkaServer.logout)
+	tkaServer.router.GET(LogoutApiRoute, tkaServer.logout)
 
 	// serve K8s controller metrics on /metrics/controller
 	tkaServer.router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))

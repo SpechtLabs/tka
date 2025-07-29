@@ -1,13 +1,14 @@
 package tailscale
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/tools/clientcmd"
 	"tailscale.com/tailcfg"
 )
 
@@ -65,20 +66,20 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	if kubecfg, err := t.operator.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
 
-		if err.Cause() != nil && k8serrors.IsNotFound(err.Cause()) {
-			ct.JSON(http.StatusUnauthorized, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
-		} else {
-			ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
+		if errors.Is(err, operator.NotReadyYetError) {
+			ct.JSON(http.StatusProcessing, ErrorResponse{Error: "Kubeconfig not ready yet", Cause: err.Error()})
+			return
 		}
 
-		return
-	} else {
-		out, err := clientcmd.Write(*kubecfg)
-		if err != nil {
-			otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
+		if err.Cause() != nil && k8serrors.IsNotFound(err.Cause()) {
+			ct.JSON(http.StatusUnauthorized, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
+			return
+		} else {
 			ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting kubeconfig", "internal_error": err.Error()})
 			return
 		}
-		ct.String(http.StatusOK, string(out))
+	} else {
+		ct.JSON(http.StatusOK, *kubecfg)
+		return
 	}
 }

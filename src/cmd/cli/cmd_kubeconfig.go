@@ -2,23 +2,16 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func init() {
-	cmdRoot.AddCommand(cmdGet)
-	cmdGet.AddCommand(cmdKubeconfig)
-}
-
-var cmdGet = &cobra.Command{
-	Use: "get",
+	cmdRoot.AddCommand(cmdKubeconfig)
 }
 
 var cmdKubeconfig = &cobra.Command{
@@ -27,34 +20,27 @@ var cmdKubeconfig = &cobra.Command{
 	Example: "tka get kubeconfig",
 	Args:    cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		server := viper.GetString("server")
-		resp, err := http.Get(fmt.Sprintf("%s/kubeconfig", server))
+		kubecfg, err := fetchKubeConfig()
 		if err != nil {
-			return fmt.Errorf("failed to fetch kubeconfig: %w", err)
-		}
-		defer func() { _ = resp.Body.Close() }()
-
-		if resp.StatusCode != http.StatusOK {
-			return renderError(resp)
+			tui.Error(err)
+			os.Exit(1)
 		}
 
-		tempFile, err := os.CreateTemp("", "kubeconfig-*.yaml")
+		file, err := serializeKubeconfig(kubecfg)
 		if err != nil {
-			return fmt.Errorf("failed to create temp kubeconfig: %w", err)
-		}
-		defer func() { _ = tempFile.Close() }()
-
-		_, err = io.Copy(tempFile, resp.Body)
-		if err != nil {
-			return fmt.Errorf("failed to write kubeconfig: %w", err)
+			tui.Error(err)
+			os.Exit(1)
 		}
 
-		if err := os.Setenv("KUBECONFIG", tempFile.Name()); err != nil {
-			return fmt.Errorf("failed to set KUBECONFIG: %w", err)
-		}
+		fmt.Printf("✅ KUBECONFIG saved to: %s\n", file)
 
-		fmt.Printf("✅ KUBECONFIG set to: %s\n", tempFile.Name())
-		return checkKubectlContext()
+		// TODO(cedi): fix
+		//if err := checkKubectlContext(); err != nil {
+		//	tui.Error(err)
+		//	os.Exit(1)
+		//}
+
+		return nil
 	},
 }
 

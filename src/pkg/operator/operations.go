@@ -30,6 +30,8 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return err
 	}
 
+	time.Sleep(4 * time.Second)
+
 	signIn.Status.Provisioned = true
 	client := t.mgr.GetClient()
 	if err := client.Status().Update(ctx, signIn); err != nil {
@@ -62,9 +64,12 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 		}
 
 		// If the service account already exists, we'll just update it
-		saName := types.NamespacedName{Name: signIn.Spec.Username, Namespace: signIn.Namespace}
+		saName := types.NamespacedName{
+			Name:      formatSigninObjectName(signIn.Spec.Username),
+			Namespace: signIn.Namespace,
+		}
 		if err := client.Get(ctx, saName, serviceAccount); err != nil {
-			return nil, humane.Wrap(err, "Failed to get existing service account for user %s", signIn.Spec.Username)
+			return nil, humane.Wrap(err, fmt.Sprintf("Failed to get existing service account for user %s", signIn.Spec.Username))
 		}
 
 		// Update the validUntil annotation
@@ -74,7 +79,7 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 		serviceAccount.Annotations[ValidUntilAnnotation] = signIn.Spec.ValidUntil
 
 		if err := client.Update(ctx, serviceAccount); err != nil {
-			return nil, humane.Wrap(err, "Failed to update service account for user %s", signIn.Spec.Username)
+			return nil, humane.Wrap(err, fmt.Sprintf("Failed to update service account for user %s", signIn.Spec.Username))
 		}
 	}
 
@@ -133,13 +138,16 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 
 	if err := client.Create(ctx, clusterRoleBinding); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
-			return humane.Wrap(err, "Failed to create cluster role binding for user %s", signIn.Spec.Username)
+			return humane.Wrap(err, fmt.Sprintf("Failed to create cluster role binding for user %s", signIn.Spec.Username))
 		}
 
 		// If the cluster role binding already exists, we'll just update it
 		existingCRB := &rbacv1.ClusterRoleBinding{}
-		if err := client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-binding", signIn.Spec.Username)}, existingCRB); err != nil {
-			return humane.Wrap(err, "Failed to get existing cluster role binding for user %s", signIn.Spec.Username)
+		crbName := types.NamespacedName{
+			Name: getClusterRoleBindingName(signIn),
+		}
+		if err := client.Get(ctx, crbName, existingCRB); err != nil {
+			return humane.Wrap(err, fmt.Sprintf("Failed to get existing cluster role binding for user %s", signIn.Spec.Username))
 		}
 
 		// Update the validUntil annotation and role reference
@@ -150,7 +158,7 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 		existingCRB.RoleRef = newRoleRef(signIn)
 
 		if err := client.Update(ctx, existingCRB); err != nil {
-			return humane.Wrap(err, "Failed to update cluster role binding for user %s", signIn.Spec.Username)
+			return humane.Wrap(err, fmt.Sprintf("Failed to update cluster role binding for user %s", signIn.Spec.Username))
 		}
 	}
 
