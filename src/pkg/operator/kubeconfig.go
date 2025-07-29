@@ -52,7 +52,7 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 	var signIn v1alpha1.TkaSignin
 	if err := c.Get(ctx, resName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil, humane.New("User not signed in", "Please sign in before requesting kubeconfig")
+			return nil, humane.Wrap(err, "User not signed in", "Please sign in before requesting kubeconfig")
 		}
 		return nil, humane.Wrap(err, "Failed to load sign-in request")
 	}

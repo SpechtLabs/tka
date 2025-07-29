@@ -13,11 +13,16 @@ import (
 )
 
 func init() {
-	cmdRoot.AddCommand(cmdKubeconfig)
+	cmdRoot.AddCommand(cmdGet)
+	cmdGet.AddCommand(cmdKubeconfig)
+}
+
+var cmdGet = &cobra.Command{
+	Use: "get",
 }
 
 var cmdKubeconfig = &cobra.Command{
-	Use:     "get kubeconfig",
+	Use:     "kubeconfig",
 	Short:   "Fetch your temporary kubeconfig",
 	Example: "tka get kubeconfig",
 	Args:    cobra.ExactArgs(0),
@@ -60,6 +65,6 @@ func checkKubectlContext() error {
 	if err != nil {
 		return fmt.Errorf("kubectl config check failed: %w", err)
 	}
-	fmt.Printf("➡️  kubectl is now configured for: %s", strings.TrimSpace(string(output)))
+	fmt.Printf("➡️  kubectl is now configured for: %s\n", strings.TrimSpace(string(output)))
 	return nil
 }

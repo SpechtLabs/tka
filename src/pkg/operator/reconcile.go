@@ -88,7 +88,7 @@ func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
 	now := time.Now()
 
 	// If signin is stale, remove
-	if validUntil.After(now.UTC()) {
+	if now.UTC().After(validUntil.UTC()) {
 		return SignInOperationDeprovision, time.Duration(0)
 	}
 
