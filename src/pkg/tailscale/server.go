@@ -123,11 +123,12 @@ func NewTKAServer(ctx context.Context, hostname string, operator *operator.KubeO
 
 	tkaServer.router.GET("/kubeconfig", tkaServer.getKubeconfig)
 
-	tkaServer.router.DELETE("/kubeconfig", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
-	tkaServer.router.DELETE("/login", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
-	tkaServer.router.GET("/logout", func(c *gin.Context) { c.JSON(http.StatusNotImplemented, gin.H{}) })
+	tkaServer.router.DELETE("/kubeconfig", tkaServer.logout)
+	tkaServer.router.DELETE("/login", tkaServer.logout)
+	tkaServer.router.DELETE("/logout", tkaServer.logout)
+	tkaServer.router.GET("/logout", tkaServer.logout)
 
-	// Use custom handler that serves both
+	// serve K8s controller metrics on /metrics/controller
 	tkaServer.router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
 
 	return tkaServer, nil

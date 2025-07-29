@@ -2,14 +2,12 @@ package operator
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/go-logr/zapr"
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tailscale-k8s-auth/api/v1alpha1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
@@ -88,7 +86,7 @@ func NewK8sOperator() (*KubeOperator, humane.Error) {
 		HealthProbeBindAddress:  "0",
 		LeaderElection:          inCluster,
 		LeaderElectionNamespace: leaderElectionNamespace,
-		LeaderElectionID:        "controller.tka.specht-labs.dev",
+		LeaderElectionID:        "controller.tka.specht-labs.de",
 		Metrics: server.Options{
 			BindAddress: "0",
 		},
@@ -115,30 +113,4 @@ func (t *KubeOperator) Start(ctx context.Context) humane.Error {
 	}
 
 	return nil
-}
-
-// isK8sVerAtLeast checks if the cluster's Kubernetes version is at least the specified major.minor version
-func (t *KubeOperator) isK8sVerAtLeast(majorVersion, minorVersion int) (bool, humane.Error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(t.mgr.GetConfig())
-	if err != nil {
-		return false, humane.Wrap(err, "Failed to create discovery client")
-	}
-
-	versionInfo, err := discoveryClient.ServerVersion()
-	if err != nil {
-		return false, humane.Wrap(err, "Failed to get server version")
-	}
-
-	currentMajor, err := strconv.Atoi(versionInfo.Major)
-	if err != nil {
-		return false, humane.Wrap(err, "Failed to parse Kubernetes major version")
-	}
-
-	currentMinor, err := strconv.Atoi(versionInfo.Minor)
-	if err != nil {
-		return false, humane.Wrap(err, "Failed to parse Kubernetes minor version")
-	}
-
-	// Check if current version is at least the required version
-	return (currentMajor > majorVersion) || (currentMajor == majorVersion && currentMinor >= minorVersion), nil
 }

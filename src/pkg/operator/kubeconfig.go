@@ -2,42 +2,24 @@ package operator
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tailscale-k8s-auth/api/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func formatSigninObjectName(userName string) string {
-	return fmt.Sprintf("tka-user-%s", userName)
-}
 
 // SignInUser creates necessary Kubernetes resources to grant a user temporary access with a specific role
 func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, validUntil time.Time) humane.Error {
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.SignInUser")
 	defer span.End()
 
-	now := time.Now()
-	period := validUntil.Sub(now)
-
-	signin := &v1alpha1.TkaSignin{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      formatSigninObjectName(userName),
-			Namespace: "tka-dev", // TODO(cedi): make this dynamic...
-		},
-		Spec: v1alpha1.TkaSigninSpec{
-			Username:   userName,
-			Role:       role,
-			ValidUntil: validUntil.Format(time.RFC3339),
-		},
-	}
-
 	c := t.mgr.GetClient()
+
+	signin := newSignin(userName, role, validUntil)
 	if err := c.Create(ctx, signin); err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			return humane.Wrap(err, "User already signed in",
@@ -48,12 +30,7 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 		return humane.Wrap(err, "Error signing in user", "see underlying error for more details")
 	}
 
-	signin.Status = v1alpha1.TkaSigninStatus{
-		Provisioned:    false,
-		ValidityPeriod: period.String(),
-		SignedInAt:     now.Format(time.RFC3339),
-	}
-
+	signin.Status = *newSigninStatus(validUntil)
 	if err := c.Status().Update(ctx, signin); err != nil {
 		return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
 	}
@@ -93,29 +70,28 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 	userEntry := "tka-user-" + userName
 
 	// Build kubeconfig
-	kubeCfg := &api.Config{
-		Kind:           "Config",
-		APIVersion:     "v1",
-		CurrentContext: contextName,
-		Clusters: map[string]*api.Cluster{
-			clusterName: {
-				Server:                   restCfg.Host,
-				CertificateAuthorityData: restCfg.CAData,
-				InsecureSkipTLSVerify:    restCfg.Insecure,
-			},
-		},
-		AuthInfos: map[string]*api.AuthInfo{
-			userEntry: {
-				Token: token,
-			},
-		},
-		Contexts: map[string]*api.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: userEntry,
-			},
-		},
+	return newKubeconfig(contextName, restCfg, token, clusterName, userEntry), nil
+}
+
+func (t *KubeOperator) LogOutUser(ctx context.Context, userName string) humane.Error {
+	ctx, span := t.tracer.Start(ctx, "KubeOperator.GetKubeconfig")
+	defer span.End()
+
+	c := t.mgr.GetClient()
+	var signIn v1alpha1.TkaSignin
+
+	// TODO(cedi): Make namespace dynamic
+	signinName := types.NamespacedName{Name: formatSigninObjectName(userName), Namespace: "tka-dev"}
+	if err := c.Get(ctx, signinName, &signIn); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return humane.New("User not signed in", "Please sign in before requesting kubeconfig")
+		}
+		return humane.Wrap(err, "Failed to load sign-in request")
 	}
 
-	return kubeCfg, nil
+	if err := c.Delete(ctx, &signIn); err != nil {
+		return humane.Wrap(err, "Failed to remove sign-in request")
+	}
+
+	return nil
 }
