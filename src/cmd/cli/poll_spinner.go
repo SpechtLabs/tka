@@ -15,6 +15,8 @@ var (
 	bold  = lipgloss.NewStyle().Bold(true)
 	green = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
 	red   = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
+	gray  = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Bold(true)
+	blue  = lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true)
 )
 
 type pollTriggerMsg struct{}
@@ -32,6 +34,8 @@ type pollModel struct {
 	delay        time.Duration
 	maxAttempts  int
 	pollFunc     func() (any, humane.Error)
+	startedAt    time.Time
+	showReadyMsg bool
 }
 
 func (m pollModel) Init() tea.Cmd {
@@ -64,6 +68,7 @@ func (m pollModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil {
 			m.ready = true
 			m.result = msg.result
+			m.showReadyMsg = time.Since(m.startedAt) > 250*time.Millisecond
 			return m, tea.Quit
 		}
 
@@ -86,13 +91,16 @@ func (m pollModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m pollModel) View() string {
 	switch {
 	case m.ready:
-		return fmt.Sprintf("%s %s\n", green.Render("✓"), bold.Render("Kubeconfig is ready!"))
+		if m.showReadyMsg {
+			return fmt.Sprintf("%s %s\n", green.Render("✓"), bold.Render("kubeconfig is ready"))
+		}
+		return ""
 
 	case m.err != nil:
-		return fmt.Sprintf("%s %s\n\n%s\n", red.Render("✗"), bold.Render("Fetching kubeconfig failed!"), m.err.Error())
+		return fmt.Sprintf("%s %s\n\n%s\n", red.Render("✗"), bold.Render("fetching kubeconfig failed!"), m.err.Error())
 
 	default:
-		return fmt.Sprintf("%s Attempt %d: %s", m.spinner.View(), m.attempt, m.message)
+		return fmt.Sprintf("%s %s", blue.Render(m.spinner.View()), gray.Render(m.message))
 	}
 }
 

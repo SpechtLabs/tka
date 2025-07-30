@@ -38,7 +38,7 @@ verifies kubectl connectivity.`,
 			os.Exit(1)
 		}
 
-		tui.PrintLoginSuccess(*loginInfo)
+		fmt.Printf("%s %s\n", green.Render("✓"), bold.Render("successfully signed in"))
 		time.Sleep(100 * time.Millisecond)
 
 		kubecfg, err := fetchKubeConfig()
@@ -53,13 +53,16 @@ verifies kubectl connectivity.`,
 			os.Exit(1)
 		}
 
-		fmt.Printf("✅ KUBECONFIG saved to: %s\n", file)
+		fmt.Printf("%s %s %s\n", green.Render("✓"), bold.Render("kubeconfig saved to"), gray.Render(file))
 
 		// TODO(cedi): fix
 		//if err := checkKubectlContext(); err != nil {
 		//	tui.Error(err)
 		//	os.Exit(1)
 		//}
+
+		fmt.Printf("%s %s\n", blue.Render("•"), bold.Render("Login Information:"))
+		tui.PrintLoginInformation(loginInfo)
 
 		return nil
 	},
@@ -85,6 +88,7 @@ func fancyFetchKubeconfig() (*api.Config, humane.Error) {
 		message:      "Waiting for kubeconfig to be ready...",
 		expectedCode: http.StatusOK,
 		maxAttempts:  10,
+		startedAt:    time.Now(),
 		pollFunc: func() (any, humane.Error) {
 			return doRequestAndDecode[api.Config](http.MethodGet, tailscale.KubeconfigApiRoute, nil, http.StatusOK)
 		},

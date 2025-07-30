@@ -32,7 +32,7 @@ var cmdKubeconfig = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Printf("✅ KUBECONFIG saved to: %s\n", file)
+		fmt.Printf("%s %s %s\n", green.Render("✓"), bold.Render("kubeconfig saved to"), gray.Render(file))
 
 		// TODO(cedi): fix
 		//if err := checkKubectlContext(); err != nil {

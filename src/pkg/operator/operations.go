@@ -30,8 +30,6 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return err
 	}
 
-	time.Sleep(4 * time.Second)
-
 	signIn.Status.Provisioned = true
 	client := t.mgr.GetClient()
 	if err := client.Status().Update(ctx, signIn); err != nil {
