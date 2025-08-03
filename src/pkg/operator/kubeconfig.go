@@ -95,7 +95,7 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 		return nil, humane.Wrap(err, "Failed to generate token")
 	}
 
-	// Extract Kubernetes API server host from controller config
+	// Extract Kubernetes API tailscale host from controller config
 	restCfg := t.mgr.GetConfig()
 	clusterName := "tka-cluster"
 	contextName := "tka-context-" + userName

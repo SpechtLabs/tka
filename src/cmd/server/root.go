@@ -34,15 +34,15 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&configFileName, "config", "c", "", "Name of the config file")
 
 	rootCmd.PersistentFlags().IntVar(&port, "port", 443, "port to listen on")
-	viper.SetDefault("server.port", 443)
-	err := viper.BindPFlag("server.port", rootCmd.PersistentFlags().Lookup("port"))
+	viper.SetDefault("tailscale.port", 443)
+	err := viper.BindPFlag("tailscale.port", rootCmd.PersistentFlags().Lookup("port"))
 	if err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&hostname, "server", "s", "tka-server", "Port of the gRPC API of the Server")
-	viper.SetDefault("server.hostname", "tka-server")
-	err = viper.BindPFlag("server.hostname", rootCmd.PersistentFlags().Lookup("server"))
+	rootCmd.PersistentFlags().StringVarP(&hostname, "server", "s", "tka", "Port of the gRPC API of the Server")
+	viper.SetDefault("tailscale.hostname", "tka")
+	err = viper.BindPFlag("tailscale.hostname", rootCmd.PersistentFlags().Lookup("server"))
 	if err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
@@ -54,7 +54,7 @@ func init() {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
-	rootCmd.PersistentFlags().StringVar(&capName, "cap-name", "specht-labs.de/cap/tka", "name of the capability to request from tailscale")
+	rootCmd.PersistentFlags().StringVar(&capName, "cap-name", "specht-labs.de/cap/tka", "name of the capability to request from api")
 	viper.SetDefault("tailscale.capName", "specht-labs.de/cap/tka")
 	err = viper.BindPFlag("tailscale.capName", rootCmd.PersistentFlags().Lookup("cap-name"))
 	if err != nil {
@@ -73,7 +73,7 @@ func initConfig() {
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath(".")
 		viper.AddConfigPath(home)
-		viper.AddConfigPath("$HOME/.config/tailscale-k8s-auth/")
+		viper.AddConfigPath("$HOME/.config/api-k8s-auth/")
 		viper.AddConfigPath("/data")
 	}
 
@@ -86,8 +86,8 @@ func initConfig() {
 		//otelzap.L().WithError(err).Warn("Failed to read config file. This might be still valid if you provided all the environment variables or command line flags.")
 	}
 
-	hostname = viper.GetString("server.hostname")
-	port = viper.GetInt("server.port")
+	hostname = viper.GetString("tailscale.hostname")
+	port = viper.GetInt("tailscale.port")
 	tsNetStateDir = viper.GetString("tailscale.stateDir")
 	capName = viper.GetString("tailscale.capName")
 }

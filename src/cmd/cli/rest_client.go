@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
 	"github.com/spf13/viper"
 )
 
@@ -23,7 +23,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	}
 
 	// Assemble the request URL
-	server := viper.GetString("server")
+	server := viper.GetString("tailscale")
 	url := fmt.Sprintf("%s%s", server, uri)
 
 	// Create the request
@@ -35,7 +35,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	// Do the request
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, 0, humane.Wrap(err, "failed to perform request", "ensure the server is reachable")
+		return nil, 0, humane.Wrap(err, "failed to perform request", "ensure the tailscale is reachable")
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -60,7 +60,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 }
 
 func handleAPIError(resp *http.Response, body []byte) humane.Error {
-	var errBody tailscale.ErrorResponse
+	var errBody api.ErrorResponse
 	if err := json.Unmarshal(body, &errBody); err == nil {
 		return humane.Wrap(errBody.AsHumaneError(), fmt.Sprintf("HTTP %d", resp.StatusCode))
 	}

@@ -22,7 +22,7 @@ func (t *KubeOperator) isK8sVerAtLeast(majorVersion, minorVersion int) (bool, hu
 
 	versionInfo, err := discoveryClient.ServerVersion()
 	if err != nil {
-		return false, humane.Wrap(err, "Failed to get server version")
+		return false, humane.Wrap(err, "Failed to get tailscale version")
 	}
 
 	currentMajor, err := strconv.Atoi(versionInfo.Major)

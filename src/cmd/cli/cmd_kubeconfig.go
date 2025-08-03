@@ -10,7 +10,7 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui"
 	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui/async_op"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	tkaApi "github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -60,7 +60,7 @@ func fetchKubeConfig() (*api.Config, humane.Error) {
 	defer cancel()
 
 	pollFunc := func() (api.Config, humane.Error) {
-		if cfg, _, err := doRequestAndDecode[api.Config](http.MethodGet, tailscale.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
+		if cfg, _, err := doRequestAndDecode[api.Config](http.MethodGet, tkaApi.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
 			return *cfg, nil
 		} else {
 			return api.Config{}, err

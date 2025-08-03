@@ -1,4 +1,4 @@
-package tailscale
+package api
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	who, err := t.lc.WhoIs(ctx, req.RemoteAddr)
+	who, err := t.tsServer.LC().WhoIs(ctx, req.RemoteAddr)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
 		ct.JSON(http.StatusInternalServerError, NewErrorResponse("Error getting WhoIs", err))
@@ -62,7 +62,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 	rules, err := tailcfg.UnmarshalCapJSON[capRule](who.CapMap, t.capName)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error unmarshaling capability")
-		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling tailscale capability map", "Check the syntax of your tailscale ACL for user "+userName+".")))
+		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling api capability map", "Check the syntax of your api ACL for user "+userName+".")))
 		return
 	}
 
@@ -90,7 +90,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 
 	if period < 10*time.Minute {
 		err := humane.New("`period` may not specify a duration less than 10 minutesD",
-			fmt.Sprintf("Specify a period greater than 10 minutes in your tailscale ACL for user %s", userName),
+			fmt.Sprintf("Specify a period greater than 10 minutes in your api ACL for user %s", userName),
 		)
 		otelzap.L().WithError(err).ErrorContext(ctx, "Invalid capRule")
 		ct.JSON(http.StatusUnprocessableEntity, NewErrorResponse("Invalid capRule", err))
@@ -133,7 +133,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 		return
 	}
 
-	who, err := t.lc.WhoIs(ctx, req.RemoteAddr)
+	who, err := t.tsServer.LC().WhoIs(ctx, req.RemoteAddr)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
 		ct.JSON(http.StatusInternalServerError, NewErrorResponse("Error getting WhoIs", err))
@@ -152,7 +152,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 	rules, err := tailcfg.UnmarshalCapJSON[capRule](who.CapMap, t.capName)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error unmarshaling capability")
-		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling tailscale capability map", "Check the syntax of your tailscale ACL for user "+userName+".")))
+		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling api capability map", "Check the syntax of your api ACL for user "+userName+".")))
 		return
 	}
 

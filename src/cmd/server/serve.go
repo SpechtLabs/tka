@@ -9,8 +9,9 @@ import (
 	"syscall"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	server2 "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -46,11 +47,15 @@ func runE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s", err.Display())
 	}
 
-	tkaServer, err := tailscale.NewTKAServer(ctx, hostname, k8sOperator,
-		tailscale.WithDebug(debug),
-		tailscale.WithPort(port),
-		tailscale.WithStateDir(tsNetStateDir),
-		tailscale.WithPeerCapName(tailcfg.PeerCapability(capName)),
+	srv := server2.NewServer(hostname,
+		server2.WithDebug(debug),
+		server2.WithPort(port),
+		server2.WithStateDir(tsNetStateDir),
+	)
+
+	tkaServer, err := api.NewTKAServer(srv, k8sOperator,
+		api.WithDebug(debug),
+		api.WithPeerCapName(tailcfg.PeerCapability(capName)),
 	)
 	if err != nil {
 		cancelFn(err)
@@ -60,7 +65,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	go func() {
 		if err := tkaServer.Serve(ctx); err != nil {
 			cancelFn(err.Cause())
-			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA server")
+			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA tailscale")
 		}
 	}()
 
@@ -75,7 +80,8 @@ func runE(cmd *cobra.Command, args []string) error {
 	<-ctx.Done()
 	// No more logging to ctx from here onwards
 
-	if err := tkaServer.Shutdown(); err != nil {
+	ctx = context.Background()
+	if err := tkaServer.Shutdown(ctx); err != nil {
 		return fmt.Errorf("%s", err.Display())
 	}
 

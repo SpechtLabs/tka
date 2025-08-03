@@ -53,7 +53,7 @@ func NewK8sOperator() (*KubeOperator, humane.Error) {
 
 	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
 
-	// GetConfigOrDie creates a *rest.Config for talking to a Kubernetes API server.
+	// GetConfigOrDie creates a *rest.Config for talking to a Kubernetes API tailscale.
 	// If --kubeconfig.go is set, will use the kubeconfig.go file at that location.  Otherwise will assume running
 	// in cluster and use the cluster provided kubeconfig.go.
 	//

@@ -1,4 +1,4 @@
-package tailscale
+package api
 
 type capRule struct {
 	Role   string `json:"role"`

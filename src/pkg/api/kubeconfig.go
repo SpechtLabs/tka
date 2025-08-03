@@ -1,4 +1,4 @@
-package tailscale
+package api
 
 import (
 	"errors"
@@ -28,7 +28,7 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 		return
 	}
 
-	who, err := t.lc.WhoIs(ctx, req.RemoteAddr)
+	who, err := t.tsServer.LC().WhoIs(ctx, req.RemoteAddr)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
 		ct.JSON(http.StatusInternalServerError, NewErrorResponse("Error getting WhoIs", err))
@@ -47,7 +47,7 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	rules, err := tailcfg.UnmarshalCapJSON[capRule](who.CapMap, t.capName)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error unmarshaling capability")
-		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling tailscale capability map", "Check the syntax of your tailscale ACL for user "+userName+".")))
+		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling api capability map", "Check the syntax of your api ACL for user "+userName+".")))
 		return
 	}
 

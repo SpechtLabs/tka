@@ -1,4 +1,4 @@
-package tailscale
+package api
 
 import (
 	"crypto/tls"

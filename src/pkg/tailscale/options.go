@@ -1,44 +1,25 @@
 package tailscale
 
-import "tailscale.com/tailcfg"
+// TailscaleOption defines a function type for modifying Server configuration
+type TailscaleOption func(*Server)
 
-// Option defines a function type used to modify the configuration of a TKAServer during its initialization.
-type Option func(*TKAServer)
-
-// WithDebug enables or disables debug mode for the TKAServer.
-func WithDebug(enable bool) Option {
-	return func(tka *TKAServer) {
-		tka.debug = enable
+// WithDebug sets debug mode for the Server
+func WithDebug(debug bool) TailscaleOption {
+	return func(s *Server) {
+		s.debug = debug
 	}
 }
 
-// WithPort returns an Option that sets the port for the TKAServer. (Default: 443)
-func WithPort(port int) Option {
-	return func(tka *TKAServer) {
-		tka.port = port
+// WithPort sets the listening port for the Server
+func WithPort(port int) TailscaleOption {
+	return func(s *Server) {
+		s.port = port
 	}
 }
 
-// WithStateDir sets the state directory for the tsnet state
-//
-// The dir parameter specifies the name of the directory to use for
-// state. If empty, a directory is selected automatically
-// under os.UserConfigDir (https://golang.org/pkg/os/#UserConfigDir).
-// based on the name of the binary.
-//
-// If you want to use multiple tsnet services in the same
-// binary, you will need to make sure that Dir is set uniquely
-// for each service. A good pattern for this is to have a
-// "base" directory (such as your mutable storag
-func WithStateDir(dir string) Option {
-	return func(tka *TKAServer) {
-		tka.stateDir = dir
-	}
-}
-
-// WithPeerCapName sets the `capName` field of a `TKAServer` to the provided `tailcfg.PeerCapability`.
-func WithPeerCapName(capName tailcfg.PeerCapability) Option {
-	return func(tka *TKAServer) {
-		tka.capName = capName
+// WithStateDir sets the state directory for Tailscale
+func WithStateDir(dir string) TailscaleOption {
+	return func(s *Server) {
+		s.stateDir = dir
 	}
 }

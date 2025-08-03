@@ -21,14 +21,30 @@ It talks to a tka-api instance and helps you fetch ephemeral kubeconfigs.`,
 
 var cmdGet = &cobra.Command{
 	Use:   "get",
-	Short: "Get resources from the tka server",
-	Long: `Get command retrieves resources from your Tailscale Kubernetes Auth server.
+	Short: "Get resources from the tka",
+	Long: `Get command retrieves resources from your Tailscale Kubernetes Auth tailscale.
 It can be used to fetch various resources like kubeconfigs or clusters.`,
+}
+
+var cmdDelete = &cobra.Command{
+	Use:     "delete",
+	Aliases: []string{"rm", "del"},
+	Short:   "Delete resources from the tka",
+	Long:    `TODO`,
+}
+
+var cmdNew = &cobra.Command{
+	Use:     "new",
+	Aliases: []string{"create"},
+	Short:   "Create resources from the tka",
+	Long:    `TODO`,
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
 	cmdRoot.AddCommand(cmdGet)
+	cmdRoot.AddCommand(cmdDelete)
+	cmdRoot.AddCommand(cmdNew)
 }
 
 func initConfig() {
@@ -36,10 +52,10 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if os.Getenv("TKA_SERVER") == "" {
-		log.Fatal("TKA_SERVER environment variable must be set to your tka-api server (e.g. http://tka-1.sphinx-map.ts.net:8123)")
+		log.Fatal("TKA_SERVER environment variable must be set to your tka-api tailscale (e.g. http://tka-1.sphinx-map.ts.net:8123)")
 	}
 
-	viper.Set("server", os.Getenv("TKA_SERVER"))
+	viper.Set("tailscale", os.Getenv("TKA_SERVER"))
 }
 
 func renderError(resp *http.Response) {

@@ -1,4 +1,4 @@
-package tailscale
+package api
 
 import (
 	"net/http"
@@ -26,7 +26,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 		return
 	}
 
-	who, err := t.lc.WhoIs(ctx, req.RemoteAddr)
+	who, err := t.tsServer.LC().WhoIs(ctx, req.RemoteAddr)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
 		ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting WhoIs", "internal_error": err.Error()})
