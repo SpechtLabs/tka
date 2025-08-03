@@ -46,27 +46,8 @@ jobs:
           cache: true
           cache-dependency-path: "**/*.sum"
 
-      - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          working-directory: src/
-          version: latest
-
-      - name: StaticCheck
-        uses: dominikh/staticcheck-action@v1
-        with:
-          working-directory: src/
-          version: latest
-
-      - name: Run format-check
-        working-directory: "src/"
-        run: |
-          UNFORMATTED=$(gofmt -l .)
-          if [ -n "$UNFORMATTED" ]; then
-            echo "The following files are not formatted according to gofmt:"
-            echo "$UNFORMATTED"
-            exit 1
-          fi
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.1
 
   test:
     name: Unit Tests
