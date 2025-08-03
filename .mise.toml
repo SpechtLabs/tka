@@ -1,0 +1,25 @@
+[tools]
+# Go version from your go.mod file
+go = "1.24.4"
+
+# Node.js for JavaScript/TypeScript
+node = "20.11.1"
+npm = "10.5.0"
+
+# Pre-commit for Git hooks
+pre-commit = "3.6.0"
+
+# Additional tools for development
+golangci-lint = "1.56.2"
+goreleaser = "1.24.0"
+kind = "0.22.0"
+kubectl = "1.29.2"
+markdownlint-cli2 = "0.12.1"
+prettier = "3.1.0"
+
+[env]
+# Set environment variables for Go development
+GO111MODULE = "on"
+
+# Vue.js related environment variables
+NODE_ENV = "development"
