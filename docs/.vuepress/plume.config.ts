@@ -1,19 +1,22 @@
-import { defineThemeConfig } from 'vuepress-theme-plume'
-import { navbar } from './navbar'
-import { notes } from './notes'
+import { defineThemeConfig } from "vuepress-theme-plume";
+import { navbar } from "./navbar";
+import { notes } from "./notes";
 
 /**
  * @see https://theme-plume.vuejs.press/config/basic/
  */
 export default defineThemeConfig({
-  logo: '/images/specht.png',
+  logo: "/images/specht.png",
 
-  appearance: true,  // Configure Dark Mode
+  appearance: true, // Configure Dark Mode
 
   social: [
-    { icon: 'github', link: 'https://github.com/SpechtLabs/tailscale-k8s-auth' },
+    {
+      icon: "github",
+      link: "https://github.com/SpechtLabs/tailscale-k8s-auth",
+    },
   ],
-  navbarSocialInclude: ['github'],
+  navbarSocialInclude: ["github"],
   aside: true,
 
   prevPage: true,
@@ -21,19 +24,22 @@ export default defineThemeConfig({
   createTime: true,
 
   footer: {
-    message: '<a target="_self" href="https://specht-labs.de/impressum/">Impressum</a> - <a target="_self" href="https://specht-labs.de/datenschutz/">Datenschutz</a> - Powered by <a target="_blank" href="https://v2.vuepress.vuejs.org/">VuePress</a>',
-    copyright: '&#169; 2025 Cedric Specht - <a target="_self" href="https://specht-labs.de/">Specht Labs</a>',
+    message:
+      '<a target="_self" href="https://specht-labs.de/impressum/">Impressum</a> - <a target="_self" href="https://specht-labs.de/datenschutz/">Datenschutz</a> - Powered by <a target="_blank" href="https://v2.vuepress.vuejs.org/">VuePress</a>',
+    copyright:
+      '&#169; 2025 Cedric Specht - <a target="_self" href="https://specht-labs.de/">Specht Labs</a>',
   },
 
   /**
    * @see https://theme-plume.vuejs.press/config/basic/#profile
    */
   profile: {
-    avatar: '/images/specht-labs-rounded.png',
-    name: 'Specht Labs',
-    description: 'SpechtLabs is dedicated to building robust, scalable, and high-performance software.',
+    avatar: "/images/specht-labs-rounded.png",
+    name: "Specht Labs",
+    description:
+      "SpechtLabs is dedicated to building robust, scalable, and high-performance software.",
     // circle: true,
-    location: 'Hamburg, Germany',
+    location: "Hamburg, Germany",
     //    organization: 'foobar',
   },
 
@@ -57,5 +63,4 @@ export default defineThemeConfig({
   //   postList: true,    // 启用 博客文章列表过渡动画
   //   appearance: 'fade',  // 启用 深色模式切换过渡动画, 或配置过渡动画类型
   // },
-
-})
+});

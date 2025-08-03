@@ -1,0 +1,119 @@
+repos:
+  # Go linting
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.56.2  # Use the latest version from https://github.com/golangci/golangci-lint/releases
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        description: Fast linters runner for Go
+        entry: bash -c 'cd src && golangci-lint run --timeout=5m'
+        types: [go]
+        language: golang
+        pass_filenames: false
+
+  # Prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0  # Use the latest version from https://github.com/pre-commit/mirrors-prettier/releases
+    hooks:
+      - id: prettier
+        name: prettier
+        description: Code formatter for JavaScript/TypeScript/Vue
+        files: \.(js|ts|tsx|vue)$
+        additional_dependencies:
+          - prettier@3.1.0
+          - prettier-plugin-vue@1.1.6
+
+  # Generic pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0  # Use the latest version from https://github.com/pre-commit/pre-commit-hooks/releases
+    hooks:
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        description: Trims trailing whitespace
+        types: [text]
+
+      - id: end-of-file-fixer
+        name: fix end of files
+        description: Ensures files end with a newline
+        types: [text]
+
+      - id: check-yaml
+        name: check yaml
+        description: Checks yaml files for parsable syntax
+        types: [yaml]
+
+      - id: check-json
+        name: check json
+        description: Checks json files for parsable syntax
+        types: [json]
+
+      - id: mixed-line-ending
+        name: mixed line ending
+        description: Ensures line endings are consistent
+        args: [--fix=lf]
+        types: [text]
+
+      - id: check-added-large-files
+        name: check for added large files
+        description: Prevents giant files from being committed
+        args: ['--maxkb=500']
+
+      - id: check-merge-conflict
+        name: check for merge conflicts
+        description: Checks for files that contain merge conflict strings
+
+      - id: detect-private-key
+        name: detect private keys
+        description: Checks for presence of private keys
+
+      - id: check-case-conflict
+        name: check for case conflicts
+        description: Checks for files with names that would conflict on case-insensitive filesystems
+
+  # Golang specific checks
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1  # Use the latest version
+    hooks:
+      - id: go-fmt
+        name: go fmt
+        description: Runs go fmt on Go files
+        types: [go]
+        files: ^src/
+
+      - id: go-imports
+        name: go imports
+        description: Runs goimports on Go files
+        types: [go]
+        files: ^src/
+
+      - id: go-mod-tidy
+        name: go mod tidy
+        description: Runs go mod tidy to ensure modules are up to date
+        files: go.mod|go.sum
+        pass_filenames: false
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0  # Use the latest version
+    hooks:
+      - id: markdownlint
+        name: markdownlint
+        description: Checks markdown files for style issues
+        args: ["--fix"]
+
+  # Commit message checks
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.18.0  # Use the latest version
+    hooks:
+      - id: commitizen
+        name: commitizen check
+        description: Checks if commit message follows conventional commit format
+        stages: [commit-msg]
+
+  # Security checks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2  # Use the latest version
+    hooks:
+      - id: gitleaks
+        name: gitleaks
+        description: Detects hardcoded secrets like API keys and tokens

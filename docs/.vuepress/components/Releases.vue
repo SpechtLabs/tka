@@ -4,17 +4,32 @@
     <p class="description">Select your Platform</p>
 
     <div class="release-platforms">
-      <button class="release-button release-platform" :class="{ active: platform === selectedPlatform }"
-        v-for="(name, platform) in platforms" :key="platform" v-on:click="selectedPlatform = platform">
+      <button
+        class="release-button release-platform"
+        :class="{ active: platform === selectedPlatform }"
+        v-for="(name, platform) in platforms"
+        :key="platform"
+        v-on:click="selectedPlatform = platform"
+      >
         {{ name }}
       </button>
     </div>
 
     <div class="release-list" v-if="selectedPlatform">
-      <div class="release" v-for="release in applicableReleases" :key="release.id">
+      <div
+        class="release"
+        v-for="release in applicableReleases"
+        :key="release.id"
+      >
         <h4 class="release__name">
-          <a class="release-button no-external-link-icon" :href="getReleaseAsset(release, selectedPlatform).browser_download_url
-            " target="_blank">Download</a>
+          <a
+            class="release-button no-external-link-icon"
+            :href="
+              getReleaseAsset(release, selectedPlatform).browser_download_url
+            "
+            target="_blank"
+            >Download</a
+          >
 
           {{ release.name }}
           <Badge v-if="release.prerelease" text="Early Access" type="warning" />
@@ -50,16 +65,16 @@ interface ReleaseAsset {
 }
 
 const platforms = {
-  "darwin_amd64": "MacOS (Intel)",
-  "darwin_arm64": "MacOS (Apple)",
-  "linux_amd64": "Linux (x64)",
-  "linux_arm64": "Linux (ARM64)",
-  "windows_amd64": "Windows (x64)",
+  darwin_amd64: "MacOS (Intel)",
+  darwin_arm64: "MacOS (Apple)",
+  linux_amd64: "Linux (x64)",
+  linux_arm64: "Linux (ARM64)",
+  windows_amd64: "Windows (x64)",
 };
 
 function getReleaseAsset(
   release: Release,
-  platform: string
+  platform: string,
 ): ReleaseAsset | undefined {
   return release.assets.find((asset) => asset.name.includes(platform));
 }
@@ -80,9 +95,9 @@ export default defineComponent({
     const applicableReleases = computed(() =>
       (releases.value || [])
         .filter((r) =>
-          (r.assets || []).some((a) => a.name.includes(selectedPlatform.value))
+          (r.assets || []).some((a) => a.name.includes(selectedPlatform.value)),
         )
-        .slice(0, 5)
+        .slice(0, 5),
     );
 
     fetch(`https://api.github.com/repos/${props.repo}/releases`, {
@@ -183,20 +198,20 @@ a.release-button {
 }
 
 .title {
-    font-size: 28px;
-    font-weight: 900;
-    margin-bottom: 20px;
-    text-align: center;
-    transition: color var(--vp-t-color);
-    color: var(--vp-c-text-1);
+  font-size: 28px;
+  font-weight: 900;
+  margin-bottom: 20px;
+  text-align: center;
+  transition: color var(--vp-t-color);
+  color: var(--vp-c-text-1);
 }
 
 .description {
-    font-size: 18px;
-    font-weight: 400;
-    margin-bottom: 20px;
-    text-align: center;
-    transition: color var(--vp-t-color);
-    color: var(--vp-c-text-1);
+  font-size: 18px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  text-align: center;
+  transition: color var(--vp-t-color);
+  color: var(--vp-c-text-1);
 }
 </style>

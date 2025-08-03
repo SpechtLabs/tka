@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import Contributors from './Contributors.vue';
+import Contributors from "./Contributors.vue";
 
 defineProps<{
-  repo: string
-}>()
+  repo: string;
+}>();
 </script>
 
 <template>

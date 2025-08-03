@@ -21,9 +21,9 @@ var cmdSignIn = &cobra.Command{
 	Aliases: []string{"signin"},
 	Short:   "Sign in and configure kubectl with temporary access",
 	Example: "tka login",
-	Long: `Authenticate using your Tailscale identity and retrieve a temporary 
+	Long: `Authenticate using your Tailscale identity and retrieve a temporary
 Kubernetes access token. This command automatically fetches your kubeconfig,
-writes it to a temporary file, sets the KUBECONFIG environment variable, and 
+writes it to a temporary file, sets the KUBECONFIG environment variable, and
 verifies kubectl connectivity.`,
 	RunE: signIn,
 }
@@ -33,9 +33,9 @@ var cmNewSignIn = &cobra.Command{
 	Aliases: []string{"signin"},
 	Short:   "Sign in and configure kubectl with temporary access",
 	Example: "tka new login",
-	Long: `Authenticate using your Tailscale identity and retrieve a temporary 
+	Long: `Authenticate using your Tailscale identity and retrieve a temporary
 Kubernetes access token. This command automatically fetches your kubeconfig,
-writes it to a temporary file, sets the KUBECONFIG environment variable, and 
+writes it to a temporary file, sets the KUBECONFIG environment variable, and
 verifies kubectl connectivity.`,
 	RunE: signIn,
 }

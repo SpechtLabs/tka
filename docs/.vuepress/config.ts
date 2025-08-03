@@ -1,19 +1,27 @@
-import { viteBundler } from '@vuepress/bundler-vite';
+import { viteBundler } from "@vuepress/bundler-vite";
 // import registerComponentsPlugin from '@vuepress/plugin-register-components';
-import { registerComponentsPlugin } from '@vuepress/plugin-register-components';
-import { path } from '@vuepress/utils';
-import { defineUserConfig } from 'vuepress';
-import { plumeTheme } from 'vuepress-theme-plume';
+import { registerComponentsPlugin } from "@vuepress/plugin-register-components";
+import { path } from "@vuepress/utils";
+import { defineUserConfig } from "vuepress";
+import { plumeTheme } from "vuepress-theme-plume";
 
 export default defineUserConfig({
-  base: '/',
-  lang: 'en-US',
-  title: 'Tailscale K8s Auth',
-  description: 'Zero-friction Kubernetes access using Tailscale and ephemeral service accounts',
+  base: "/",
+  lang: "en-US",
+  title: "Tailscale K8s Auth",
+  description:
+    "Zero-friction Kubernetes access using Tailscale and ephemeral service accounts",
 
   head: [
-    ['meta', { name: "description", content: "Forget complex auth proxies, VPNs, or OIDC setups. `tailscale-k8s-auth` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials." }],
-    ['link', { rel: 'icon', type: 'image/png', href: '/images/specht.png' }],
+    [
+      "meta",
+      {
+        name: "description",
+        content:
+          "Forget complex auth proxies, VPNs, or OIDC setups. `tailscale-k8s-auth` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.",
+      },
+    ],
+    ["link", { rel: "icon", type: "image/png", href: "/images/specht.png" }],
   ],
 
   bundler: viteBundler(),
@@ -21,14 +29,14 @@ export default defineUserConfig({
 
   plugins: [
     registerComponentsPlugin({
-      componentsDir: path.resolve(__dirname, './components'),
+      componentsDir: path.resolve(__dirname, "./components"),
     }),
   ],
 
   theme: plumeTheme({
-    docsRepo: 'https://github.com/SpechtLabs/tailscale-k8s-auth',
-    docsDir: 'docs',
-    docsBranch: 'main',
+    docsRepo: "https://github.com/SpechtLabs/tailscale-k8s-auth",
+    docsDir: "docs",
+    docsBranch: "main",
 
     editLink: false,
     lastUpdated: false,
@@ -39,19 +47,19 @@ export default defineUserConfig({
       tags: false,
       archives: false,
       categories: false,
-      postCover: 'right',
+      postCover: "right",
       pagination: 15,
     },
 
-    article: '/article/',
+    article: "/article/",
 
-    cache: 'filesystem',
-    search: { provider: 'local' },
+    cache: "filesystem",
+    search: { provider: "local" },
 
     /**
-      * markdown
-      * @see https://theme-plume.vuejs.press/config/markdown/
-      */
+     * markdown
+     * @see https://theme-plume.vuejs.press/config/markdown/
+     */
     markdown: {
       collapse: true,
       timeline: true,
@@ -71,9 +79,10 @@ export default defineUserConfig({
       //   jsfiddle: true,     // 启用嵌入 jsfiddle 语法 @[jsfiddle](user/id)
       //   npmTo: true,        // 启用 npm-to 容器  ::: npm-to
       //   demo: true,         // 启用 demo 容器  ::: demo
-      repl: {             // 启用 代码演示容器
-        go: true,         // ::: go-repl
-        rust: true,       // ::: rust-repl
+      repl: {
+        // 启用 代码演示容器
+        go: true, // ::: go-repl
+        rust: true, // ::: rust-repl
         //     kotlin: true,     // ::: kotlin-repl
       },
       //   math: {             // 启用数学公式
@@ -81,13 +90,13 @@ export default defineUserConfig({
       //   },
       //   chartjs: true,      // 启用 chart.js
       //   echarts: true,      // 启用 ECharts
-      mermaid: true,      // 启用 mermaid
+      mermaid: true, // 启用 mermaid
       //   flowchart: true,    // 启用 flowchart
       image: {
-        figure: true,     // 启用 figure
-        lazyload: true,   // 启用图片懒加载
-        mark: true,       // 启用图片标记
-        size: true,       // 启用图片大小
+        figure: true, // 启用 figure
+        lazyload: true, // 启用图片懒加载
+        mark: true, // 启用图片标记
+        size: true, // 启用图片大小
       },
       //   include: true,      // 在 Markdown 文件中导入其他 markdown 文件内容
       //   imageSize: 'local', // 启用 自动填充 图片宽高属性，避免页面抖动
@@ -95,4 +104,4 @@ export default defineUserConfig({
 
     watermark: false,
   }),
-})
+});

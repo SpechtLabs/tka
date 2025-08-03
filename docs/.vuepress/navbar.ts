@@ -1,14 +1,14 @@
-import { defineNavbarConfig } from 'vuepress-theme-plume'
+import { defineNavbarConfig } from "vuepress-theme-plume";
 
 export const navbar = defineNavbarConfig([
-  { text: 'Home', link: '/' },
+  { text: "Home", link: "/" },
 
   {
-    text: 'Getting Started',
+    text: "Getting Started",
     items: [
-      { text: 'Overview', link: '/guide/overview' },
-  //     { text: 'Quick Start', link: '/guide/quickstart' },
-  //     { text: 'CLI & Server Usage', link: '/guide/usage' },
+      { text: "Overview", link: "/guide/overview" },
+      //     { text: 'Quick Start', link: '/guide/quickstart' },
+      //     { text: 'CLI & Server Usage', link: '/guide/usage' },
     ],
   },
   //
@@ -23,16 +23,16 @@ export const navbar = defineNavbarConfig([
   // },
 
   {
-    text: 'Download',
-    link: 'https://github.com/SpechtLabs/tailscale-k8s-auth/releases',
-    target: '_blank',
-    rel: 'noopener noreferrer',
+    text: "Download",
+    link: "https://github.com/SpechtLabs/tailscale-k8s-auth/releases",
+    target: "_blank",
+    rel: "noopener noreferrer",
   },
 
   {
-    text: 'Report an Issue',
-    link: 'https://github.com/SpechtLabs/tailscale-k8s-auth/issues/new/choose',
-    target: '_blank',
-    rel: 'noopener noreferrer',
+    text: "Report an Issue",
+    link: "https://github.com/SpechtLabs/tailscale-k8s-auth/issues/new/choose",
+    target: "_blank",
+    rel: "noopener noreferrer",
   },
-])
+]);

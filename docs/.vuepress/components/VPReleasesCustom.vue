@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import Releases from './Releases.vue';
+import Releases from "./Releases.vue";
 
 defineProps<{
-  repo: string
-}>()
+  repo: string;
+}>();
 </script>
 
 <template>

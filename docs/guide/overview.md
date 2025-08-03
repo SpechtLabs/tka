@@ -46,13 +46,13 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 
 ## Features
 
-* Access gated via your **Tailscale ACLs + Grants**
-* No ingress needed – everything runs **inside your tailnet**
-* Short-lived **ephemeral credentials**
-* Kubernetes-native RBAC
-* Declarative **grant-to-role mappings** via CRDs
-* Access your cluster's API even if it's hidden behind a NAT, thanks to Tailscale & a small proxy
-* Support for **multi-cluster** federation (future roadmap)
+- Access gated via your **Tailscale ACLs + Grants**
+- No ingress needed – everything runs **inside your tailnet**
+- Short-lived **ephemeral credentials**
+- Kubernetes-native RBAC
+- Declarative **grant-to-role mappings** via CRDs
+- Access your cluster's API even if it's hidden behind a NAT, thanks to Tailscale & a small proxy
+- Support for **multi-cluster** federation (future roadmap)
 
 ## Components
 
@@ -62,12 +62,11 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 | `GrantMapping CRD`   | Maps Tailscale identities (user/group/tag) to Kubernetes ClusterRoles  |
 | `tka` CLI            | CLI tool to fetch kubeconfigs, list clusters, etc.                     |
 
-
 ## Example Flow
 
 ```shell
 # Step 1: list available clusters
-$ tka list 
+$ tka list
 ...
 
 # Step 1: login to the cluster

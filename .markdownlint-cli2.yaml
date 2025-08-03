@@ -1,0 +1,16 @@
+config:
+  # Default state for all rules
+  default: true
+
+  # MD013: Disable line length rule
+  MD013: false
+
+# Include all Markdown files in the project
+globs:
+  - "**/*.md"
+
+# Ignore node_modules directory and other common patterns
+ignores:
+  - "docs/node_modules/**"
+  - ".git/**"
+  - "src/vendor/**"

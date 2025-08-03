@@ -24,7 +24,7 @@ We believe Kubernetes access should be:
 We love [Teleport][gh-teleport] dearly, and it was a major inspiration for this project.
 It's a robust, production-proven system that handles multi-protocol access with powerful SSO, audit, and session recording features.
 
-That said, we needed something just for Kubernetes, something much lighter weight, and most importantly, something that works with our existing Tailscale setup. Why have two ZTNA systems that provide _almost_ the same features, when you can go out of your way to waste time building your own thing, learn a ton in the process, and make it integrate better into your existing setup? 
+That said, we needed something just for Kubernetes, something much lighter weight, and most importantly, something that works with our existing Tailscale setup. Why have two ZTNA systems that provide _almost_ the same features, when you can go out of your way to waste time building your own thing, learn a ton in the process, and make it integrate better into your existing setup?
 
 ### What about [Tailscale's API server proxy]
 
@@ -46,13 +46,13 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 
 ## Features
 
-* Access gated via your **Tailscale ACLs + Grants**  
-* No ingress needed – everything runs **inside your tailnet**  
-* Short-lived **ephemeral credentials**  
-* Kubernetes-native RBAC  
-* Declarative **grant-to-role mappings** via CRDs
-* Access your cluster's API even if it's hidden behind a NAT, thanks to Tailscale & a small proxy
-* Support for **multi-cluster** federation (future roadmap)
+- Access gated via your **Tailscale ACLs + Grants**
+- No ingress needed – everything runs **inside your tailnet**
+- Short-lived **ephemeral credentials**
+- Kubernetes-native RBAC
+- Declarative **grant-to-role mappings** via CRDs
+- Access your cluster's API even if it's hidden behind a NAT, thanks to Tailscale & a small proxy
+- Support for **multi-cluster** federation (future roadmap)
 
 ## Components
 
@@ -62,12 +62,11 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 | `GrantMapping CRD`   | Maps Tailscale identities (user/group/tag) to Kubernetes ClusterRoles  |
 | `tka` CLI            | CLI tool to fetch kubeconfigs, list clusters, etc.                     |
 
-
 ## Example Flow
 
 ```shell
 # Step 1: list available clusters
-$ tka list 
+$ tka list
 ...
 
 # Step 1: login to the cluster

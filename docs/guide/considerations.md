@@ -20,7 +20,7 @@ many moving parts, from generating certificates, certificate signing requests (c
 and then approving the CSR.
 
 Having so many moving parts, makes it easy to make a mistake and to maintain the functionality. Additionally, this creates
-a bunch of new problems, like maintaining a certificate revocation list (CRL) because if we do certificates, we gotta do 
+a bunch of new problems, like maintaining a certificate revocation list (CRL) because if we do certificates, we gotta do
 it right. Then we also have to take care of cert rotations, and many more.
 The last gotcha with this approach is, that the operator requires `certificates.k8s.io` API access
 and cluster-admin privileges to approve the CSRs.
@@ -28,9 +28,9 @@ and cluster-admin privileges to approve the CSRs.
 ### Service Account + Token
 
 Choosing the ServiceAccount + Token authentication seems to be the _wrong_ choice at first glance, as it's explicitly designed
-for application-to-api authentication. 
+for application-to-api authentication.
 
-But on the other hand, it's way easier to implement and later audit. Tokens have expiry baked in, ServiceAccounts can 
+But on the other hand, it's way easier to implement and later audit. Tokens have expiry baked in, ServiceAccounts can
 be easily audited, and everything is short-lived and ephemeral. Perfect for this use case.
 
 > [!INFO]
