@@ -86,7 +86,7 @@ func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
 	}
 
 	// If a new signin is not yet provisioned - use the reconciler loop to deploy the SA and CRB
-	if signIn.Status.Provisioned == false {
+	if !signIn.Status.Provisioned {
 		return SignInOperationProvision, validity
 	}
 

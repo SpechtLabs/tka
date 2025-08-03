@@ -37,7 +37,7 @@ func PrintLoginInformation(respBody *api.UserLoginResponse) {
 		MarginBottom(0).
 		MarginLeft(2)
 
-	fmt.Fprintln(os.Stdout, boxStyle.Render(content))
+	_, _ = fmt.Fprintln(os.Stdout, boxStyle.Render(content))
 }
 
 func PrintLoginInfoWithProvisioning(respBody *api.UserLoginResponse, httpCode int) {
@@ -69,5 +69,5 @@ func PrintLoginInfoWithProvisioning(respBody *api.UserLoginResponse, httpCode in
 		MarginBottom(0).
 		MarginLeft(2)
 
-	fmt.Fprintln(os.Stdout, boxStyle.Render(content))
+	_, _ = fmt.Fprintln(os.Stdout, boxStyle.Render(content))
 }

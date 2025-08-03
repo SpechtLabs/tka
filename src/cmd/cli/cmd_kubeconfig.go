@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -37,7 +36,7 @@ var cmdGetKubeconfig = &cobra.Command{
 	RunE:    getKubeconfig,
 }
 
-func getKubeconfig(cmd *cobra.Command, args []string) error {
+func getKubeconfig(_ *cobra.Command, _ []string) error {
 	kubecfg, err := fetchKubeConfig()
 	if err != nil {
 		tui.PrintError(err)
@@ -92,7 +91,7 @@ func serializeKubeconfig(kubecfg *api.Config) (string, humane.Error) {
 	}
 	defer func() { _ = tempFile.Close() }()
 
-	_, err = io.WriteString(tempFile, string(out))
+	_, err = tempFile.Write(out)
 	if err != nil {
 		return "", humane.Wrap(err, "failed to write temp kubeconfig")
 	}

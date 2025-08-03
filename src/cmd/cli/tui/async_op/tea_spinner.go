@@ -19,7 +19,6 @@ type pollTriggerMsg struct{}
 type pollResultMsg[T any] struct {
 	result      T
 	err         error
-	attempt     int
 	shouldRetry bool
 }
 

@@ -48,7 +48,7 @@ func PrintErrorMessage(msg string, context ...string) {
 
 // PrintError prints an error message with a humane-errors formatted error.
 func PrintError(err error, context ...string) {
-	_, _ = PrettyPrintWithOptions(ErrLvl, "", []string{}, WithError(err))
+	_, _ = PrettyPrintWithOptions(ErrLvl, "", context, WithError(err))
 }
 
 // PrintDebug logs a debug-level message with optional context.

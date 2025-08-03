@@ -77,7 +77,7 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 
 // createOrUpdateServiceAccount creates a new service account or updates an existing one with the given parameters
 func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn *v1alpha1.TkaSignin) (*corev1.ServiceAccount, humane.Error) {
-	client := t.mgr.GetClient()
+	c := t.mgr.GetClient()
 	scheme := t.mgr.GetScheme()
 
 	serviceAccount := newServiceAccount(signIn)
@@ -87,7 +87,7 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 		otelzap.L().WithError(err).Error("Failed to set controller reference")
 	}
 
-	if err := client.Create(ctx, serviceAccount); err != nil {
+	if err := c.Create(ctx, serviceAccount); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return nil, humane.Wrap(err, fmt.Sprintf("Failed to create service account for user %s", signIn.Spec.Username))
 		}
@@ -97,11 +97,11 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 			Name:      formatSigninObjectName(signIn.Spec.Username),
 			Namespace: signIn.Namespace,
 		}
-		if err := client.Get(ctx, saName, serviceAccount); err != nil {
+		if err := c.Get(ctx, saName, serviceAccount); err != nil {
 			return nil, humane.Wrap(err, fmt.Sprintf("Failed to get existing service account for user %s", signIn.Spec.Username))
 		}
 
-		if err := client.Update(ctx, serviceAccount); err != nil {
+		if err := c.Update(ctx, serviceAccount); err != nil {
 			return nil, humane.Wrap(err, fmt.Sprintf("Failed to update service account for user %s", signIn.Spec.Username))
 		}
 	}
@@ -141,8 +141,6 @@ func (t *KubeOperator) generateToken(ctx context.Context, signIn *v1alpha1.TkaSi
 
 	tokenResponse, err := clientset.CoreV1().ServiceAccounts(signIn.Namespace).CreateToken(ctx, formatSigninObjectName(signIn.Spec.Username), tokenRequest, metav1.CreateOptions{})
 	if err != nil {
-		if k8serrors.IsAlreadyExists(err) {
-		}
 		return "", humane.Wrap(err, "Failed to create token for service account")
 	}
 
@@ -151,7 +149,7 @@ func (t *KubeOperator) generateToken(ctx context.Context, signIn *v1alpha1.TkaSi
 
 // createOrUpdateClusterRoleBinding creates or updates a ClusterRoleBinding for the specified user and role
 func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
-	client := t.mgr.GetClient()
+	c := t.mgr.GetClient()
 	scheme := t.mgr.GetScheme()
 
 	clusterRoleBinding := newClusterRoleBinding(signIn)
@@ -161,7 +159,7 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 		otelzap.L().WithError(err).Error("Failed to set controller reference")
 	}
 
-	if err := client.Create(ctx, clusterRoleBinding); err != nil {
+	if err := c.Create(ctx, clusterRoleBinding); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return humane.Wrap(err, fmt.Sprintf("Failed to create cluster role binding for user %s", signIn.Spec.Username))
 		}
@@ -171,14 +169,14 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 		crbName := types.NamespacedName{
 			Name: getClusterRoleBindingName(signIn),
 		}
-		if err := client.Get(ctx, crbName, existingCRB); err != nil {
+		if err := c.Get(ctx, crbName, existingCRB); err != nil {
 			return humane.Wrap(err, fmt.Sprintf("Failed to get existing cluster role binding for user %s", signIn.Spec.Username))
 		}
 
 		// Update the validUntil annotation and role reference
 		existingCRB.RoleRef = newRoleRef(signIn)
 
-		if err := client.Update(ctx, existingCRB); err != nil {
+		if err := c.Update(ctx, existingCRB); err != nil {
 			return humane.Wrap(err, fmt.Sprintf("Failed to update cluster role binding for user %s", signIn.Spec.Username))
 		}
 	}

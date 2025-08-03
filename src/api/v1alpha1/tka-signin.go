@@ -26,6 +26,8 @@ type TkaSigninStatus struct {
 // +kubebuilder:printcolumn:name="since",type=string,JSONPath=`.status.signed_in`,description="timestamp when the user signed in"
 // +kubebuilder:printcolumn:name="period",type=string,JSONPath=`.status.validity_period`,description="For how long this session is valid"
 // +kubebuilder:printcolumn:name="until",type=string,JSONPath=`.spec.valid_until`,description="timestamp until when the signin is valid"
+
+// TkaSignin represents a Kubernetes custom resource for managing temporary user sign-ins with specific roles and validity.
 type TkaSignin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

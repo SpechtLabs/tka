@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	debug bool = false
+	debug = false
 )
 
 func main() {

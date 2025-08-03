@@ -101,7 +101,7 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 		return nil, humane.Wrap(err, "Failed to load sign-in request")
 	}
 
-	if signIn.Status.Provisioned == false {
+	if !signIn.Status.Provisioned {
 		return nil, NotReadyYetError
 	}
 

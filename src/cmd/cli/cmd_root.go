@@ -68,5 +68,5 @@ func renderError(resp *http.Response) {
 	} else {
 		msg = resp.Status
 	}
-	fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
+	_, _ = fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
 }

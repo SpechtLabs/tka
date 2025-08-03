@@ -35,7 +35,7 @@ type Server struct {
 }
 
 // NewServer creates a new Server with the given hostname and options
-func NewServer(hostname string, opts ...TailscaleOption) *Server {
+func NewServer(hostname string, opts ...Option) *Server {
 	server := &Server{
 		debug:     false,
 		port:      443,

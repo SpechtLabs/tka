@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 )
@@ -34,7 +35,8 @@ func FromHumaneError(err humane.Error) *ErrorResponse {
 	cause := err.Cause()
 	if cause != nil {
 		// If the cause is a humane error, convert it recursively
-		if humaneErr, ok := cause.(humane.Error); ok {
+		var humaneErr humane.Error
+		if errors.As(cause, &humaneErr) {
 			resp.Cause = FromHumaneError(humaneErr)
 		} else {
 			// If it's a regular error, create a simple error response

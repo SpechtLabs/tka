@@ -27,7 +27,7 @@ var cmdDeleteSignout = &cobra.Command{
 	RunE:    signOut,
 }
 
-func signOut(_ *cobra.Command, args []string) error {
+func signOut(_ *cobra.Command, _ []string) error {
 	server := viper.GetString("tailscale")
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/kubeconfig", server), nil)
 	if err != nil {

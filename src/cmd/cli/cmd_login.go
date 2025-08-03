@@ -60,7 +60,7 @@ var cmdGetSignIn = &cobra.Command{
 	},
 }
 
-func signIn(cmd *cobra.Command, args []string) error {
+func signIn(_ *cobra.Command, _ []string) error {
 	loginInfo, _, err := doRequestAndDecode[api.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
 		tui.PrintError(err.Cause())

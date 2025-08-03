@@ -31,7 +31,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
-func runE(cmd *cobra.Command, args []string) error {
+func runE(cmd *cobra.Command, _ []string) error {
 	if debug {
 		if file, err := os.ReadFile(viper.GetViper().ConfigFileUsed()); err == nil && len(file) > 0 {
 			otelzap.L().Sugar().With("config_file", string(file)).Debug("Config file used")
