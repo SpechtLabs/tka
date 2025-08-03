@@ -1,4 +1,4 @@
-package tui
+package pretty_print
 
 import "github.com/charmbracelet/lipgloss"
 

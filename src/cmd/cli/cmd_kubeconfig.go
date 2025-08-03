@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui"
-	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui/async_op"
+	async_op2 "github.com/spechtlabs/tailscale-k8s-auth/internal/cli/async_operation"
+	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
 	tkaApi "github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
@@ -39,17 +39,17 @@ var cmdGetKubeconfig = &cobra.Command{
 func getKubeconfig(_ *cobra.Command, _ []string) error {
 	kubecfg, err := fetchKubeConfig()
 	if err != nil {
-		tui.PrintError(err)
+		pretty_print.PrintError(err)
 		os.Exit(1)
 	}
 
 	file, err := serializeKubeconfig(kubecfg)
 	if err != nil {
-		tui.PrintError(err)
+		pretty_print.PrintError(err)
 		os.Exit(1)
 	}
 
-	tui.PrintOk("kubeconfig saved to", file)
+	pretty_print.PrintOk("kubeconfig saved to", file)
 
 	return nil
 }
@@ -66,10 +66,10 @@ func fetchKubeConfig() (*api.Config, humane.Error) {
 		}
 	}
 
-	operation := async_op.NewSpinner[api.Config](pollFunc,
-		async_op.WithInProgressMessage("Waiting for kubeconfig to be ready..."),
-		async_op.WithDoneMessage("Kubeconfig is ready."),
-		async_op.WithFailedMessage("Fetching kubeconfig failed."),
+	operation := async_op2.NewSpinner[api.Config](pollFunc,
+		async_op2.WithInProgressMessage("Waiting for kubeconfig to be ready..."),
+		async_op2.WithDoneMessage("Kubeconfig is ready."),
+		async_op2.WithFailedMessage("Fetching kubeconfig failed."),
 	)
 
 	result, err := operation.Run(ctx)

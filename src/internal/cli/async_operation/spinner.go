@@ -1,11 +1,11 @@
-package async_op
+package async_operation
 
 import (
 	"context"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui"
+	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
 )
 
 type Spinner[T any] interface {
@@ -44,7 +44,7 @@ func NewSpinner[T any](pollFunc PollFunc[T], opts ...PollModelOption) Spinner[T]
 		opt(&options)
 	}
 
-	if tui.IsTerminal() {
+	if pretty_print.IsTerminal() {
 		s.spinner = newTeaSpinner(pollFunc, &options, &s.model)
 	} else {
 		s.spinner = newTextSpinner(pollFunc, &options, &s.model)

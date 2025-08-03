@@ -1,4 +1,4 @@
-package async_op
+package async_operation
 
 import (
 	"context"

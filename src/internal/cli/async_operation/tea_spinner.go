@@ -1,4 +1,4 @@
-package async_op
+package async_operation
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui"
+	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
 )
 
 type pollTriggerMsg struct{}
@@ -155,17 +155,17 @@ func (m teaPollModel[T]) View() string {
 	switch {
 	case m.model.ready:
 		if m.model.showReadyMsg {
-			return tui.FormatOk(m.opts.doneMessage)
+			return pretty_print.FormatOk(m.opts.doneMessage)
 		}
 		return ""
 
 	case m.model.err != nil:
-		return tui.FormatError(m.model.err)
+		return pretty_print.FormatError(m.model.err)
 
 	default:
 		s := strings.TrimSpace(m.s.View())
-		lvl := tui.InfoLvl
-		return tui.FormatWithOptions(lvl, m.opts.inProgressMessage, []string{}, tui.WithIcon(lvl, s))
+		lvl := pretty_print.InfoLvl
+		return pretty_print.FormatWithOptions(lvl, m.opts.inProgressMessage, []string{}, pretty_print.WithIcon(lvl, s))
 	}
 }
 
