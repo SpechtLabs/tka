@@ -31,8 +31,6 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return err
 	}
 
-	time.Sleep(2 * time.Second)
-
 	c := t.mgr.GetClient()
 	resName := client.ObjectKey{
 		Name:      signIn.Name,
