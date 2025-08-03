@@ -17,28 +17,27 @@ func formatSigninObjectName(userName string) string {
 	return fmt.Sprintf("tka-user-%s", userName)
 }
 
-func newSignin(userName, role string, validUntil time.Time) *v1alpha1.TkaSignin {
+func newSignin(userName, role string, validPeriod time.Duration) *v1alpha1.TkaSignin {
+	now := time.Now()
 	return &v1alpha1.TkaSignin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      formatSigninObjectName(userName),
 			Namespace: "tka-dev", // TODO(cedi): make this dynamic...
+			Annotations: map[string]string{
+				LastAttemptedSignIn: now.Format(time.RFC3339),
+				SignInValidUntil:    now.Add(validPeriod).Format(time.RFC3339),
+			},
 		},
 		Spec: v1alpha1.TkaSigninSpec{
-			Username:   userName,
-			Role:       role,
-			ValidUntil: validUntil.Format(time.RFC3339),
+			Username:       userName,
+			Role:           role,
+			ValidityPeriod: validPeriod.String(),
 		},
-	}
-}
-
-func newSigninStatus(validUntil time.Time) *v1alpha1.TkaSigninStatus {
-	now := time.Now()
-	period := validUntil.Sub(now)
-
-	return &v1alpha1.TkaSigninStatus{
-		Provisioned:    false,
-		ValidityPeriod: period.String(),
-		SignedInAt:     now.Format(time.RFC3339),
+		Status: v1alpha1.TkaSigninStatus{
+			Provisioned: false,
+			ValidUntil:  "",
+			SignedInAt:  "",
+		},
 	}
 }
 
@@ -47,9 +46,6 @@ func newServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      formatSigninObjectName(signIn.Spec.Username),
 			Namespace: signIn.Namespace,
-			Annotations: map[string]string{
-				ValidUntilAnnotation: signIn.Spec.ValidUntil,
-			},
 		},
 	}
 }
@@ -107,9 +103,6 @@ func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBindin
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getClusterRoleBindingName(signIn),
 			Namespace: signIn.Namespace,
-			Annotations: map[string]string{
-				ValidUntilAnnotation: signIn.Spec.ValidUntil,
-			},
 		},
 		Subjects: []rbacv1.Subject{
 			{

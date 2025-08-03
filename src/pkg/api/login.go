@@ -97,10 +97,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	// TODO(cedi): revert to real period
-	until := now.Add(period)
-
-	if err := t.operator.SignInUser(ctx, userName, role, until); err != nil {
+	if err := t.operator.SignInUser(ctx, userName, role, period); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
 		ct.JSON(http.StatusInternalServerError, FromHumaneError(err))
 		return
@@ -112,10 +109,10 @@ func (t *TKAServer) login(ct *gin.Context) {
 		zap.String("role", role),
 		zap.String("now", now.Format(time.RFC3339)),
 		zap.String("period", period.String()),
-		zap.String("until", until.Format(time.RFC3339)),
+		zap.String("until", now.Add(period).Format(time.RFC3339)),
 	)
 
-	ct.JSON(http.StatusAccepted, NewUserLoginResponse(userName, role, until.Format(time.RFC3339)))
+	ct.JSON(http.StatusAccepted, NewUserLoginResponse(userName, role, now.Add(period).Format(time.RFC3339)))
 }
 
 func (t *TKAServer) getLogin(ct *gin.Context) {
@@ -180,11 +177,21 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 		}
 	} else {
 		status := http.StatusOK
+		until := signIn.Status.ValidUntil
+
 		if !signIn.Status.Provisioned {
 			status = http.StatusProcessing
+
+			validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
+			if err == nil {
+				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
+				ct.JSON(http.StatusInternalServerError, NewErrorResponse("Error parsing duration", err))
+				return
+			}
+			until = time.Now().Add(validity).Format(time.RFC3339)
 		}
 
-		ct.JSON(status, NewUserLoginResponse(signIn.Spec.Username, signIn.Spec.Role, signIn.Spec.ValidUntil))
+		ct.JSON(status, NewUserLoginResponse(signIn.Spec.Username, signIn.Spec.Role, until))
 		return
 	}
 }

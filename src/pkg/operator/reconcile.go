@@ -79,22 +79,52 @@ func (t *KubeOperator) processSignIn(ctx context.Context, signIn *v1alpha1.TkaSi
 }
 
 func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
-	validUntil, err := time.Parse(time.RFC3339, signIn.Spec.ValidUntil)
+	validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
+	if err != nil {
+		otelzap.L().WithError(err).Error("Failed to parse validity period")
+		return SignInOperationNOP, time.Duration(0)
+	}
+
+	// If a new signin is not yet provisioned - use the reconciler loop to deploy the SA and CRB
+	if signIn.Status.Provisioned == false {
+		return SignInOperationProvision, validity
+	}
+
+	// If SignIn is expired
+	validUntil, err := time.Parse(time.RFC3339, signIn.Status.ValidUntil)
 	if err != nil {
 		otelzap.L().WithError(err).Error("Failed to parse validUntil")
 		return SignInOperationNOP, time.Duration(0)
 	}
 
-	now := time.Now()
-
-	// If signin is stale, remove
-	if now.UTC().After(validUntil.UTC()) {
+	if time.Now().UTC().After(validUntil.UTC()) {
 		return SignInOperationDeprovision, time.Duration(0)
 	}
 
-	// If a new signin is not yet provisioned - use the reconciler loop to deploy the SA and CRB
-	if signIn.Status.Provisioned == false {
-		return SignInOperationProvision, validUntil.Sub(now.UTC())
+	// If user extended the login
+	var signedInAtStr string
+	if signedIn, ok := signIn.Annotations[LastAttemptedSignIn]; ok {
+		signedInAtStr = signedIn
+	} else {
+		signedInAtStr = signIn.Status.SignedInAt
+	}
+
+	signedInAt, err := time.Parse(time.RFC3339, signedInAtStr)
+	if err != nil {
+		otelzap.L().WithError(err).Error("Failed to parse signedInAt")
+		return SignInOperationNOP, time.Duration(0)
+	}
+
+	signedInUntilDuration, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
+	if err != nil {
+		otelzap.L().WithError(err).Error("Failed to parse signedInAt")
+		return SignInOperationNOP, time.Duration(0)
+	}
+
+	statusValidUntil := signedInAt.Add(signedInUntilDuration)
+	if !statusValidUntil.Equal(validUntil) {
+		otelzap.L().Debug("User extended their login validity", zap.String("username", signIn.Spec.Username))
+		return SignInOperationProvision, time.Duration(0)
 	}
 
 	return SignInOperationNOP, time.Duration(0)

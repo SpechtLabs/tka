@@ -43,6 +43,25 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return humane.Wrap(err, "Failed to load sign-in request")
 	}
 
+	if signedInAt, ok := signIn.Annotations[LastAttemptedSignIn]; ok {
+		signIn.Status.SignedInAt = signedInAt
+	} else {
+		signIn.Status.SignedInAt = time.Now().Format(time.RFC3339)
+	}
+
+	signedIn, e := time.Parse(time.RFC3339, signIn.Status.SignedInAt)
+	if e != nil {
+		return humane.Wrap(err, "Failed to parse signedInAt")
+	}
+
+	duration, e := time.ParseDuration(signIn.Spec.ValidityPeriod)
+	if e != nil {
+		return humane.Wrap(err, "Failed to parse validityPeriod")
+	}
+
+	validUntil := signedIn.Add(duration)
+	signIn.Status.ValidUntil = validUntil.Format(time.RFC3339)
+
 	signIn.Status.Provisioned = true
 	if err := c.Status().Update(ctx, signIn); err != nil {
 		return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
@@ -50,7 +69,7 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 
 	otelzap.L().InfoContext(ctx, "Successfully signed in user",
 		zap.String("user", signIn.Spec.Username),
-		zap.String("valid_until", signIn.Spec.ValidUntil),
+		zap.String("validity", signIn.Spec.ValidityPeriod),
 		zap.String("role", signIn.Spec.Role),
 	)
 	return nil
@@ -82,12 +101,6 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 			return nil, humane.Wrap(err, fmt.Sprintf("Failed to get existing service account for user %s", signIn.Spec.Username))
 		}
 
-		// Update the validUntil annotation
-		if serviceAccount.Annotations == nil {
-			serviceAccount.Annotations = make(map[string]string)
-		}
-		serviceAccount.Annotations[ValidUntilAnnotation] = signIn.Spec.ValidUntil
-
 		if err := client.Update(ctx, serviceAccount); err != nil {
 			return nil, humane.Wrap(err, fmt.Sprintf("Failed to update service account for user %s", signIn.Spec.Username))
 		}
@@ -118,7 +131,7 @@ func (t *KubeOperator) generateToken(ctx context.Context, signIn *v1alpha1.TkaSi
 	}
 
 	// Create a token request with expiration time
-	validUntil, err := time.Parse(time.RFC3339, signIn.Spec.ValidUntil)
+	validUntil, err := time.Parse(time.RFC3339, signIn.Status.ValidUntil)
 	if err != nil {
 		return "", humane.Wrap(err, "Failed to parse validUntil")
 	}
@@ -163,10 +176,6 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 		}
 
 		// Update the validUntil annotation and role reference
-		if existingCRB.Annotations == nil {
-			existingCRB.Annotations = make(map[string]string)
-		}
-		existingCRB.Annotations[ValidUntilAnnotation] = signIn.Spec.ValidUntil
 		existingCRB.RoleRef = newRoleRef(signIn)
 
 		if err := client.Update(ctx, existingCRB); err != nil {

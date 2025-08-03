@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -15,27 +16,42 @@ import (
 )
 
 // SignInUser creates necessary Kubernetes resources to grant a user temporary access with a specific role
-func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, validUntil time.Time) humane.Error {
+func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, validPeriod time.Duration) humane.Error {
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.SignInUser")
 	defer span.End()
 
-	c := t.mgr.GetClient()
-
-	signin := newSignin(userName, role, validUntil)
-	if err := c.Create(ctx, signin); err != nil {
-		if k8serrors.IsAlreadyExists(err) {
-			otelzap.L().DebugContext(ctx, "User already signed in",
-				zap.String("user", userName),
-				zap.String("valid_until", validUntil.String()),
-				zap.String("role", role))
-		}
-
-		return humane.Wrap(err, "Error signing in user", "see underlying error for more details")
+	if validPeriod < 10*time.Minute {
+		return humane.New("`period` may not specify a duration less than 10 minutesD",
+			fmt.Sprintf("Specify a period greater than 10 minutes in your api ACL for user %s", userName),
+		)
 	}
 
-	signin.Status = *newSigninStatus(validUntil)
-	if err := c.Status().Update(ctx, signin); err != nil {
-		return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
+	c := t.mgr.GetClient()
+
+	signin := newSignin(userName, role, validPeriod)
+	if err := c.Create(ctx, signin); err != nil && k8serrors.IsAlreadyExists(err) {
+		otelzap.L().DebugContext(ctx, "User already signed in",
+			zap.String("user", userName),
+			zap.String("validity", validPeriod.String()),
+			zap.String("role", role))
+
+		existing, err := t.GetSignInUser(ctx, userName)
+		if err != nil {
+			return humane.Wrap(err, "Failed to load existing sign-in request")
+		}
+
+		existing.Spec.ValidityPeriod = signin.Spec.ValidityPeriod
+		existing.Spec.Role = signin.Spec.Role
+		existing.Annotations = signin.Annotations
+		if err := c.Update(ctx, existing); err != nil {
+			return humane.Wrap(err, "Failed to update existing sign-in request")
+		}
+	} else if err != nil {
+		return humane.Wrap(err, "Error signing in user", "see underlying error for more details")
+	} else {
+		if err := c.Status().Update(ctx, signin); err != nil {
+			return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
+		}
 	}
 
 	return nil

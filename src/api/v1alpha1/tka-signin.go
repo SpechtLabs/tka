@@ -8,15 +8,15 @@ import (
 )
 
 type TkaSigninSpec struct {
-	Username   string `json:"username"`
-	Role       string `json:"role"`
-	ValidUntil string `json:"valid_until"`
+	Username       string `json:"username"`
+	Role           string `json:"role"`
+	ValidityPeriod string `json:"validity_period"`
 }
 
 type TkaSigninStatus struct {
-	Provisioned    bool   `json:"provisioned"`
-	ValidityPeriod string `json:"validity_period"`
-	SignedInAt     string `json:"signed_in"`
+	Provisioned bool   `json:"provisioned"`
+	ValidUntil  string `json:"valid_until"`
+	SignedInAt  string `json:"signed_in"`
 }
 
 // +kubebuilder:object:root=true

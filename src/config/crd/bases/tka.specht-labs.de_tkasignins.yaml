@@ -61,12 +61,12 @@ spec:
                 type: string
               username:
                 type: string
-              valid_until:
+              validity_period:
                 type: string
             required:
             - role
             - username
-            - valid_until
+            - validity_period
             type: object
           status:
             properties:
@@ -74,12 +74,12 @@ spec:
                 type: boolean
               signed_in:
                 type: string
-              validity_period:
+              valid_until:
                 type: string
             required:
             - provisioned
             - signed_in
-            - validity_period
+            - valid_until
             type: object
         type: object
     served: true
