@@ -17,6 +17,8 @@ kubectl = "1.29.2"
 markdownlint-cli2 = "0.12.1"
 prettier = "3.1.0"
 
+swag = "1.8.7"
+
 [env]
 # Set environment variables for Go development
 GO111MODULE = "on"

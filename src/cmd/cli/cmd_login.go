@@ -7,6 +7,7 @@ import (
 
 	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +48,7 @@ var cmdGetSignIn = &cobra.Command{
 	Example: "tka get login",
 	Long:    `TODO`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		loginInfo, code, err := doRequestAndDecode[api.UserLoginResponse](http.MethodGet, api.LoginApiRoute, nil, http.StatusOK, http.StatusProcessing)
+		loginInfo, code, err := doRequestAndDecode[models.UserLoginResponse](http.MethodGet, api.LoginApiRoute, nil, http.StatusOK, http.StatusProcessing)
 		if err != nil {
 			pretty_print.PrintError(err.Cause())
 			os.Exit(1)
@@ -61,7 +62,7 @@ var cmdGetSignIn = &cobra.Command{
 }
 
 func signIn(_ *cobra.Command, _ []string) error {
-	loginInfo, _, err := doRequestAndDecode[api.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
+	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
 		pretty_print.PrintError(err.Cause())
 		os.Exit(1)

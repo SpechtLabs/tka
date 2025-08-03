@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 	valueStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
 )
 
-func PrintLoginInformation(respBody *api.UserLoginResponse) {
+func PrintLoginInformation(respBody *models.UserLoginResponse) {
 	// Parse time (optional formatting)
 	untilTime, _ := time.Parse(time.RFC3339, respBody.Until)
 	formattedUntil := untilTime.Format(time.RFC1123)
@@ -40,7 +40,7 @@ func PrintLoginInformation(respBody *api.UserLoginResponse) {
 	_, _ = fmt.Fprintln(os.Stdout, boxStyle.Render(content))
 }
 
-func PrintLoginInfoWithProvisioning(respBody *api.UserLoginResponse, httpCode int) {
+func PrintLoginInfoWithProvisioning(respBody *models.UserLoginResponse, httpCode int) {
 	// Parse time (optional formatting)
 	untilTime, _ := time.Parse(time.RFC3339, respBody.Until)
 	formattedUntil := untilTime.Format(time.RFC1123)

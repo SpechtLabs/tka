@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
 	"github.com/spf13/viper"
 )
 
@@ -60,7 +60,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 }
 
 func handleAPIError(resp *http.Response, body []byte) humane.Error {
-	var errBody api.ErrorResponse
+	var errBody models.ErrorResponse
 	if err := json.Unmarshal(body, &errBody); err == nil {
 		return humane.Wrap(errBody.AsHumaneError(), fmt.Sprintf("HTTP %d", resp.StatusCode))
 	}

@@ -18,9 +18,13 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 
 
 .PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate: controller-gen swag ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: manifests
-manifests: controller-gen
+manifests: controller-gen swag
 	$(CONTROLLER_GEN) rbac:roleName=tka-role crd paths="./..." output:crd:artifacts:config=config/crd/bases
+
+.PHONY: swag
+swag:
+	swag init --dir ./pkg/api --generalInfo server.go --output ./pkg/swagger --parseDependency --parseDepth 3

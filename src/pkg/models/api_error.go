@@ -1,4 +1,4 @@
-package api
+package models
 
 import (
 	"encoding/json"
@@ -8,11 +8,21 @@ import (
 )
 
 // ErrorResponse represents a serializable version of a humane.Error that can be marshaled to and unmarshaled from JSON
+// @Description Structured error response with contextual advice
 type ErrorResponse struct {
-	Message    string         `json:"message"`
-	Advice     []string       `json:"advice,omitempty"`
-	Cause      *ErrorResponse `json:"cause,omitempty"`
-	StatusCode int            `json:"-,omitempty"`
+	// Primary error message
+	// example: Failed to authenticate user
+	Message string `json:"message"`
+
+	// List of suggestions to help resolve the error
+	// example: ["Check your Tailscale connection", "Verify you have the required capabilities"]
+	Advice []string `json:"advice,omitempty"`
+
+	// Nested error that caused this error (not included in Swagger documentation)
+	Cause *ErrorResponse `json:"cause,omitempty" swaggerignore:"true"`
+
+	// HTTP status code (not included in JSON response)
+	StatusCode int `json:"-,omitempty"`
 }
 
 func NewErrorResponse(message string, cause error) *ErrorResponse {

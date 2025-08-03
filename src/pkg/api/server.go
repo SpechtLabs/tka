@@ -4,11 +4,16 @@ import (
 	"context"
 	"time"
 
-	// misc
+	// gin
 	"github.com/gin-gonic/gin"
+	_ "github.com/spechtlabs/tailscale-k8s-auth/pkg/swagger"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	// Misc
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
-	server2 "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 
 	// Logging
 	ginzap "github.com/gin-contrib/zap"
@@ -28,6 +33,20 @@ import (
 	"tailscale.com/tailcfg"
 )
 
+// @title Tailscale Kubernetes Auth API
+// @version 1.0
+// @description API for authenticating and authorizing Kubernetes access via Tailscale identity.
+// @contact.name Specht Labs
+// @contact.url specht-labs.de
+// @contact.email tka@specht-labs.de
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @host tka.sphinx-map.ts.net:8123
+// @BasePath /api/v1alpha1
+// @securityDefinitions.apikey TailscaleAuth
+// @in header
+// @name X-Tailscale-User
+// @description Authentication happens automatically via the Tailscale network. The server performs a WhoIs lookup on the client's IP address to determine identity. This header is for documentation purposes only and is not actually required to be set.
 const (
 	LoginApiRoute      = "/login"
 	KubeconfigApiRoute = "/kubeconfig"
@@ -40,7 +59,7 @@ type TKAServer struct {
 	capName tailcfg.PeerCapability
 
 	// Tailscale Server
-	tsServer *server2.Server
+	tsServer *tailscale.Server
 
 	// API
 	router *gin.Engine
@@ -50,7 +69,7 @@ type TKAServer struct {
 	operator *operator.KubeOperator
 }
 
-func NewTKAServer(srv *server2.Server, operator *operator.KubeOperator, opts ...Option) (*TKAServer, humane.Error) {
+func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts ...Option) (*TKAServer, humane.Error) {
 	tkaServer := &TKAServer{
 		debug:    false,
 		capName:  "specht-labs.de/cap/tka",
@@ -98,20 +117,27 @@ func NewTKAServer(srv *server2.Server, operator *operator.KubeOperator, opts ...
 	p := ginprometheus.NewPrometheus("tka_server")
 	p.Use(tkaServer.router)
 
+	// Set-Up tailscale auth middleware to authenticate all requests via Tailscale
+	authMiddleware := tailscale.NewGinAuthMiddleware[capRule](srv, tkaServer.capName)
+	authMiddleware.Use(tkaServer.router, tkaServer.tracer)
+
 	// Set-up routes
-	tkaServer.router.POST(KubeconfigApiRoute, tkaServer.login)
-	tkaServer.router.GET(LoginApiRoute, tkaServer.getLogin)
-	tkaServer.router.POST(LoginApiRoute, tkaServer.login)
-
-	tkaServer.router.GET(KubeconfigApiRoute, tkaServer.getKubeconfig)
-
-	tkaServer.router.DELETE(KubeconfigApiRoute, tkaServer.logout)
-	tkaServer.router.DELETE(LoginApiRoute, tkaServer.logout)
-	tkaServer.router.DELETE(LogoutApiRoute, tkaServer.logout)
-	tkaServer.router.GET(LogoutApiRoute, tkaServer.logout)
+	v1alpha1Grpup := tkaServer.router.Group("/api/v1alpha1/")
+	v1alpha1Grpup.POST(LoginApiRoute, tkaServer.login)
+	v1alpha1Grpup.GET(LoginApiRoute, tkaServer.getLogin)
+	v1alpha1Grpup.GET(KubeconfigApiRoute, tkaServer.getKubeconfig)
+	v1alpha1Grpup.POST(LogoutApiRoute, tkaServer.logout)
 
 	// serve K8s controller metrics on /metrics/controller
 	tkaServer.router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
+
+	// Add Swagger documentation endpoint
+	// This will serve the Swagger UI at /swagger/index.html
+	tkaServer.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Optionally, add a redirect from /swagger to /swagger/index.html
+	tkaServer.router.GET("/swagger", func(c *gin.Context) {
+		c.Redirect(301, "/swagger/index.html")
+	})
 
 	return tkaServer, nil
 }
