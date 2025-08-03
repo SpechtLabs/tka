@@ -80,12 +80,6 @@ repos:
         types: [go]
         files: ^src/
 
-      - id: go-imports
-        name: go imports
-        description: Runs goimports on Go files
-        types: [go]
-        files: ^src/
-
       - id: go-mod-tidy
         name: go mod tidy
         description: Runs go mod tidy to ensure modules are up to date
