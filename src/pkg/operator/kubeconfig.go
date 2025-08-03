@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
+	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tailscale-k8s-auth/api/v1alpha1"
+	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -22,9 +24,10 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 	signin := newSignin(userName, role, validUntil)
 	if err := c.Create(ctx, signin); err != nil {
 		if k8serrors.IsAlreadyExists(err) {
-			return humane.Wrap(err, "User already signed in",
-				"please log out before attempting to sign in again",
-				"if you have not yet signed in, or you credentials have expired but you are unable to sign in again, contact your kubernetes administrator")
+			otelzap.L().DebugContext(ctx, "User already signed in",
+				zap.String("user", userName),
+				zap.String("valid_until", validUntil.String()),
+				zap.String("role", role))
 		}
 
 		return humane.Wrap(err, "Error signing in user", "see underlying error for more details")

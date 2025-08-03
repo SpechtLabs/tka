@@ -24,14 +24,14 @@ func (t *TKAServer) login(ct *gin.Context) {
 	// tailnet that they are trying to be authenticated for.
 	if IsFunnelRequest(ct.Request) {
 		otelzap.L().ErrorContext(ctx, "Unauthorized request from Funnel")
-		ct.JSON(http.StatusBadGateway, ErrorResponse{Error: "Unauthorized funnel request"})
+		ct.JSON(http.StatusForbidden, NewErrorResponse("Unauthorized request from Funnel", nil))
 		return
 	}
 
 	who, err := t.lc.WhoIs(ctx, req.RemoteAddr)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
-		ct.JSON(http.StatusBadGateway, ErrorResponse{Error: "Error getting WhoIs", Cause: err.Error()})
+		ct.JSON(http.StatusInternalServerError, NewErrorResponse("Error getting WhoIs", err))
 		return
 	}
 
@@ -40,27 +40,27 @@ func (t *TKAServer) login(ct *gin.Context) {
 	n := who.Node.View()
 	if n.IsTagged() {
 		otelzap.L().ErrorContext(ctx, "tagged nodes not (yet) supported")
-		ct.JSON(http.StatusForbidden, ErrorResponse{Error: "tagged nodes not (yet) supported"})
+		ct.JSON(http.StatusBadRequest, NewErrorResponse("tagged nodes not (yet) supported", nil))
 		return
 	}
 
 	rules, err := tailcfg.UnmarshalCapJSON[capRule](who.CapMap, t.capName)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error unmarshaling capability")
-		ct.JSON(http.StatusForbidden, ErrorResponse{Error: "Error unmarshaling capability in tailscale ACL", Cause: err.Error()})
+		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.Wrap(err, "Error unmarshaling tailscale capability map", "Check the syntax of your tailscale ACL for user "+userName+".")))
 		return
 	}
 
 	if len(rules) == 0 {
 		otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.")
-		ct.JSON(http.StatusForbidden, ErrorResponse{Error: "User not authorized in tailscale ACL"})
+		ct.JSON(http.StatusForbidden, NewErrorResponse("User not authorized", nil))
 		return
 	}
 
 	if len(rules) > 1 {
 		// TODO(cedi): unsure what to do when having more than one cap...
 		otelzap.L().ErrorContext(ctx, "More than one capability rule found")
-		ct.JSON(http.StatusBadRequest, ErrorResponse{Error: "More than one capability rule found"})
+		ct.JSON(http.StatusBadRequest, FromHumaneError(humane.New("More than one capability rule found", "Please ensure that you only have one capability rule for your user.", "If you have more than one, please contact the administrator of this system.")))
 		return
 	}
 
@@ -69,14 +69,25 @@ func (t *TKAServer) login(ct *gin.Context) {
 	period, err := time.ParseDuration(rules[0].Period)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
-		ct.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Error parsing duration", Cause: err.Error()})
+		ct.JSON(http.StatusInternalServerError, NewErrorResponse("Error parsing duration", err))
 		return
 	}
+
+	if period < 10*time.Minute {
+		err := humane.New("`period` may not specify a duration less than 10 minutesD",
+			fmt.Sprintf("Specify a period greater than 10 minutes in your tailscale ACL for user %s", userName),
+		)
+		otelzap.L().WithError(err).ErrorContext(ctx, "Invalid capRule")
+		ct.JSON(http.StatusUnprocessableEntity, NewErrorResponse("Invalid capRule", err))
+		return
+	}
+
+	// TODO(cedi): revert to real period
 	until := now.Add(period)
 
 	if err := t.operator.SignInUser(ctx, userName, role, until); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
-		ct.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Error signing in user", Cause: err.Error()})
+		ct.JSON(http.StatusInternalServerError, FromHumaneError(err))
 		return
 	}
 
@@ -96,13 +107,4 @@ type UserLoginResponse struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
 	Until    string `json:"until"`
-}
-
-func (e ErrorResponse) AsHumane() humane.Error {
-	return humane.Wrap(fmt.Errorf("%s", e.Cause), e.Error)
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
-	Cause string `json:"internal_error,omitempty"`
 }

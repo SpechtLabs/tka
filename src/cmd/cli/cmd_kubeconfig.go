@@ -1,13 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
+	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui"
+	"github.com/spechtlabs/tailscale-k8s-auth/cmd/cli/tui/async_op"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 func init() {
@@ -22,17 +31,17 @@ var cmdKubeconfig = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		kubecfg, err := fetchKubeConfig()
 		if err != nil {
-			tui.Error(err)
+			tui.PrintError(err)
 			os.Exit(1)
 		}
 
 		file, err := serializeKubeconfig(kubecfg)
 		if err != nil {
-			tui.Error(err)
+			tui.PrintError(err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("%s %s %s\n", green.Render("✓"), bold.Render("kubeconfig saved to"), gray.Render(file))
+		tui.PrintOk("kubeconfig saved to", file)
 
 		// TODO(cedi): fix
 		//if err := checkKubectlContext(); err != nil {
@@ -53,4 +62,53 @@ func checkKubectlContext() error {
 	}
 	fmt.Printf("➡️  kubectl is now configured for: %s\n", strings.TrimSpace(string(output)))
 	return nil
+}
+
+func fetchKubeConfig() (*api.Config, humane.Error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	pollFunc := func() (api.Config, humane.Error) {
+		if cfg, err := doRequestAndDecode[api.Config](http.MethodGet, tailscale.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
+			return *cfg, nil
+		} else {
+			return api.Config{}, err
+		}
+	}
+
+	operation := async_op.NewSpinner[api.Config](pollFunc,
+		async_op.WithInProgressMessage("Waiting for kubeconfig to be ready..."),
+		async_op.WithDoneMessage("Kubeconfig is ready."),
+		async_op.WithFailedMessage("Fetching kubeconfig failed."),
+	)
+
+	result, err := operation.Run(ctx)
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to fetch kubeconfig")
+	}
+	return result, nil
+}
+
+func serializeKubeconfig(kubecfg *api.Config) (string, humane.Error) {
+	out, err := clientcmd.Write(*kubecfg)
+	if err != nil {
+		return "", humane.Wrap(err, "failed to serialize kubeconfig")
+	}
+
+	tempFile, err := os.CreateTemp("", "kubeconfig-*.yaml")
+	if err != nil {
+		return "", humane.Wrap(err, "failed to create temp kubeconfig")
+	}
+	defer func() { _ = tempFile.Close() }()
+
+	_, err = io.WriteString(tempFile, string(out))
+	if err != nil {
+		return "", humane.Wrap(err, "failed to write temp kubeconfig")
+	}
+
+	if err := os.Setenv("KUBECONFIG", tempFile.Name()); err != nil {
+		return "", humane.Wrap(err, "failed to set KUBECONFIG")
+	}
+
+	return tempFile.Name(), nil
 }

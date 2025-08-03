@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
@@ -30,9 +31,20 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return err
 	}
 
+	time.Sleep(2 * time.Second)
+
+	c := t.mgr.GetClient()
+	resName := client.ObjectKey{
+		Name:      signIn.Name,
+		Namespace: signIn.Namespace,
+	}
+	if err := c.Get(ctx, resName, signIn); err != nil {
+		otelzap.L().WithError(err).Error("failed to get tka signin", zap.String("name", resName.Name), zap.String("namespace", resName.Namespace))
+		return humane.Wrap(err, "Failed to load sign-in request")
+	}
+
 	signIn.Status.Provisioned = true
-	client := t.mgr.GetClient()
-	if err := client.Status().Update(ctx, signIn); err != nil {
+	if err := c.Status().Update(ctx, signIn); err != nil {
 		return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
 	}
 
@@ -116,6 +128,8 @@ func (t *KubeOperator) generateToken(ctx context.Context, signIn *v1alpha1.TkaSi
 
 	tokenResponse, err := clientset.CoreV1().ServiceAccounts(signIn.Namespace).CreateToken(ctx, formatSigninObjectName(signIn.Spec.Username), tokenRequest, metav1.CreateOptions{})
 	if err != nil {
+		if k8serrors.IsAlreadyExists(err) {
+		}
 		return "", humane.Wrap(err, "Failed to create token for service account")
 	}
 

@@ -3,20 +3,11 @@ package tui
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sierrasoftworks/humane-errors-go"
 )
-
-var errorStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#ff5f5f")) // red-is
-
-func Error(err error) {
-	_, _ = fmt.Fprintln(os.Stderr, renderHumaneError(err))
-}
 
 func renderHumaneError(err error) string {
 	var he humane.Error
@@ -46,7 +37,7 @@ func renderHumaneError(err error) string {
 		cur = errors.Unwrap(cur)
 	}
 
-	// Styles
+	// IconStyles
 	header := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("9"))   // red
 	section := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("8"))  // gray
 	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render("•") // blue
