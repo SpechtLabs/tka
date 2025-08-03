@@ -43,6 +43,29 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 
 var NotReadyYetError = humane.New("Not ready yet", "Please wait for the TKA signin to be ready")
 
+// GetSignInUser creates necessary Kubernetes resources to grant a user temporary access with a specific role
+func (t *KubeOperator) GetSignInUser(ctx context.Context, userName string) (*v1alpha1.TkaSignin, humane.Error) {
+	ctx, span := t.tracer.Start(ctx, "KubeOperator.GetSignInUser")
+	defer span.End()
+
+	c := t.mgr.GetClient()
+
+	resName := client.ObjectKey{
+		Name:      formatSigninObjectName(userName),
+		Namespace: "tka-dev", // TODO: make this dynamic
+	}
+
+	var signIn v1alpha1.TkaSignin
+	if err := c.Get(ctx, resName, &signIn); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, humane.Wrap(err, "User not signed in", "Please sign in before requesting")
+		}
+		return nil, humane.Wrap(err, "Failed to load sign-in request")
+	}
+
+	return &signIn, nil
+}
+
 func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api.Config, humane.Error) {
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.GetKubeconfig")
 	defer span.End()

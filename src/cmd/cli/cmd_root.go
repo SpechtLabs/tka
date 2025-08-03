@@ -19,8 +19,16 @@ var cmdRoot = &cobra.Command{
 It talks to a tka-api instance and helps you fetch ephemeral kubeconfigs.`,
 }
 
+var cmdGet = &cobra.Command{
+	Use:   "get",
+	Short: "Get resources from the tka server",
+	Long: `Get command retrieves resources from your Tailscale Kubernetes Auth server.
+It can be used to fetch various resources like kubeconfigs or clusters.`,
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
+	cmdRoot.AddCommand(cmdGet)
 }
 
 func initConfig() {

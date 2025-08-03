@@ -124,7 +124,7 @@ func NewTKAServer(ctx context.Context, hostname string, operator *operator.KubeO
 
 	// Set-up routes
 	tkaServer.router.POST(KubeconfigApiRoute, tkaServer.login)
-	tkaServer.router.GET(LoginApiRoute, tkaServer.login)
+	tkaServer.router.GET(LoginApiRoute, tkaServer.getLogin)
 	tkaServer.router.POST(LoginApiRoute, tkaServer.login)
 
 	tkaServer.router.GET(KubeconfigApiRoute, tkaServer.getKubeconfig)

@@ -2,12 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -21,46 +18,40 @@ import (
 
 func init() {
 	cmdRoot.AddCommand(cmdKubeconfig)
+	cmdGet.AddCommand(cmdGetKubeconfig)
 }
 
 var cmdKubeconfig = &cobra.Command{
 	Use:     "kubeconfig",
 	Short:   "Fetch your temporary kubeconfig",
-	Example: "tka get kubeconfig",
+	Example: "tka kubeconfig",
 	Args:    cobra.ExactArgs(0),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		kubecfg, err := fetchKubeConfig()
-		if err != nil {
-			tui.PrintError(err)
-			os.Exit(1)
-		}
-
-		file, err := serializeKubeconfig(kubecfg)
-		if err != nil {
-			tui.PrintError(err)
-			os.Exit(1)
-		}
-
-		tui.PrintOk("kubeconfig saved to", file)
-
-		// TODO(cedi): fix
-		//if err := checkKubectlContext(); err != nil {
-		//	tui.Error(err)
-		//	os.Exit(1)
-		//}
-
-		return nil
-	},
+	RunE:    getKubeconfig,
 }
 
-func checkKubectlContext() error {
-	cmd := exec.Command("kubectl", "config", "current-context")
-	cmd.Stderr = os.Stderr
-	output, err := cmd.Output()
+var cmdGetKubeconfig = &cobra.Command{
+	Use:     "kubeconfig",
+	Short:   "Fetch your temporary kubeconfig",
+	Example: "tka get kubeconfig",
+	Args:    cobra.ExactArgs(0),
+	RunE:    getKubeconfig,
+}
+
+func getKubeconfig(cmd *cobra.Command, args []string) error {
+	kubecfg, err := fetchKubeConfig()
 	if err != nil {
-		return fmt.Errorf("kubectl config check failed: %w", err)
+		tui.PrintError(err)
+		os.Exit(1)
 	}
-	fmt.Printf("➡️  kubectl is now configured for: %s\n", strings.TrimSpace(string(output)))
+
+	file, err := serializeKubeconfig(kubecfg)
+	if err != nil {
+		tui.PrintError(err)
+		os.Exit(1)
+	}
+
+	tui.PrintOk("kubeconfig saved to", file)
+
 	return nil
 }
 
@@ -69,7 +60,7 @@ func fetchKubeConfig() (*api.Config, humane.Error) {
 	defer cancel()
 
 	pollFunc := func() (api.Config, humane.Error) {
-		if cfg, err := doRequestAndDecode[api.Config](http.MethodGet, tailscale.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
+		if cfg, _, err := doRequestAndDecode[api.Config](http.MethodGet, tailscale.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
 			return *cfg, nil
 		} else {
 			return api.Config{}, err

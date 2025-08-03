@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatus ...int) (*T, humane.Error) {
+func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {
 	// Allow 200 OK by default if no status codes are passed in
 	okStatus := map[int]bool{}
 	if len(expectedStatus) == 0 {
@@ -29,34 +29,34 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	// Create the request
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create request")
+		return nil, 0, humane.Wrap(err, "failed to create request")
 	}
 
 	// Do the request
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to perform request", "ensure the server is reachable")
+		return nil, 0, humane.Wrap(err, "failed to perform request", "ensure the server is reachable")
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	// Grab the response
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to read response body")
+		return nil, resp.StatusCode, humane.Wrap(err, "failed to read response body")
 	}
 
 	// based on the HTTP response, handle the API error
 	if !okStatus[resp.StatusCode] {
-		return nil, handleAPIError(resp, respBytes)
+		return nil, resp.StatusCode, handleAPIError(resp, respBytes)
 	}
 
 	// attempt parsing the response body
 	var result T
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return nil, humane.Wrap(err, "failed to decode response body")
+		return nil, resp.StatusCode, humane.Wrap(err, "failed to decode response body")
 	}
 
-	return &result, nil
+	return &result, resp.StatusCode, nil
 }
 
 func handleAPIError(resp *http.Response, body []byte) humane.Error {
