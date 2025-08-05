@@ -1,0 +1,18 @@
+extends: relaxed
+
+rules:
+  line-length: disable
+  new-line-at-end-of-file: disable
+  indentation:
+    level: error
+    spaces: consistent
+    indent-sequences: consistent
+
+ignore: |
+  .yamllint.yml
+  charts/*/charts/
+  charts/*/templates/
+  kustomize/bases/*/charts/
+  kustomize/overlays/**/charts/
+  kustomize/*/*/*.secret.yaml
+  kustomize/overlays/specht-labs/kube-prometheus-stack/alertmanager.config.secret.yaml

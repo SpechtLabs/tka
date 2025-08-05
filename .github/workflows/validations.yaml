@@ -1,0 +1,83 @@
+name: Quality Validations
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  go:
+    name: GoLang
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Go environment
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "src/go.mod"
+          cache: true
+          cache-dependency-path: "**/*.sum"
+
+      - name: GolangCI Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: src/
+          version: latest
+
+      - name: Run format-check
+        working-directory: "src/"
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not formatted according to gofmt:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
+  md:
+    name: Markdown
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: DavidAnson/markdownlint-cli2-action@v20
+        with:
+          globs: '**/*.md'
+
+
+  yaml:
+    name: YAML
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: ibiqlik/action-yamllint@v3
+        id: lint
+        continue-on-error: true
+        with:
+          file_or_dir: .
+          format: standard
+          config_file: .yamllint.yaml
