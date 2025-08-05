@@ -409,6 +409,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zsais/go-gin-prometheus v1.0.0 h1:ucg4uqyIg/Q2vFaKYirVH+WKAGD8NZR8pB6uW4odXHk=
 github.com/zsais/go-gin-prometheus v1.0.0/go.mod h1:BLzchNYsehhyPNY31G0YgK/Q6BaDbKpoGQe7OAcLMVU=
+github.com/zsais/go-gin-prometheus v1.0.1 h1:PtTa1rQhbXEAx0gNQkXr4+SGcElSF1YR/NmO3f5s3o4=
+github.com/zsais/go-gin-prometheus v1.0.1/go.mod h1:iKBYSOHzvGfe2FyGSOC8JSwUA0MITdnYzI6v+aAbw1Q=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.62.0 h1:fZNpsQuTwFFSGC96aJexNOBrCD7PjD9Tm/HyHtXhmnk=
