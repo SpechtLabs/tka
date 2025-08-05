@@ -1,23 +1,23 @@
 version: 2
 
-project_name: api-k8s-auth
+project_name: tailscale-k8s-auth
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: tka-server
+  - id: tailscale-k8s-auth
     env: &env
       - CGO_ENABLED=0
-    goos: &goos
+    goos:
       - linux
     goarch: &goarch
       - arm64
       - amd64
     goarm: &goarm
       - "7"
-    binary: api-k8s-auth
+    binary: tailscale-k8s-auth
     dir: ./cmd/server/
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: &ldflags
@@ -59,7 +59,7 @@ nfpms:
     ids:
       - cli
     maintainer: Cedric Specht <cedric@specht-labs.de>
-    description: tka is a CLI tool for api-k8s-auth, a tailnet-native Kubernetes access system. It allows users to securely log in to Kubernetes clusters using their Tailscale identity, receiving short-lived, auto-expiring kubeconfigs with scoped permissions.
+    description: tka is a CLI tool for tailscale-k8s-auth, a tailnet-native Kubernetes access system. It allows users to securely log in to Kubernetes clusters using their Tailscale identity, receiving short-lived, auto-expiring kubeconfigs with scoped permissions.
     homepage: https://tailscale-k8s-auth.specht-labs.de
     vendor: Specht Labs
     license: Apache 2.0
@@ -70,10 +70,10 @@ nfpms:
     bindir: /usr/bin
 
 archives:
-  - id: api-k8s-auth
+  - id: tailscale-k8s-auth
     ids:
-      - tka-server
-    name_template: 'api-k8s-auth_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+      - tailscale-k8s-auth
+    name_template: 'tailscale-k8s-auth_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
 
   - id: cli
     ids:
