@@ -30,12 +30,12 @@
   "homepage": "https://github.com/SpechtLabs/tailscale-k8s-auth#readme",
   "devDependencies": {
     "@vuepress/bundler-vite": "^2.0.0-rc.23",
-    "@vuepress/plugin-register-components": "2.0.0-rc.103",
+    "@vuepress/plugin-register-components": "2.0.0-rc.112",
     "http-server": "^14.1.1",
     "sass-embedded": "^1.89.0",
     "typescript": "^5.7.3",
     "vue": "^3.5.13",
-    "vuepress": "2.0.0-rc.23",
+    "vuepress": "2.0.0-rc.24",
     "vuepress-theme-plume": "1.0.0-rc.152"
   },
   "dependencies": {
