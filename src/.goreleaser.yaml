@@ -7,7 +7,7 @@ before:
     - go mod tidy
 
 builds:
-  - id: tailscale
+  - id: tka-server
     env: &env
       - CGO_ENABLED=0
     goos: &goos
@@ -16,9 +16,9 @@ builds:
       - arm64
       - amd64
     goarm: &goarm
-      - 7
+      - "7"
     binary: api-k8s-auth
-    dir: ./cmd/tailscale/
+    dir: ./cmd/server/
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: &ldflags
       - -X=main.Version={{.Version}}
@@ -31,9 +31,7 @@ builds:
       - linux
       - windows
       - darwin
-    goarch:
-      - amd64
-      - arm64
+    goarch: *goarch
     goarm: *goarm
     binary: tka
     dir: ./cmd/cli/
@@ -74,7 +72,7 @@ nfpms:
 archives:
   - id: api-k8s-auth
     ids:
-      - tailscale
+      - tka-server
     name_template: 'api-k8s-auth_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
 
   - id: cli
