@@ -1,7 +1,7 @@
 ---
 title: Architecture
 createTime: 2025/07/05 20:46:00
-permalink: /guide/overview
+permalink: /guide/architecture
 ---
 
 ## Why using ServiceAccount + Token auth?

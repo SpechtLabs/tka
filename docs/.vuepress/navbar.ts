@@ -7,6 +7,7 @@ export const navbar = defineNavbarConfig([
     text: "Getting Started",
     items: [
       { text: "Overview", link: "/guide/overview" },
+      { text: "Architecture", link: "/guide/architecture" },
       //     { text: 'Quick Start', link: '/guide/quickstart' },
       //     { text: 'CLI & Server Usage', link: '/guide/usage' },
     ],
