@@ -1,6 +1,9 @@
 package tailscale
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Option defines a function type for modifying Server configuration
 type Option func(*Server)
@@ -16,6 +19,9 @@ func WithDebug(debug bool) Option {
 func WithPort(port int) Option {
 	return func(s *Server) {
 		s.port = port
+		if s.Server != nil && s.Server.Server != nil {
+			s.Server.Addr = fmt.Sprintf(":%d", port)
+		}
 	}
 }
 
@@ -28,24 +34,32 @@ func WithStateDir(dir string) Option {
 
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.Server.ReadTimeout = timeout
+		if s.Server != nil && s.Server.Server != nil {
+			s.Server.ReadTimeout = timeout
+		}
 	}
 }
 
 func WithReadHeaderTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.Server.ReadHeaderTimeout = timeout
+		if s.Server != nil && s.Server.Server != nil {
+			s.Server.ReadHeaderTimeout = timeout
+		}
 	}
 }
 
 func WithIdleTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.Server.IdleTimeout = timeout
+		if s.Server != nil && s.Server.Server != nil {
+			s.Server.IdleTimeout = timeout
+		}
 	}
 }
 
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.Server.WriteTimeout = timeout
+		if s.Server != nil && s.Server.Server != nil {
+			s.Server.WriteTimeout = timeout
+		}
 	}
 }

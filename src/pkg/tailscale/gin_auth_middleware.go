@@ -46,7 +46,7 @@ func GetTailscaleCapRule[capRule any](c *gin.Context) *capRule {
 }
 
 type GinAuthMiddleware[capRule any] struct {
-	whoIs   WhoIsResolver
+	whoIs   WhoIsFunc
 	capName tailcfg.PeerCapability
 	server  *Server
 }
@@ -57,6 +57,14 @@ func NewGinAuthMiddlewareFromServer[capRule any](tsServer *Server, capName tailc
 		whoIs:   tsServer.Identity(),
 		capName: capName,
 		server:  tsServer,
+	}
+}
+
+// NewGinAuthMiddleware constructs middleware from a WhoIsFunc, enabling unit tests and alternative identity sources.
+func NewGinAuthMiddleware[capRule any](who WhoIsFunc, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
+	return &GinAuthMiddleware[capRule]{
+		whoIs:   who,
+		capName: capName,
 	}
 }
 
@@ -92,7 +100,7 @@ func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Trace
 			return
 		}
 
-		who, err := resolver.WhoIs(ctx, req.RemoteAddr)
+		who, err := resolver(ctx, req.RemoteAddr)
 		if err != nil {
 			otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
 			ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error getting WhoIs", err))
