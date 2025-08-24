@@ -1,0 +1,91 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build CLI",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"build",
+				"-o",
+				"${workspaceFolder}/bin/tka-cli",
+				"./cmd/cli"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/src"
+			},
+			"group": "build",
+			"presentation": {
+				"reveal": "silent",
+				"revealProblems": "onProblem",
+				"panel": "shared",
+				"clear": true
+			},
+			"problemMatcher": [
+				"$go"
+			]
+		},
+		{
+			"label": "Build Server",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"build",
+				"-o",
+				"${workspaceFolder}/bin/tka-server",
+				"./cmd/server"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/src"
+			},
+			"group": "build",
+			"presentation": {
+				"reveal": "silent",
+				"revealProblems": "onProblem",
+				"panel": "shared",
+				"clear": true
+			},
+			"problemMatcher": [
+				"$go"
+			]
+		},
+		{
+			"label": "Build Docs",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/docs"
+			},
+			"presentation": {
+				"reveal": "silent",
+				"revealProblems": "onProblem",
+				"panel": "shared",
+				"clear": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build All",
+			"dependsOn": [
+				"Build CLI",
+				"Build Server",
+				"Build Docs"
+			],
+			"dependsOrder": "sequence",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "silent",
+				"revealProblems": "onProblem",
+				"panel": "shared",
+				"clear": true
+			}
+		}
+	]
+}
