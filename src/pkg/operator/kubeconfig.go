@@ -28,7 +28,7 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 
 	c := t.mgr.GetClient()
 
-	signin := newSignin(userName, role, validPeriod)
+	signin := newSignin(userName, role, validPeriod, t.opts.Namespace)
 	if err := c.Create(ctx, signin); err != nil && k8serrors.IsAlreadyExists(err) {
 		otelzap.L().DebugContext(ctx, "User already signed in",
 			zap.String("user", userName),
@@ -68,7 +68,7 @@ func (t *KubeOperator) GetSignInUser(ctx context.Context, userName string) (*v1a
 
 	resName := client.ObjectKey{
 		Name:      formatSigninObjectName(userName),
-		Namespace: DefaultNamespace, // TODO: make this dynamic
+		Namespace: t.opts.Namespace,
 	}
 
 	var signIn v1alpha1.TkaSignin
@@ -90,7 +90,7 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 
 	resName := client.ObjectKey{
 		Name:      formatSigninObjectName(userName),
-		Namespace: "tka-dev", // TODO: make this dynamic
+		Namespace: t.opts.Namespace,
 	}
 
 	var signIn v1alpha1.TkaSignin
@@ -113,9 +113,9 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 
 	// Extract Kubernetes API tailscale host from controller config
 	restCfg := t.mgr.GetConfig()
-	clusterName := DefaultClusterName
-	contextName := DefaultContextPrefix + userName
-	userEntry := DefaultUserEntryPrefix + userName
+	clusterName := t.opts.ClusterName
+	contextName := t.opts.ContextPrefix + userName
+	userEntry := t.opts.UserPrefix + userName
 
 	// Build kubeconfig
 	return newKubeconfig(contextName, restCfg, token, clusterName, userEntry), nil
@@ -128,8 +128,7 @@ func (t *KubeOperator) LogOutUser(ctx context.Context, userName string) humane.E
 	c := t.mgr.GetClient()
 	var signIn v1alpha1.TkaSignin
 
-	// TODO(cedi): Make namespace dynamic
-	signinName := types.NamespacedName{Name: formatSigninObjectName(userName), Namespace: DefaultNamespace}
+	signinName := types.NamespacedName{Name: formatSigninObjectName(userName), Namespace: t.opts.Namespace}
 	if err := c.Get(ctx, signinName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return humane.New("User not signed in", "Please sign in before requesting kubeconfig")

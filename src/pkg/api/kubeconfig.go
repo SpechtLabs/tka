@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
@@ -36,7 +37,7 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
 
 		if errors.Is(err, operator.NotReadyYetError) {
-			ct.Header("Retry-After", "1")
+			ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 			ct.JSON(http.StatusAccepted, models.FromHumaneError(err))
 			return
 		}

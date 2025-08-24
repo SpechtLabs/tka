@@ -9,11 +9,7 @@ import (
 )
 
 var (
-	hostname      string
-	port          int
-	tsNetStateDir string
-	capName       string
-	debug         bool
+	debug bool
 )
 
 func main() {
@@ -29,9 +25,5 @@ func main() {
 }
 
 func initConfig() {
-	hostname = viper.GetString("tailscale.hostname")
-	port = viper.GetInt("tailscale.port")
-	tsNetStateDir = viper.GetString("tailscale.stateDir")
-	capName = viper.GetString("tailscale.capName")
 	debug = viper.GetBool("debug")
 }

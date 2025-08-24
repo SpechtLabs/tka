@@ -10,3 +10,12 @@ server:
 otel:
   endpoint: localhost:4317
   insecure: true
+
+operator:
+  namespace: tka-dev
+  clusterName: tka-cluster
+  contextPrefix: tka-context-
+  userPrefix: tka-user-
+
+api:
+  retryAfterSeconds: 1

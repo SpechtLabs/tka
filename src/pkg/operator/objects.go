@@ -14,15 +14,15 @@ import (
 )
 
 func formatSigninObjectName(userName string) string {
-	return fmt.Sprintf("tka-user-%s", userName)
+	return fmt.Sprintf("%s%s", DefaultUserEntryPrefix, userName)
 }
 
-func newSignin(userName, role string, validPeriod time.Duration) *v1alpha1.TkaSignin {
+func newSignin(userName, role string, validPeriod time.Duration, namespace string) *v1alpha1.TkaSignin {
 	now := time.Now()
 	return &v1alpha1.TkaSignin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      formatSigninObjectName(userName),
-			Namespace: DefaultNamespace, // TODO(cedi): make this dynamic...
+			Namespace: namespace,
 			Annotations: map[string]string{
 				LastAttemptedSignIn: now.Format(time.RFC3339),
 				SignInValidUntil:    now.Add(validPeriod).Format(time.RFC3339),
@@ -108,7 +108,7 @@ func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBindin
 			{
 				Kind:      "ServiceAccount",
 				Name:      formatSigninObjectName(signIn.Spec.Username),
-				Namespace: DefaultNamespace, // TODO(cedi): make dynamic
+				Namespace: signIn.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{

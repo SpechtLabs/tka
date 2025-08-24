@@ -40,7 +40,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 
 	// Grab and process the signin object first
 	signIn := &v1alpha1.TkaSignin{}
-	if err := c.Get(ctx, req.NamespacedName, signIn); err != nil || signIn == nil {
+	if err := c.Get(ctx, req.NamespacedName, signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
 			otelzap.L().Info("signin deleted", zap.String("name", req.Name), zap.String("namespace", req.Namespace))
 			return reconcile.Result{}, nil

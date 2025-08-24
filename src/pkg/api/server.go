@@ -68,16 +68,20 @@ type TKAServer struct {
 
 	// Kuberneters Operator
 	operator *operator.KubeOperator
+
+	// API behavior
+	retryAfterSeconds int
 }
 
 func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts ...Option) (*TKAServer, humane.Error) {
 	tkaServer := &TKAServer{
-		debug:    false,
-		capName:  "specht-labs.de/cap/tka",
-		tsServer: srv,
-		router:   nil,
-		tracer:   otel.Tracer("tka"),
-		operator: operator,
+		debug:             false,
+		capName:           "specht-labs.de/cap/tka",
+		tsServer:          srv,
+		router:            nil,
+		tracer:            otel.Tracer("tka"),
+		operator:          operator,
+		retryAfterSeconds: 1,
 	}
 
 	// Apply Options

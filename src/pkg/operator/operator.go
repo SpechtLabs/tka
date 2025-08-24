@@ -22,12 +22,14 @@ var scheme = runtime.NewScheme()
 type KubeOperator struct {
 	mgr    ctrl.Manager
 	tracer trace.Tracer
+	opts   OperatorOptions
 }
 
-func NewOperator(mgr ctrl.Manager) *KubeOperator {
+func NewOperator(mgr ctrl.Manager, opts OperatorOptions) *KubeOperator {
 	op := &KubeOperator{
 		mgr:    mgr,
 		tracer: otel.Tracer("tka_controller"),
+		opts:   opts,
 	}
 
 	err := ctrl.NewControllerManagedBy(mgr).
@@ -42,6 +44,10 @@ func NewOperator(mgr ctrl.Manager) *KubeOperator {
 }
 
 func NewK8sOperator() (*KubeOperator, humane.Error) {
+	return NewK8sOperatorWithOptions(defaultOperatorOptions())
+}
+
+func NewK8sOperatorWithOptions(opts OperatorOptions) (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
@@ -95,7 +101,7 @@ func NewK8sOperator() (*KubeOperator, humane.Error) {
 		return nil, humane.Wrap(err, "failed to start manager")
 	}
 
-	o := NewOperator(mgr)
+	o := NewOperator(mgr, opts)
 
 	if ok, err := o.isK8sVerAtLeast(1, 24); err != nil {
 		return nil, err

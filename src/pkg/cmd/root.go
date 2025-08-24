@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -76,6 +77,11 @@ func NewServerRootCmd(initConfigFunc func()) *cobra.Command {
 func addCommonFlags(cmd *cobra.Command) {
 	viper.SetDefault("otel.endpoint", "")
 	viper.SetDefault("otel.insecure", true)
+	viper.SetDefault("operator.namespace", operator.DefaultNamespace)
+	viper.SetDefault("operator.clusterName", operator.DefaultClusterName)
+	viper.SetDefault("operator.contextPrefix", operator.DefaultContextPrefix)
+	viper.SetDefault("operator.userPrefix", operator.DefaultUserEntryPrefix)
+	viper.SetDefault("api.retryAfterSeconds", 1)
 
 	cmd.PersistentFlags().StringVarP(&configFileName, "config", "c", "", "Name of the config file")
 

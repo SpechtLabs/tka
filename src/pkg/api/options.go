@@ -18,3 +18,12 @@ func WithPeerCapName(capName tailcfg.PeerCapability) Option {
 		tka.capName = capName
 	}
 }
+
+// WithRetryAfterSeconds configures the default Retry-After value used by 202 responses.
+func WithRetryAfterSeconds(seconds int) Option {
+	return func(tka *TKAServer) {
+		if seconds > 0 {
+			tka.retryAfterSeconds = seconds
+		}
+	}
+}

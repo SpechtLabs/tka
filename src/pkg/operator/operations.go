@@ -19,6 +19,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// MinSigninValidity is the minimum validity period for a token in Kubernetes. This minimum period is enforced by the Kubernetes API.
+const MinSigninValidity = 10 * time.Minute
+
 func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
 	// 1. Create Service Account
 	_, err := t.createOrUpdateServiceAccount(ctx, signIn)
@@ -135,6 +138,9 @@ func (t *KubeOperator) generateToken(ctx context.Context, signIn *v1alpha1.TkaSi
 	}
 
 	expirationSeconds := int64(time.Until(validUntil).Seconds())
+	if expirationSeconds < int64(MinSigninValidity.Seconds()) {
+		expirationSeconds = int64(MinSigninValidity.Seconds())
+	}
 	tokenRequest := newTokenRequest(expirationSeconds)
 
 	tokenResponse, err := clientset.CoreV1().ServiceAccounts(signIn.Namespace).CreateToken(ctx, formatSigninObjectName(signIn.Spec.Username), tokenRequest, metav1.CreateOptions{})

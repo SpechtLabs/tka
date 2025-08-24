@@ -3,19 +3,18 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
-
-// minValidity is the minimum validity period for a token in Kubernetes. This minimum period is enforced by the Kubernetes API.
-const minValidity = 10 * time.Minute
 
 // login handles user authentication through Tailscale for the TKA service
 // @Summary       Authenticate user and provision Kubernetes credentials
@@ -53,7 +52,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	if period < minValidity {
+	if period < operator.MinSigninValidity {
 		err := humane.New("`period` may not specify a duration less than 10 minutes",
 			fmt.Sprintf("Specify a period greater than 10 minutes in your api ACL for user %s", userName),
 		)
@@ -113,7 +112,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 
 		if !signIn.Status.Provisioned {
 			status = http.StatusAccepted
-			ct.Header("Retry-After", "1")
+			ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 
 			validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
 			if err != nil {

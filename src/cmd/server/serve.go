@@ -38,16 +38,23 @@ func runE(cmd *cobra.Command, _ []string) error {
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
 	interruptHandler(ctx, cancelFn)
 
-	k8sOperator, err := operator.NewK8sOperator()
+	opOpts := operator.OperatorOptions{
+		Namespace:     viper.GetString("operator.namespace"),
+		ClusterName:   viper.GetString("operator.clusterName"),
+		ContextPrefix: viper.GetString("operator.contextPrefix"),
+		UserPrefix:    viper.GetString("operator.userPrefix"),
+	}
+
+	k8sOperator, err := operator.NewK8sOperatorWithOptions(opOpts)
 	if err != nil {
 		cancelFn(err)
 		return fmt.Errorf("%s", err.Display())
 	}
 
-	srv := ts.NewServer(hostname,
+	srv := ts.NewServer(viper.GetString("tailscale.hostname"),
 		ts.WithDebug(debug),
-		ts.WithPort(port),
-		ts.WithStateDir(tsNetStateDir),
+		ts.WithPort(viper.GetInt("tailscale.port")),
+		ts.WithStateDir(viper.GetString("tailscale.stateDir")),
 		ts.WithReadTimeout(10*time.Second),
 		ts.WithReadHeaderTimeout(5*time.Second),
 		ts.WithWriteTimeout(20*time.Second),
@@ -56,7 +63,8 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	tkaServer, err := api.NewTKAServer(srv, k8sOperator,
 		api.WithDebug(debug),
-		api.WithPeerCapName(tailcfg.PeerCapability(capName)),
+		api.WithPeerCapName(tailcfg.PeerCapability(viper.GetString("tailscale.capName"))),
+		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
 	)
 	if err != nil {
 		cancelFn(err)
