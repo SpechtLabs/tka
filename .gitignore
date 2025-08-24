@@ -60,3 +60,4 @@ dist
 **/node_modules
 src/main
 src/bin
+bin/
