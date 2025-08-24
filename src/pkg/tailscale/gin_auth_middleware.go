@@ -46,14 +46,17 @@ func GetTailscaleCapRule[capRule any](c *gin.Context) *capRule {
 }
 
 type GinAuthMiddleware[capRule any] struct {
-	tsServer *Server
-	capName  tailcfg.PeerCapability
+	whoIs   WhoIsResolver
+	capName tailcfg.PeerCapability
+	server  *Server
 }
 
-func NewGinAuthMiddleware[capRule any](tsServer *Server, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
+// NewGinAuthMiddlewareFromServer keeps backward compatibility by deriving the resolver from *Server.
+func NewGinAuthMiddlewareFromServer[capRule any](tsServer *Server, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
 	return &GinAuthMiddleware[capRule]{
-		tsServer: tsServer,
-		capName:  capName,
+		whoIs:   tsServer.Identity(),
+		capName: capName,
+		server:  tsServer,
 	}
 }
 
@@ -78,7 +81,18 @@ func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Trace
 			return
 		}
 
-		who, err := m.tsServer.LC().WhoIs(ctx, req.RemoteAddr)
+		resolver := m.whoIs
+		if resolver == nil && m.server != nil {
+			resolver = m.server.Identity()
+		}
+		if resolver == nil {
+			otelzap.L().ErrorContext(ctx, "Tailscale identity not initialized")
+			ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Tailscale identity not initialized", nil))
+			ct.Abort()
+			return
+		}
+
+		who, err := resolver.WhoIs(ctx, req.RemoteAddr)
 		if err != nil {
 			otelzap.L().WithError(err).ErrorContext(ctx, "Error getting WhoIs")
 			ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error getting WhoIs", err))
@@ -87,9 +101,8 @@ func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Trace
 		}
 
 		// not sure if this is the right thing to do...
-		userName, _, _ := strings.Cut(who.UserProfile.LoginName, "@")
-		n := who.Node.View()
-		if n.IsTagged() {
+		userName, _, _ := strings.Cut(who.LoginName, "@")
+		if who.IsTagged {
 			otelzap.L().ErrorContext(ctx, "tagged nodes not (yet) supported")
 			ct.JSON(http.StatusBadRequest, models.NewErrorResponse("tagged nodes not (yet) supported", nil))
 			ct.Abort()

@@ -122,8 +122,7 @@ func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts .
 	p := ginprometheus.NewPrometheus("tka_server")
 	p.Use(tkaServer.router)
 
-	// Set-Up tailscale auth middleware to authenticate all requests via Tailscale
-	authMiddleware := tailscale.NewGinAuthMiddleware[capRule](srv, tkaServer.capName)
+	authMiddleware := tailscale.NewGinAuthMiddlewareFromServer[capRule](tkaServer.tsServer, tkaServer.capName)
 	authMiddleware.Use(tkaServer.router, tkaServer.tracer)
 
 	// Set-up routes
@@ -147,14 +146,14 @@ func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts .
 	return tkaServer, nil
 }
 
-// Serve starts the TKA tailscale with TLS setup and HTTP tailscale functionality, handling Tailnet connection and request serving.
+// Serve starts the TKA server with TLS setup and HTTP functionality, handling Tailnet connection and request serving.
 // It listens on the configured port and returns wrapped errors for any issues encountered during initialization or runtime.
 func (t *TKAServer) Serve(ctx context.Context) humane.Error {
 	return t.tsServer.Serve(ctx, t.router)
 }
 
-// Shutdown gracefully stops the tka tailscale if it is running, releasing any resources and handling in-progress requests.
-// It returns a humane.Error if the tailscale fails to stop.
+// Shutdown gracefully stops the tka server if it is running, releasing any resources and handling in-progress requests.
+// It returns a humane.Error if the server fails to stop.
 func (t *TKAServer) Shutdown(ctx context.Context) humane.Error {
 	return t.tsServer.Shutdown(ctx)
 }

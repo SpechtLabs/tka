@@ -28,24 +28,24 @@ func WithStateDir(dir string) Option {
 
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.srv.ReadTimeout = timeout
+		s.Server.ReadTimeout = timeout
 	}
 }
 
 func WithReadHeaderTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.srv.ReadHeaderTimeout = timeout
+		s.Server.ReadHeaderTimeout = timeout
 	}
 }
 
 func WithIdleTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.srv.IdleTimeout = timeout
+		s.Server.IdleTimeout = timeout
 	}
 }
 
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
-		s.srv.WriteTimeout = timeout
+		s.Server.WriteTimeout = timeout
 	}
 }
