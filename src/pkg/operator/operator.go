@@ -35,7 +35,7 @@ func NewOperator(mgr ctrl.Manager) *KubeOperator {
 		Named("TkaSignin").
 		Complete(op)
 	if err != nil {
-		otelzap.L().WithError(err).Fatal("failed to create controller")
+		otelzap.L().WithError(err).Error("failed to create controller")
 	}
 
 	return op
@@ -44,11 +44,11 @@ func NewOperator(mgr ctrl.Manager) *KubeOperator {
 func NewK8sOperator() (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		otelzap.L().WithError(err).Fatal("failed to add clientgoscheme to scheme")
+		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
 	}
 
 	if err := v1alpha1.AddToScheme(scheme); err != nil {
-		otelzap.L().WithError(err).Fatal("failed to add v1alpha1 to scheme")
+		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme")
 	}
 
 	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
@@ -92,7 +92,7 @@ func NewK8sOperator() (*KubeOperator, humane.Error) {
 		},
 	})
 	if err != nil {
-		otelzap.L().WithError(err).Fatal("failed to start manager")
+		return nil, humane.Wrap(err, "failed to start manager")
 	}
 
 	o := NewOperator(mgr)

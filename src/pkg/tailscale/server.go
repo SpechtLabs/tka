@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
@@ -44,7 +45,12 @@ func NewServer(hostname string, opts ...Option) *Server {
 		lc:        nil,
 		st:        nil,
 		serverURL: "",
-		srv:       nil,
+		srv: &http.Server{
+			ReadTimeout:       10 * time.Second,
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      20 * time.Second,
+			IdleTimeout:       120 * time.Second,
+		},
 	}
 
 	// Apply options
@@ -95,10 +101,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error {
 		s.serverURL = fmt.Sprintf("https://%s", s.st.Self.DNSName)
 	}
 
-	// Create and configure HTTP tailscale
-	s.srv = &http.Server{
-		Handler: handler,
-	}
+	s.srv.Handler = handler
 
 	// Serve HTTP
 	if err := s.srv.Serve(ln); err != nil {

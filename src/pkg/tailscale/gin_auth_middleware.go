@@ -65,7 +65,7 @@ func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Trace
 	return func(ct *gin.Context) {
 		req := ct.Request
 
-		ctx, span := tracer.Start(req.Context(), "TKAServer.login")
+		ctx, span := tracer.Start(req.Context(), "Middleware.Auth")
 		defer span.End()
 
 		// This URL is visited by the user who is being authenticated. If they are

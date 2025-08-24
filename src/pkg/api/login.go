@@ -14,6 +14,9 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
+// minValidity is the minimum validity period for a token in Kubernetes. This minimum period is enforced by the Kubernetes API.
+const minValidity = 10 * time.Minute
+
 // login handles user authentication through Tailscale for the TKA service
 // @Summary       Authenticate user and provision Kubernetes credentials
 // @Description   Authenticates a user through Tailscale, validates their capability rule, and provisions Kubernetes credentials
@@ -50,8 +53,8 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	if period < 10*time.Minute {
-		err := humane.New("`period` may not specify a duration less than 10 minutesD",
+	if period < minValidity {
+		err := humane.New("`period` may not specify a duration less than 10 minutes",
 			fmt.Sprintf("Specify a period greater than 10 minutes in your api ACL for user %s", userName),
 		)
 		otelzap.L().WithError(err).ErrorContext(ctx, "Invalid capRule")
@@ -109,10 +112,11 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 		until := signIn.Status.ValidUntil
 
 		if !signIn.Status.Provisioned {
-			status = http.StatusProcessing
+			status = http.StatusAccepted
+			ct.Header("Retry-After", "1")
 
 			validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
-			if err == nil {
+			if err != nil {
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
 				ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
 				return

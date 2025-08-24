@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
@@ -47,6 +48,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 		ts.WithDebug(debug),
 		ts.WithPort(port),
 		ts.WithStateDir(tsNetStateDir),
+		ts.WithReadTimeout(10*time.Second),
+		ts.WithReadHeaderTimeout(5*time.Second),
+		ts.WithWriteTimeout(20*time.Second),
+		ts.WithIdleTimeout(120*time.Second),
 	)
 
 	tkaServer, err := api.NewTKAServer(srv, k8sOperator,

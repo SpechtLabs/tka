@@ -92,7 +92,7 @@ func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts .
 	}
 
 	// Setup Gin router
-	tkaServer.router = gin.New(func(e *gin.Engine) {})
+	tkaServer.router = gin.New()
 	tkaServer.router.Use(otelgin.Middleware("tka_server"))
 	// Setup ginzap to log everything correctly to zap
 	tkaServer.router.Use(ginzap.GinzapWithConfig(otelzap.L(), &ginzap.Config{

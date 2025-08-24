@@ -22,7 +22,7 @@ func newSignin(userName, role string, validPeriod time.Duration) *v1alpha1.TkaSi
 	return &v1alpha1.TkaSignin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      formatSigninObjectName(userName),
-			Namespace: "tka-dev", // TODO(cedi): make this dynamic...
+			Namespace: DefaultNamespace, // TODO(cedi): make this dynamic...
 			Annotations: map[string]string{
 				LastAttemptedSignIn: now.Format(time.RFC3339),
 				SignInValidUntil:    now.Add(validPeriod).Format(time.RFC3339),
@@ -108,7 +108,7 @@ func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBindin
 			{
 				Kind:      "ServiceAccount",
 				Name:      formatSigninObjectName(signIn.Spec.Username),
-				Namespace: "tka-dev", // TODO(cedi): make dynamic
+				Namespace: DefaultNamespace, // TODO(cedi): make dynamic
 			},
 		},
 		RoleRef: rbacv1.RoleRef{

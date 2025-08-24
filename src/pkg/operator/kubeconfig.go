@@ -68,7 +68,7 @@ func (t *KubeOperator) GetSignInUser(ctx context.Context, userName string) (*v1a
 
 	resName := client.ObjectKey{
 		Name:      formatSigninObjectName(userName),
-		Namespace: "tka-dev", // TODO: make this dynamic
+		Namespace: DefaultNamespace, // TODO: make this dynamic
 	}
 
 	var signIn v1alpha1.TkaSignin
@@ -113,9 +113,9 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 
 	// Extract Kubernetes API tailscale host from controller config
 	restCfg := t.mgr.GetConfig()
-	clusterName := "tka-cluster"
-	contextName := "tka-context-" + userName
-	userEntry := "tka-user-" + userName
+	clusterName := DefaultClusterName
+	contextName := DefaultContextPrefix + userName
+	userEntry := DefaultUserEntryPrefix + userName
 
 	// Build kubeconfig
 	return newKubeconfig(contextName, restCfg, token, clusterName, userEntry), nil
@@ -129,7 +129,7 @@ func (t *KubeOperator) LogOutUser(ctx context.Context, userName string) humane.E
 	var signIn v1alpha1.TkaSignin
 
 	// TODO(cedi): Make namespace dynamic
-	signinName := types.NamespacedName{Name: formatSigninObjectName(userName), Namespace: "tka-dev"}
+	signinName := types.NamespacedName{Name: formatSigninObjectName(userName), Namespace: DefaultNamespace}
 	if err := c.Get(ctx, signinName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return humane.New("User not signed in", "Please sign in before requesting kubeconfig")

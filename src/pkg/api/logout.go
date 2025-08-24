@@ -27,7 +27,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 	req := ct.Request
 	userName := tailscale.GetTailscaleUsername(ct)
 
-	ctx, span := t.tracer.Start(req.Context(), "TKAServer.getLogin")
+	ctx, span := t.tracer.Start(req.Context(), "TKAServer.logout")
 	defer span.End()
 
 	if signIn, err := t.operator.GetSignInUser(ctx, userName); err != nil {
@@ -44,7 +44,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 
 		if !signIn.Status.Provisioned {
 			validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
-			if err == nil {
+			if err != nil {
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
 				ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
 				return
@@ -53,8 +53,8 @@ func (t *TKAServer) logout(ct *gin.Context) {
 		}
 
 		if err := t.operator.LogOutUser(ctx, userName); err != nil {
-			otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
-			ct.JSON(http.StatusInternalServerError, gin.H{"error": "Error signing in user", "internal_error": err.Error()})
+			otelzap.L().WithError(err).ErrorContext(ctx, "Error logging out user")
+			ct.JSON(http.StatusInternalServerError, models.FromHumaneError(err))
 			return
 		}
 

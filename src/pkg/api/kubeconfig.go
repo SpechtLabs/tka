@@ -36,7 +36,8 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
 
 		if errors.Is(err, operator.NotReadyYetError) {
-			ct.JSON(http.StatusProcessing, models.FromHumaneError(err))
+			ct.Header("Retry-After", "1")
+			ct.JSON(http.StatusAccepted, models.FromHumaneError(err))
 			return
 		}
 
