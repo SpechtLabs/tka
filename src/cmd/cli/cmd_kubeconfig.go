@@ -15,11 +15,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-func init() {
-	cmdRoot.AddCommand(cmdKubeconfig)
-	cmdGet.AddCommand(cmdGetKubeconfig)
-}
-
 var cmdKubeconfig = &cobra.Command{
 	Use:     "kubeconfig",
 	Short:   "Fetch your temporary kubeconfig",

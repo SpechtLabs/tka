@@ -31,6 +31,17 @@ func PrintOk(msg string, context ...string) {
 	_, _ = PrettyPrint(OkLvl, msg, context...)
 }
 
+// PrintInfoIcon logs an informational message with optional context.
+func PrintInfoIcon(icon, msg string, context ...string) {
+	_, _ = PrettyPrintWithOptions(InfoLvl,
+		msg,
+		context,
+		WithIcon(InfoLvl, icon),
+	)
+
+	_, _ = PrettyPrint(InfoLvl, msg, context...)
+}
+
 // PrintInfo logs an informational message with optional context.
 func PrintInfo(msg string, context ...string) {
 	_, _ = PrettyPrint(InfoLvl, msg, context...)

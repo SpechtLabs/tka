@@ -11,29 +11,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	cmdRoot.AddCommand(cmdSignIn)
-	cmdGet.AddCommand(cmdGetSignIn)
-	cmdNew.AddCommand(cmNewSignIn)
-}
-
 var cmdSignIn = &cobra.Command{
 	Use:     "login",
 	Aliases: []string{"signin"},
 	Short:   "Sign in and configure kubectl with temporary access",
 	Example: "tka login",
-	Long: `Authenticate using your Tailscale identity and retrieve a temporary
-Kubernetes access token. This command automatically fetches your kubeconfig,
-writes it to a temporary file, sets the KUBECONFIG environment variable, and
-verifies kubectl connectivity.`,
-	RunE: signIn,
-}
-
-var cmNewSignIn = &cobra.Command{
-	Use:     "login",
-	Aliases: []string{"signin"},
-	Short:   "Sign in and configure kubectl with temporary access",
-	Example: "tka new login",
 	Long: `Authenticate using your Tailscale identity and retrieve a temporary
 Kubernetes access token. This command automatically fetches your kubeconfig,
 writes it to a temporary file, sets the KUBECONFIG environment variable, and
@@ -64,7 +46,12 @@ var cmdGetSignIn = &cobra.Command{
 func signIn(_ *cobra.Command, _ []string) error {
 	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
-		pretty_print.PrintError(err.Cause())
+		if err.Cause() != nil {
+			pretty_print.PrintError(err.Cause())
+		} else {
+			pretty_print.PrintError(err)
+		}
+
 		os.Exit(1)
 	}
 

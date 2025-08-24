@@ -14,22 +14,22 @@ builds:
       - linux
     goarch: &goarch
       - arm64
-      - amd64
+#      - amd64
     goarm: &goarm
       - "7"
     binary: tailscale-k8s-auth
     dir: ./cmd/server/
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: &ldflags
-      - -X=main.Version={{.Version}}
-      - -X=main.Commit={{.Commit}}
-      - -X=main.Date={{ .CommitTimestamp }}
+      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Version={{.Version}}
+      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Commit={{.Commit}}
+      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Date={{ .CommitDate }}
 
   - id: cli
     env: *env
     goos:
-      - linux
-      - windows
+#      - linux
+#      - windows
       - darwin
     goarch: *goarch
     goarm: *goarm

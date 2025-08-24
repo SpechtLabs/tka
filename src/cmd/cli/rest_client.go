@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/sierrasoftworks/humane-errors-go"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
-	"github.com/spf13/viper"
 )
 
 func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {
@@ -23,8 +23,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	}
 
 	// Assemble the request URL
-	server := viper.GetString("tailscale")
-	url := fmt.Sprintf("%s%s", server, uri)
+	url := fmt.Sprintf("%s%s%s", serverAddr, api.ApiRouteV1Alpha1, uri)
 
 	// Create the request
 	req, err := http.NewRequest(method, url, body)
@@ -66,18 +65,19 @@ func handleAPIError(resp *http.Response, body []byte) humane.Error {
 	}
 
 	var fallback map[string]any
-	if err := json.Unmarshal(body, &fallback); err != nil {
-		return humane.Wrap(err, "failed to parse error response")
+	if err := json.Unmarshal(body, &fallback); err == nil {
+		msg := fmt.Sprintf("HTTP %d", resp.StatusCode)
+		if m, ok := fallback["error"].(string); ok {
+			msg = m
+		}
+		cause := ""
+		if c, ok := fallback["internal_error"].(string); ok {
+			cause = c
+		}
+
+		return humane.Wrap(humane.New(cause), msg)
 	}
 
-	msg := fmt.Sprintf("HTTP %d", resp.StatusCode)
-	if m, ok := fallback["error"].(string); ok {
-		msg = m
-	}
-	cause := ""
-	if c, ok := fallback["internal_error"].(string); ok {
-		cause = c
-	}
+	return humane.New(string(body))
 
-	return humane.Wrap(humane.New(cause), msg)
 }

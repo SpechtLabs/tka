@@ -48,6 +48,7 @@ import (
 // @name X-Tailscale-User
 // @description Authentication happens automatically via the Tailscale network. The server performs a WhoIs lookup on the client's IP address to determine identity. This header is for documentation purposes only and is not actually required to be set.
 const (
+	ApiRouteV1Alpha1   = "/api/v1alpha1"
 	LoginApiRoute      = "/login"
 	KubeconfigApiRoute = "/kubeconfig"
 	LogoutApiRoute     = "/logout"
@@ -122,7 +123,7 @@ func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts .
 	authMiddleware.Use(tkaServer.router, tkaServer.tracer)
 
 	// Set-up routes
-	v1alpha1Grpup := tkaServer.router.Group("/api/v1alpha1/")
+	v1alpha1Grpup := tkaServer.router.Group(ApiRouteV1Alpha1)
 	v1alpha1Grpup.POST(LoginApiRoute, tkaServer.login)
 	v1alpha1Grpup.GET(LoginApiRoute, tkaServer.getLogin)
 	v1alpha1Grpup.GET(KubeconfigApiRoute, tkaServer.getKubeconfig)

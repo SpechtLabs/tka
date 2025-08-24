@@ -11,7 +11,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
-	server2 "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -26,10 +26,6 @@ var (
 		RunE: runE,
 	}
 )
-
-func init() {
-	rootCmd.AddCommand(serveCmd)
-}
 
 func runE(cmd *cobra.Command, _ []string) error {
 	if debug {
@@ -47,10 +43,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("%s", err.Display())
 	}
 
-	srv := server2.NewServer(hostname,
-		server2.WithDebug(debug),
-		server2.WithPort(port),
-		server2.WithStateDir(tsNetStateDir),
+	srv := ts.NewServer(hostname,
+		ts.WithDebug(debug),
+		ts.WithPort(port),
+		ts.WithStateDir(tsNetStateDir),
 	)
 
 	tkaServer, err := api.NewTKAServer(srv, k8sOperator,
