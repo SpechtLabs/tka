@@ -1,0 +1,12 @@
+tailscale:
+  hostname: tka
+  port: 8123
+  stateDir: /tmp/tka-ts-state
+  tailnet: sphinx-map.ts.net
+
+server:
+  debug: true
+
+otel:
+  endpoint: localhost:4317
+  insecure: true
