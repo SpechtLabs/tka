@@ -178,7 +178,7 @@ jobs:
           fetch-depth: 0
 
       - name: Pull in platform artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tailscale-k8s-auth-linux-${{ matrix.arch }}
 
@@ -234,7 +234,7 @@ jobs:
           echo "full_image_name=${image}" >> "$GITHUB_OUTPUT"
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: /tmp/digests
           pattern: image-digest-*
