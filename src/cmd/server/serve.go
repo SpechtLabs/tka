@@ -24,9 +24,25 @@ import (
 
 var (
 	serveCmd = &cobra.Command{
-		Use:  "serve",
-		Args: cobra.ExactArgs(0),
-		RunE: runE,
+		Use:   "serve",
+		Short: "Run the TKA API and Kubernetes operator services",
+		Long: `Start the Tailscale-embedded HTTP API and the Kubernetes operator.
+
+This command:
+
+- Starts a tailscale tsnet server for inbound connections
+- Serves the TKA HTTP API with authentication and capability checks
+- Runs the Kubernetes operator to manage kubeconfigs and user resources
+
+Configuration is provided via flags and environment variables (see --help).`,
+		Example: `# Start the server with defaults from config and environment
+tka serve
+
+# Override the capability name
+tka serve --cap-name specht-labs.de/cap/custom`,
+		Args:      cobra.ExactArgs(0),
+		ValidArgs: []string{},
+		RunE:      runE,
 	}
 )
 

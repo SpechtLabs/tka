@@ -19,8 +19,13 @@ func main() {
 
 	var cmdGet = &cobra.Command{
 		Use:   "get",
-		Short: "Get resources from the tka",
-		Long:  "Get command retrieves resources from your Tailscale Kubernetes Auth tailscale.\nIt can be used to fetch various resources like kubeconfigs or clusters.",
+		Short: "Retrieve read-only resources from TKA.",
+		Long:  `The get command retrieves resources from your Tailscale Kubernetes Auth service`,
+		Example: `# Fetch your current kubeconfig
+tka get kubeconfig
+
+# Show current login information
+tka get login`,
 	}
 
 	cmdRoot.AddCommand(cmdShell)
@@ -31,7 +36,7 @@ func main() {
 
 	cmdRoot.AddCommand(cmdGet)
 	cmdGet.AddCommand(cmdGetSignIn)
-	cmdGet.AddCommand(cmdGetKubeconfig)
+	cmdGet.AddCommand(cmdKubeconfig)
 
 	if err := cmdRoot.Execute(); err != nil {
 		fmt.Println(err)

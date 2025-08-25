@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,7 +24,6 @@ var (
 	// Commit represents the Commit-hash from which the tka binary was build, should be set via ldflags -X
 	Commit string
 
-	undoFunc       func()
 	configFileName string
 )
 
@@ -38,10 +38,7 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 		Use:   "ts-k8s-auth",
 		Short: "ts-k8s-auth is the CLI for Tailscale Kubernetes Auth",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			undoFunc = utils.InitObservability()
-		},
-		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			undoFunc()
+			utils.InitObservability()
 		},
 	}
 
@@ -57,15 +54,18 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 	}
 
 	cmdRoot.AddCommand(cmdVersion)
+	errPrefix := pretty_print.FormatWithOptions(pretty_print.ErrLvl, "Error:", []string{}, pretty_print.WithoutNewline())
+	cmdRoot.SetErrPrefix(errPrefix)
+
 	cmdRoot.SetHelpFunc(pretty_print.PrintHelpText)
-	cmdRoot.SetErrPrefix(pretty_print.FormatErrorMessage("Error:"))
 	cmdRoot.SetUsageFunc(func(cmd *cobra.Command) error {
 		fmt.Println("")
-		pretty_print.PrintHelpText(cmd, []string{})
+		pretty_print.PrintUsageText(cmd, []string{})
 		return nil
 	})
 	cmdRoot.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
-		pretty_print.PrintErrorMessage("Invalid flag: %s", err.Error())
+		pretty_print.PrintErrorMessage(err.Error())
+		fmt.Println("")
 		pretty_print.PrintHelpText(cmd, []string{})
 		return nil
 	})
@@ -75,17 +75,46 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 
 func NewCliRootCmd(initConfigFunc func()) *cobra.Command {
 	cmdRoot := NewRootCmd(initConfigFunc)
-	cmdRoot.Use = "ts-k8s-srv"
-	cmdRoot.Long = `ts-k8s-auth is a small CLI to sign in to a Kubernetes cluster using Tailscale identity.
-It talks to a tka-api instance and helps you fetch ephemeral kubeconfigs.`
 	addClientFlags(cmdRoot)
+
+	cmdRoot.Long = `tka is the client for Tailscale Kubernetes Auth. It lets you authenticate to clusters over Tailscale, manage kubeconfig entries, and inspect status with readable, themed output.
+
+### Theming
+
+Control the CLI's look and feel using one of the following:
+- Flag: ` + "`--theme`" + ` or ` + "`-t`" + `
+- Config: ` + "`theme`" + ` (in config file)
+- Environment: ` + "`TKA_THEME`" + `
+
+**Accepted themes**: ascii, dark, dracula, *tokyo-night*, light
+
+### Notes:
+- Global flags like ` + "`--theme`" + ` are available to subcommands`
+
+	cmdRoot.Example = `# generic dark theme
+tka --theme dark login
+
+# light theme
+TKA_THEME=light tka kubeconfig
+
+# no theme (usefull in non-interactive contexts)
+tka --theme notty login
+`
+
+	cmdRoot.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		theme := viper.GetString("theme")
+		if !slices.Contains(pretty_print.AllThemeNames(), theme) {
+			viper.Set("theme", "tokyo-night")
+			return fmt.Errorf("invalid theme: %s", theme)
+		}
+		return nil
+	}
+
 	return cmdRoot
 }
 
 func NewServerRootCmd(initConfigFunc func()) *cobra.Command {
 	cmdRoot := NewRootCmd(initConfigFunc)
-	cmdRoot.Use = "ts-k8s-srv"
-	cmdRoot.Long = `ts-k8s-srv serves the gRPC API for Tailscale Kubernetes Auth`
 	addServerFlags(cmdRoot)
 	return cmdRoot
 }
@@ -122,6 +151,12 @@ func addCommonFlags(cmd *cobra.Command) {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
+	cmd.PersistentFlags().BoolP("long", "l", false, "Show long output (where available)")
+	viper.SetDefault("output.long", false)
+	err = viper.BindPFlag("output.long", cmd.PersistentFlags().Lookup("long"))
+	if err != nil {
+		panic(fmt.Errorf("fatal binding flag: %w", err))
+	}
 }
 
 func addServerFlags(cmd *cobra.Command) {
@@ -149,6 +184,16 @@ func addServerFlags(cmd *cobra.Command) {
 
 func addClientFlags(cmd *cobra.Command) {
 	addCommonFlags(cmd)
+
+	cmd.PersistentFlags().StringP("theme", "t", "tokyo-night", "theme to use for the CLI")
+	viper.SetDefault("theme", "tokyo-night")
+	err := viper.BindPFlag("theme", cmd.PersistentFlags().Lookup("theme"))
+	if err != nil {
+		panic(fmt.Errorf("fatal binding flag: %w", err))
+	}
+	_ = cmd.RegisterFlagCompletionFunc("theme", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return pretty_print.AllThemeNames(), cobra.ShellCompDirectiveDefault
+	})
 }
 
 func initConfig() {

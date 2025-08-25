@@ -20,11 +20,11 @@ const (
 // FormatWithOptions formats a message with custom options and returns it as a string
 func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Option) string {
 	// Get a copy of the global options (thread-safe)
-	options := GetGlobalOptionsCopy()
+	options := DefaultOptions()
 
 	// Apply any function-specific options
 	for _, opt := range opts {
-		opt(&options)
+		opt(options)
 	}
 
 	// If this is an error message, and we have an error object with humane rendering enabled,
@@ -49,7 +49,7 @@ func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Opt
 	if options.NoColor {
 		status = icon
 	} else {
-		status = style.Render(icon)
+		status = style(options.Theme).Render(icon)
 	}
 
 	// Apply message styling
@@ -57,7 +57,7 @@ func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Opt
 	if options.NoColor {
 		message = msg
 	} else {
-		message = options.MessageStyle.Render(msg)
+		message = options.MessageStyle(options.Theme).Render(msg)
 	}
 
 	// Add timestamp if requested
@@ -74,13 +74,19 @@ func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Opt
 		if options.NoColor {
 			contextText = c
 		} else {
-			contextText = options.ContextStyle.Render(c)
+			contextText = options.ContextStyle(options.Theme).Render(c)
 		}
 		additionalContext += fmt.Sprintf("\n%s%s", indent, contextText)
 	}
 
 	// Create the complete log line
-	return fmt.Sprintf("%s%s %s%s\n", timestamp, status, message, additionalContext)
+
+	newline := "\n"
+	if options.NoNewline {
+		newline = ""
+	}
+
+	return fmt.Sprintf("%s%s %s%s%s", timestamp, status, message, additionalContext, newline)
 }
 
 // Format formats a message with the global options and returns it as a string

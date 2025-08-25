@@ -16,19 +16,20 @@ import (
 )
 
 var cmdKubeconfig = &cobra.Command{
-	Use:     "kubeconfig",
-	Short:   "Fetch your temporary kubeconfig",
-	Example: "tka kubeconfig",
-	Args:    cobra.ExactArgs(0),
-	RunE:    getKubeconfig,
-}
-
-var cmdGetKubeconfig = &cobra.Command{
-	Use:     "kubeconfig",
-	Short:   "Fetch your temporary kubeconfig",
-	Example: "tka get kubeconfig",
-	Args:    cobra.ExactArgs(0),
-	RunE:    getKubeconfig,
+	Use:   "kubeconfig",
+	Short: "Fetch your temporary kubeconfig",
+	Long: `Retrieve an ephemeral kubeconfig for your current session and save it to a temporary file.
+This command downloads the kubeconfig from the TKA server and writes it to a temp file.
+It also sets KUBECONFIG for this process so that subsequent kubectl calls from this process
+use the new file.
+To update your interactive shell, export KUBECONFIG yourself`,
+	Example: `# Fetch and save your current ephemeral kubeconfig
+tka kubeconfig
+tka get kubeconfig
+`,
+	Args:      cobra.ExactArgs(0),
+	ValidArgs: []string{},
+	RunE:      getKubeconfig,
 }
 
 func getKubeconfig(_ *cobra.Command, _ []string) error {

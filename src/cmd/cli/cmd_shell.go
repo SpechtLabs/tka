@@ -13,13 +13,13 @@ var cmdShell = &cobra.Command{
 	Use:       "shell [bash|zsh|fish|powershell]",
 	Short:     "Generate shell integration for tka wrapper",
 	Example: `# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
-$ eval "$(ts-k8s-auth shell bash)"
+eval "$(ts-k8s-auth shell bash)"
 
 # For fish, add this line to your ~/.config/fish/config.fish:
-$ ts-k8s-auth shell fish | source
+ts-k8s-auth shell fish | source
 
 # For PowerShell, add this line to your profile (e.g. $PROFILE):
-$ ts-k8s-auth shell powershell | Out-String | Invoke-Expression
+ts-k8s-auth shell powershell | Out-String | Invoke-Expression
 `,
 	Long: `The "shell" command generates shell integration code for the tka wrapper.
 
@@ -35,13 +35,19 @@ authenticated and your "${KUBECONFIG}" is updated without needing to manually
 copy and paste an "export" command.
 
 Once installed, you can use "tka" as your entrypoint:
-  $ tka login        # signs in and updates your environment
-  $ tka refresh      # refreshes credentials and updates your environment
-  $ tka logout       # signs out
+
+` + "```bash" + `
+tka login        # signs in and updates your environment
+tka refresh      # refreshes credentials and updates your environment
+tka logout       # signs out
+` + "```" + `
 
 If you want to bypass the automatic environment updates and see the full
 human-friendly output, you can pass the "--no-eval" flag:
-  $ tka login --no-eval
+
+` + "```bash" + `
+tka login --no-eval
+` + "```" + `
 
 This command only prints the integration code. You must eval or source it
 in your shell for it to take effect.`,

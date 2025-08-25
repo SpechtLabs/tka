@@ -13,33 +13,42 @@ import (
 )
 
 var (
-	quiet  bool
-	setEnv bool
+	quiet bool
 )
 
 func init() {
 	cmdSignIn.Flags().BoolVarP(&quiet, "quiet", "q", false, "Do not print login information")
-	cmdSignIn.Flags().BoolVarP(&setEnv, "set-env", "e", false, "Set KUBECONFIG environment variable")
 }
 
 var cmdSignIn = &cobra.Command{
 	Use:     "login",
 	Aliases: []string{"signin"},
 	Short:   "Sign in and configure kubectl with temporary access",
-	Example: "tka login",
 	Long: `Authenticate using your Tailscale identity and retrieve a temporary
 Kubernetes access token. This command automatically fetches your kubeconfig,
-writes it to a temporary file, sets the KUBECONFIG environment variable, and
-verifies kubectl connectivity.`,
-	RunE: signIn,
+writes it to a temporary file, sets the KUBECONFIG environment variable.`,
+	Example: `# Sign in with user friendly output
+tka login --no-eval
+
+# Login and start using your session
+tka login
+kubectl get pods`,
+
+	Args:      cobra.ExactArgs(0),
+	ValidArgs: []string{},
+	RunE:      signIn,
 }
 
 var cmdGetSignIn = &cobra.Command{
 	Use:     "login",
 	Aliases: []string{"signin"},
-	Short:   "TODO",
-	Example: "tka get login",
-	Long:    `TODO`,
+	Short:   "Show current login information and provisioning status.",
+	Long: `Display details about your current login state, including whether provisioning was successful.
+This does not modify your session.`,
+	Example: `# Display current login status information
+tka get login`,
+	Args:      cobra.ExactArgs(0),
+	ValidArgs: []string{},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loginInfo, code, err := doRequestAndDecode[models.UserLoginResponse](http.MethodGet, api.LoginApiRoute, nil, http.StatusOK, http.StatusProcessing)
 		if err != nil {
@@ -55,10 +64,6 @@ var cmdGetSignIn = &cobra.Command{
 }
 
 func signIn(cmd *cobra.Command, args []string) error {
-	if setEnv {
-		_ = cmd.Flags().Set("quiet", "true")
-	}
-
 	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
 		if err.Cause() != nil {
@@ -91,9 +96,7 @@ func signIn(cmd *cobra.Command, args []string) error {
 
 	useStatement := fmt.Sprintf("export KUBECONFIG=%s", file)
 
-	if setEnv {
-		fmt.Printf("eval $(%s --quiet)", cmd.CommandPath())
-	} else if quiet {
+	if quiet {
 		fmt.Println(useStatement)
 	} else {
 		pretty_print.PrintOk("kubeconfig written to:", file)

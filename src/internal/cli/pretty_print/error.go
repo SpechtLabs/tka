@@ -12,11 +12,9 @@ import (
 func renderHumaneError(err error) string {
 	var he humane.Error
 	if !errors.As(err, &he) {
-		// fallback for generic errors
-		return lipgloss.NewStyle().
-			Foreground(lipgloss.Color("9")). // red
-			Bold(true).
-			Render(fmt.Sprintf("✖ %s", err.Error()))
+		// Get a copy of the global options (thread-safe)
+		options := DefaultOptions()
+		return errStyle(options.Theme).Render(fmt.Sprintf("✗ %s", err.Error()))
 	}
 
 	var b strings.Builder
