@@ -27,30 +27,11 @@ This page lists all configuration keys, their defaults, and effects. Sources: fl
 - `tailscale.port` (int, default `443`)
   - API port. Scheme is `https` if `443`, otherwise `http`.
 - `tailscale.stateDir` (string, default `""`)
-  - Directory for tsnet state (keys, control data).
-  - If empty, a directory is selected automatically under [`os.UserConfigDir`](https://golang.org/pkg/os/#UserConfigDir) based on the name of the binary.
+  - Directory for tsnet state (keys, control data). If empty, tsnet uses its default.
 - `tailscale.tailnet` (string, no default)
   - Tailnet domain, e.g., `example.ts.net`; used by CLI to compose the base URL.
 - `tailscale.capName` (string, default `specht-labs.de/cap/tka`)
   - Capability name the server requires from Tailscale ACLs.
-
-#### Tailscale Environment variables
-
-- `TS_AUTHKEY`
-  - Auth key used to register/login the node to your tailnet without an interactive browser flow.
-  - Recommended to use an ephemeral/reusable auth key generated from the Tailscale admin console.
-  - Example: `export TS_AUTHKEY=tskey-auth-XXXXXXXXXXXXXXXX`
-  - Security: treat like a secret. Prefer short-lived keys.
-
-- `TSNET_FORCE_LOGIN`
-  - If set to `1`, `true`, or `TRUE`, forces an interactive/browser login even if an auth key is present.
-  - Useful for developer setups where you don’t want to depend on an auth key.
-  - Example: `export TSNET_FORCE_LOGIN=1`
-
-Notes:
-
-- TKA embeds Tailscale using `tsnet`. These variables are read by Tailscale when bringing the embedded node up; TKA itself does not parse them.
-- Variables commonly used with the standalone `tailscaled` daemon (e.g., `TS_STATE_DIR`, `TAILSCALE_*`) do not apply to the embedded `tsnet` client in this binary. Use `tailscale.stateDir` in TKA config or `--dir` to control state location.
 
 ### Server HTTP timeouts
 
