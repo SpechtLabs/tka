@@ -35,7 +35,7 @@ jobs:
     steps:
       # Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Set up Go environment
       - name: Setup Go
@@ -99,7 +99,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -129,6 +129,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload amd64 build artifacts
+        if: github.event_name == 'tag'
         uses: actions/upload-artifact@v4
         with:
           name: tailscale-k8s-auth-linux-amd64
@@ -175,12 +176,12 @@ jobs:
           images: ${{ steps.setenv.outputs.full_image_name }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Pull in platform artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tailscale-k8s-auth-linux-${{ matrix.arch }}
 
@@ -237,7 +238,7 @@ jobs:
           echo "full_image_name=${image}" >> "$GITHUB_OUTPUT"
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: /tmp/digests
           pattern: image-digest-*

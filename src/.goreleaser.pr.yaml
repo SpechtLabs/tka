@@ -24,7 +24,7 @@ builds:
     dir: ./cmd/cli/
     binary: tka
     goos:
-      - darwin
+      - linux
     env: *env
     goarch: *goarch
     goarm: *goarm
