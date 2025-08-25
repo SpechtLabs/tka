@@ -7,10 +7,10 @@ repos:
         language: system
         pass_filenames: false
         files: ^src/pkg/api/.*\.go$
-        stages: [commit]
+        stages: [pre-commit]
   # Generic pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0  # Use the latest version from https://github.com/pre-commit/pre-commit-hooks/releases
+    rev: v6.0.0  # Use the latest version from https://github.com/pre-commit/pre-commit-hooks/releases
     hooks:
       - id: check-merge-conflict
       - id: detect-private-key
@@ -29,11 +29,11 @@ repos:
         args: ['--maxkb=500']
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: main
+    rev: v0.18.1
     hooks:
       - id: markdownlint-cli2
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.2  # Use the latest version
+    rev: v8.28.0  # Use the latest version
     hooks:
       - id: gitleaks
