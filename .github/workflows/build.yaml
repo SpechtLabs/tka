@@ -35,7 +35,7 @@ jobs:
     steps:
       # Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Set up Go environment
       - name: Setup Go
@@ -97,7 +97,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -173,7 +173,7 @@ jobs:
           images: ${{ steps.setenv.outputs.full_image_name }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
