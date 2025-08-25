@@ -14,7 +14,6 @@
         },
         "version": "1.0"
     },
-    "host": "tka.sphinx-map.ts.net:8123",
     "basePath": "/api/v1alpha1",
     "paths": {
         "/api/v1alpha1/kubeconfig": {
@@ -112,7 +111,7 @@
             "post": {
                 "security": [
                     {
-                        "tailscaleAuth": []
+                        "TailscaleAuth": []
                     }
                 ],
                 "description": "Authenticates a user through Tailscale, validates their capability rule, and provisions Kubernetes credentials",

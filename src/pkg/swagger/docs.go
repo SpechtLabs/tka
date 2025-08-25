@@ -119,7 +119,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "tailscaleAuth": []
+                        "TailscaleAuth": []
                     }
                 ],
                 "description": "Authenticates a user through Tailscale, validates their capability rule, and provisions Kubernetes credentials",
@@ -267,7 +267,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "tka.sphinx-map.ts.net:8123",
+	Host:             "",
 	BasePath:         "/api/v1alpha1",
 	Schemes:          []string{},
 	Title:            "Tailscale Kubernetes Auth API",

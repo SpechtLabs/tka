@@ -35,7 +35,6 @@ definitions:
           example: alice@example.com
         type: string
     type: object
-host: tka.sphinx-map.ts.net:8123
 info:
   contact:
     email: tka@specht-labs.de
@@ -144,7 +143,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - tailscaleAuth: []
+      - TailscaleAuth: []
       summary: Authenticate user and provision Kubernetes credentials
       tags:
       - authentication
