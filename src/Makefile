@@ -28,3 +28,8 @@ manifests: controller-gen swag
 .PHONY: swag
 swag:
 	swag init --dir ./pkg/api --generalInfo server.go --output ./pkg/swagger --parseDependency --parseDepth 3
+
+.PHONY: test
+test:
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/utils"
@@ -111,6 +112,11 @@ func addCommonFlags(cmd *cobra.Command) {
 func addServerFlags(cmd *cobra.Command) {
 	addCommonFlags(cmd)
 
+	viper.SetDefault("server.readTimeout", 10*time.Second)
+	viper.SetDefault("server.readHeaderTimeout", 5*time.Second)
+	viper.SetDefault("server.writeTimeout", 20*time.Second)
+	viper.SetDefault("server.idleTimeout", 120*time.Second)
+
 	cmd.PersistentFlags().StringP("dir", "d", "", "tsnet state directory; a default one will be created if not provided")
 	viper.SetDefault("tailscale.stateDir", "")
 	err := viper.BindPFlag("tailscale.stateDir", cmd.PersistentFlags().Lookup("dir"))
@@ -149,9 +155,12 @@ func initConfig() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
-	// Find and read the config file
+	// Find and read the config file (optional). If not found, continue; if malformed, print and exit.
 	if err := viper.ReadInConfig(); err != nil {
-		// Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
+		if _, notFound := err.(viper.ConfigFileNotFoundError); notFound {
+			return
+		}
+		fmt.Fprintf(os.Stderr, "error reading config file: %v\n", err)
+		os.Exit(2)
 	}
 }

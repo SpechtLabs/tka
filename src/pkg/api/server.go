@@ -6,14 +6,14 @@ import (
 
 	// gin
 	"github.com/gin-gonic/gin"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth"
+	mw "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
 	_ "github.com/spechtlabs/tailscale-k8s-auth/pkg/swagger"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	// Misc
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 
 	// Logging
 	ginzap "github.com/gin-contrib/zap"
@@ -29,8 +29,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	// Tailscale
-	"tailscale.com/tailcfg"
+	// tka
+	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 )
 
 // @title Tailscale Kubernetes Auth API
@@ -41,7 +41,6 @@ import (
 // @contact.email tka@specht-labs.de
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-// @host tka.sphinx-map.ts.net:8123
 // @BasePath /api/v1alpha1
 // @securityDefinitions.apikey TailscaleAuth
 // @in header
@@ -56,32 +55,32 @@ const (
 
 type TKAServer struct {
 	// Options
-	debug   bool
-	capName tailcfg.PeerCapability
-
-	// Tailscale Server
-	tsServer *tailscale.Server
+	debug bool
 
 	// API
 	router *gin.Engine
 	tracer trace.Tracer
 
-	// Kuberneters Operator
-	operator *operator.KubeOperator
+	// Auth service
+	auth   auth.Service
+	authMW mw.Middleware
 
 	// API behavior
 	retryAfterSeconds int
+
+	// Tailnet Server
+	tsServer *ts.Server
 }
 
-func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts ...Option) (*TKAServer, humane.Error) {
+func NewTKAServer(_ any, _ any, opts ...Option) (*TKAServer, humane.Error) {
 	tkaServer := &TKAServer{
 		debug:             false,
-		capName:           "specht-labs.de/cap/tka",
-		tsServer:          srv,
 		router:            nil,
 		tracer:            otel.Tracer("tka"),
-		operator:          operator,
+		auth:              nil,
+		authMW:            nil,
 		retryAfterSeconds: 1,
+		tsServer:          nil,
 	}
 
 	// Apply Options
@@ -122,8 +121,10 @@ func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts .
 	p := ginprometheus.NewPrometheus("tka_server")
 	p.Use(tkaServer.router)
 
-	authMiddleware := tailscale.NewGinAuthMiddlewareFromServer[capRule](tkaServer.tsServer, tkaServer.capName)
-	authMiddleware.Use(tkaServer.router, tkaServer.tracer)
+	// Install injected auth middleware if provided
+	if tkaServer.authMW != nil {
+		tkaServer.authMW.Use(tkaServer.router, tkaServer.tracer)
+	}
 
 	// Set-up routes
 	v1alpha1Grpup := tkaServer.router.Group(ApiRouteV1Alpha1)
@@ -149,11 +150,23 @@ func NewTKAServer(srv *tailscale.Server, operator *operator.KubeOperator, opts .
 // Serve starts the TKA server with TLS setup and HTTP functionality, handling Tailnet connection and request serving.
 // It listens on the configured port and returns wrapped errors for any issues encountered during initialization or runtime.
 func (t *TKAServer) Serve(ctx context.Context) humane.Error {
+	if t.tsServer == nil {
+		return humane.New("tailscale server not configured", "Provide a tailscale.Server via api.WithTailnetServer option")
+	}
 	return t.tsServer.Serve(ctx, t.router)
 }
 
 // Shutdown gracefully stops the tka server if it is running, releasing any resources and handling in-progress requests.
 // It returns a humane.Error if the server fails to stop.
 func (t *TKAServer) Shutdown(ctx context.Context) humane.Error {
+	if t.tsServer == nil {
+		return nil
+	}
 	return t.tsServer.Shutdown(ctx)
 }
+
+// Engine returns the underlying gin.Engine to facilitate external package tests and advanced embedding.
+func (t *TKAServer) Engine() *gin.Engine { return t.router }
+
+// Use allows attaching middleware to the underlying router from external packages/tests.
+func (t *TKAServer) Use(mw ...gin.HandlerFunc) { t.router.Use(mw...) }

@@ -7,11 +7,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth/capability"
+	authoperator "github.com/spechtlabs/tailscale-k8s-auth/pkg/auth/operator"
+	mwtailscale "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth/tailscale"
+	koperator "github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
 	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,14 +40,14 @@ func runE(cmd *cobra.Command, _ []string) error {
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
 	interruptHandler(ctx, cancelFn)
 
-	opOpts := operator.OperatorOptions{
+	opOpts := koperator.OperatorOptions{
 		Namespace:     viper.GetString("operator.namespace"),
 		ClusterName:   viper.GetString("operator.clusterName"),
 		ContextPrefix: viper.GetString("operator.contextPrefix"),
 		UserPrefix:    viper.GetString("operator.userPrefix"),
 	}
 
-	k8sOperator, err := operator.NewK8sOperatorWithOptions(opOpts)
+	k8sOperator, err := koperator.NewK8sOperatorWithOptions(opOpts)
 	if err != nil {
 		cancelFn(err)
 		return fmt.Errorf("%s", err.Display())
@@ -55,16 +57,22 @@ func runE(cmd *cobra.Command, _ []string) error {
 		ts.WithDebug(debug),
 		ts.WithPort(viper.GetInt("tailscale.port")),
 		ts.WithStateDir(viper.GetString("tailscale.stateDir")),
-		ts.WithReadTimeout(10*time.Second),
-		ts.WithReadHeaderTimeout(5*time.Second),
-		ts.WithWriteTimeout(20*time.Second),
-		ts.WithIdleTimeout(120*time.Second),
+		ts.WithReadTimeout(viper.GetDuration("server.readTimeout")),
+		ts.WithReadHeaderTimeout(viper.GetDuration("server.readHeaderTimeout")),
+		ts.WithWriteTimeout(viper.GetDuration("server.writeTimeout")),
+		ts.WithIdleTimeout(viper.GetDuration("server.idleTimeout")),
 	)
 
-	tkaServer, err := api.NewTKAServer(srv, k8sOperator,
+	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
+	mw := mwtailscale.NewGinAuthMiddlewareFromServer[capability.Rule](srv, capName)
+	authSvc := authoperator.New(k8sOperator)
+
+	tkaServer, err := api.NewTKAServer(nil, nil,
 		api.WithDebug(debug),
-		api.WithPeerCapName(tailcfg.PeerCapability(viper.GetString("tailscale.capName"))),
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
+		api.WithAuthMiddleware(mw),
+		api.WithAuthService(authSvc),
+		api.WithTailnetServer(srv),
 	)
 	if err != nil {
 		cancelFn(err)
@@ -90,7 +98,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	// No more logging to ctx from here onwards
 
 	ctx = context.Background()
-	if err := tkaServer.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(ctx); err != nil {
 		return fmt.Errorf("%s", err.Display())
 	}
 

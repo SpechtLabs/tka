@@ -7,52 +7,22 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"go.opentelemetry.io/otel/trace"
 	"tailscale.com/tailcfg"
 )
 
-// Context keys for Tailscale authentication data
-const (
-	// ContextKeyTailscaleUser is the key to retrieve the username from the context
-	ContextKeyTailscaleUser = "tailscale_username"
-
-	// ContextKeyTailscaleCapRule is the key to retrieve the capability rule from the context
-	ContextKeyTailscaleCapRule = "tailscale_cap_rule"
-)
-
-// GetTailscaleUsername retrieves the Tailscale username from the context
-func GetTailscaleUsername(c *gin.Context) string {
-	if username, exists := c.Get(ContextKeyTailscaleUser); exists {
-		return username.(string)
-	}
-	return ""
-}
-
-// GetTailscaleCapRule retrieves the Tailscale capability rule from the context
-func GetTailscaleCapRule[capRule any](c *gin.Context) *capRule {
-	if rule, exists := c.Get(ContextKeyTailscaleCapRule); exists {
-		if r, ok := rule.(capRule); ok {
-			return &r
-		}
-		// Handle case where it's already a pointer
-		if r, ok := rule.(*capRule); ok {
-			return r
-		}
-	}
-
-	// Return nil to indicate no rule was found
-	return nil
-}
-
+// GinAuthMiddleware provides a tailscale-backed auth middleware implementing middleware/auth.Middleware.
 type GinAuthMiddleware[capRule any] struct {
-	whoIs   WhoIsFunc
+	whoIs   tailscale.WhoIsFunc
 	capName tailcfg.PeerCapability
-	server  *Server
+	server  *tailscale.Server
 }
 
-// NewGinAuthMiddlewareFromServer keeps backward compatibility by deriving the resolver from *Server.
-func NewGinAuthMiddlewareFromServer[capRule any](tsServer *Server, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
+// NewGinAuthMiddlewareFromServer keeps backward compatibility by deriving the resolver from *tailscale.Server.
+func NewGinAuthMiddlewareFromServer[capRule any](tsServer *tailscale.Server, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
 	return &GinAuthMiddleware[capRule]{
 		whoIs:   tsServer.Identity(),
 		capName: capName,
@@ -61,7 +31,7 @@ func NewGinAuthMiddlewareFromServer[capRule any](tsServer *Server, capName tailc
 }
 
 // NewGinAuthMiddleware constructs middleware from a WhoIsFunc, enabling unit tests and alternative identity sources.
-func NewGinAuthMiddleware[capRule any](who WhoIsFunc, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
+func NewGinAuthMiddleware[capRule any](who tailscale.WhoIsFunc, capName tailcfg.PeerCapability) *GinAuthMiddleware[capRule] {
 	return &GinAuthMiddleware[capRule]{
 		whoIs:   who,
 		capName: capName,
@@ -69,10 +39,10 @@ func NewGinAuthMiddleware[capRule any](who WhoIsFunc, capName tailcfg.PeerCapabi
 }
 
 func (m *GinAuthMiddleware[capRule]) Use(e *gin.Engine, tracer trace.Tracer) {
-	e.Use(m.TailscaleAuthHandlerFunc(tracer))
+	e.Use(m.handler(tracer))
 }
 
-func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Tracer) gin.HandlerFunc {
+func (m *GinAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFunc {
 	return func(ct *gin.Context) {
 		req := ct.Request
 
@@ -82,7 +52,7 @@ func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Trace
 		// This URL is visited by the user who is being authenticated. If they are
 		// visiting the URL over Funnel, that means they are not part of the
 		// tailnet that they are trying to be authenticated for.
-		if IsFunnelRequest(ct.Request) {
+		if tailscale.IsFunnelRequest(ct.Request) {
 			otelzap.L().ErrorContext(ctx, "Unauthorized request from Funnel")
 			ct.JSON(http.StatusForbidden, models.NewErrorResponse("Unauthorized request from Funnel", nil))
 			ct.Abort()
@@ -140,9 +110,8 @@ func (m *GinAuthMiddleware[capRule]) TailscaleAuthHandlerFunc(tracer trace.Trace
 			return
 		}
 
-		// Store authentication data in the context for use in handlers
-		ct.Set(ContextKeyTailscaleUser, userName)
-		ct.Set(ContextKeyTailscaleCapRule, rules[0])
+		auth.SetUsername(ct, userName)
+		auth.SetCapability(ct, rules[0])
 
 		ct.Next()
 	}

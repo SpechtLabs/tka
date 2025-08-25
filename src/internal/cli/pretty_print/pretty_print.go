@@ -38,8 +38,6 @@ func PrintInfoIcon(icon, msg string, context ...string) {
 		context,
 		WithIcon(InfoLvl, icon),
 	)
-
-	_, _ = PrettyPrint(InfoLvl, msg, context...)
 }
 
 // PrintInfo logs an informational message with optional context.

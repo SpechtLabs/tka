@@ -6,9 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	mwauth "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // logout handles user logout from TKA service
@@ -25,25 +24,20 @@ import (
 // @Security      TailscaleAuth
 func (t *TKAServer) logout(ct *gin.Context) {
 	req := ct.Request
-	userName := tailscale.GetTailscaleUsername(ct)
+	userName := mwauth.GetUsername(ct)
 
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.logout")
 	defer span.End()
 
-	if signIn, err := t.operator.GetSignInUser(ctx, userName); err != nil {
-		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
-		if err.Cause() != nil && k8serrors.IsNotFound(err.Cause()) {
-			ct.JSON(http.StatusNotFound, models.FromHumaneError(err))
-			return
-		} else {
-			ct.JSON(http.StatusInternalServerError, models.FromHumaneError(err))
-			return
-		}
+	if signIn, err := t.auth.Status(ctx, userName); err != nil {
+		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting login status")
+		writeHumaneError(ct, err, http.StatusNotFound)
+		return
 	} else {
-		until := signIn.Status.ValidUntil
+		until := signIn.ValidUntil
 
-		if !signIn.Status.Provisioned {
-			validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
+		if !signIn.Provisioned {
+			validity, err := time.ParseDuration(signIn.ValidityPeriod)
 			if err != nil {
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
 				ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
@@ -52,13 +46,13 @@ func (t *TKAServer) logout(ct *gin.Context) {
 			until = time.Now().Add(validity).Format(time.RFC3339)
 		}
 
-		if err := t.operator.LogOutUser(ctx, userName); err != nil {
+		if err := t.auth.Logout(ctx, userName); err != nil {
 			otelzap.L().WithError(err).ErrorContext(ctx, "Error logging out user")
-			ct.JSON(http.StatusInternalServerError, models.FromHumaneError(err))
+			writeHumaneError(ct, err, http.StatusNotFound)
 			return
 		}
 
-		ct.JSON(http.StatusOK, models.NewUserLoginResponse(signIn.Spec.Username, signIn.Spec.Role, until))
+		ct.JSON(http.StatusOK, models.NewUserLoginResponse(signIn.Username, signIn.Role, until))
 		return
 	}
 }

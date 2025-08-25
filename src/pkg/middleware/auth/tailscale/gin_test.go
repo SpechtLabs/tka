@@ -8,21 +8,23 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	mwauth "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
+	mwtailscale "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth/tailscale"
+	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"github.com/stretchr/testify/require"
 	nooptrace "go.opentelemetry.io/otel/trace/noop"
 	"tailscale.com/tailcfg"
 )
 
 // mockWhoIs constructs a WhoIsFunc returning the provided values.
-func mockWhoIs(t *testing.T, isTagged bool, cap tailcfg.PeerCapMap, err error) tailscale.WhoIsFunc {
+func mockWhoIs(t *testing.T, isTagged bool, cap tailcfg.PeerCapMap, err error) ts.WhoIsFunc {
 	t.Helper()
 
-	return func(ctx context.Context, remoteAddr string) (*tailscale.WhoIsInfo, error) {
+	return func(ctx context.Context, remoteAddr string) (*ts.WhoIsInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &tailscale.WhoIsInfo{LoginName: "alice@example.com", IsTagged: isTagged, CapMap: cap}, nil
+		return &ts.WhoIsInfo{LoginName: "alice@example.com", IsTagged: isTagged, CapMap: cap}, nil
 	}
 }
 
@@ -36,7 +38,7 @@ func buildCap(t *testing.T, capName tailcfg.PeerCapability, rule any) tailcfg.Pe
 }
 
 // common setup for middleware test: returns router and recorder
-func setupRouter(t *testing.T, mw *tailscale.GinAuthMiddleware[map[string]string]) (*gin.Engine, *httptest.ResponseRecorder) {
+func setupRouter(t *testing.T, mw *mwtailscale.GinAuthMiddleware[map[string]string]) (*gin.Engine, *httptest.ResponseRecorder) {
 	t.Helper()
 
 	gin.SetMode(gin.TestMode)
@@ -45,7 +47,7 @@ func setupRouter(t *testing.T, mw *tailscale.GinAuthMiddleware[map[string]string
 	tr := nooptrace.NewTracerProvider().Tracer("test")
 	mw.Use(r, tr)
 	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"user": tailscale.GetTailscaleUsername(c)})
+		c.JSON(http.StatusOK, gin.H{"user": mwauth.GetUsername(c)})
 	})
 	return r, httptest.NewRecorder()
 }
@@ -58,7 +60,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 
 	cases := []struct {
 		name         string
-		who          tailscale.WhoIsFunc
+		who          ts.WhoIsFunc
 		headers      map[string]string
 		wantStatus   int
 		wantContains string
@@ -104,7 +106,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			mw := tailscale.NewGinAuthMiddleware[map[string]string](tc.who, capName)
+			mw := mwtailscale.NewGinAuthMiddleware[map[string]string](tc.who, capName)
 			r, w := setupRouter(t, mw)
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)

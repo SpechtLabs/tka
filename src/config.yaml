@@ -6,6 +6,10 @@ tailscale:
 
 server:
   debug: true
+  readTimeout: 10s
+  readHeaderTimeout: 5s
+  writeTimeout: 20s
+  idleTimeout: 120s
 
 otel:
   endpoint: localhost:4317

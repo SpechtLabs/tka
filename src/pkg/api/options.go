@@ -1,6 +1,10 @@
 package api
 
-import "tailscale.com/tailcfg"
+import (
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth"
+	mw "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
+	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+)
 
 // Option defines a function type used to modify the configuration of a TKAServer during its initialization.
 type Option func(*TKAServer)
@@ -12,18 +16,32 @@ func WithDebug(enable bool) Option {
 	}
 }
 
-// WithPeerCapName sets the `capName` field of a `TKAServer` to the provided `tailcfg.PeerCapability`.
-func WithPeerCapName(capName tailcfg.PeerCapability) Option {
-	return func(tka *TKAServer) {
-		tka.capName = capName
-	}
-}
-
 // WithRetryAfterSeconds configures the default Retry-After value used by 202 responses.
 func WithRetryAfterSeconds(seconds int) Option {
 	return func(tka *TKAServer) {
 		if seconds > 0 {
 			tka.retryAfterSeconds = seconds
 		}
+	}
+}
+
+// WithAuthService injects a custom AuthService implementation for the API handlers.
+func WithAuthService(svc auth.Service) Option {
+	return func(tka *TKAServer) {
+		tka.auth = svc
+	}
+}
+
+// WithAuthMiddleware injects a custom AuthMiddleware implementation for the API router.
+func WithAuthMiddleware(mw mw.Middleware) Option {
+	return func(tka *TKAServer) {
+		tka.authMW = mw
+	}
+}
+
+// WithTailnetServer injects the tailscale-backed server used to serve the HTTP API.
+func WithTailnetServer(s *ts.Server) Option {
+	return func(tka *TKAServer) {
+		tka.tsServer = s
 	}
 }

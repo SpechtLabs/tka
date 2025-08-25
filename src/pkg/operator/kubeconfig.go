@@ -20,8 +20,8 @@ func (t *KubeOperator) SignInUser(ctx context.Context, userName, role string, va
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.SignInUser")
 	defer span.End()
 
-	if validPeriod < 10*time.Minute {
-		return humane.New("`period` may not specify a duration less than 10 minutesD",
+	if validPeriod < MinSigninValidity {
+		return humane.New("`period` may not specify a duration less than 10 minutes",
 			fmt.Sprintf("Specify a period greater than 10 minutes in your api ACL for user %s", userName),
 		)
 	}
@@ -122,7 +122,7 @@ func (t *KubeOperator) GetKubeconfig(ctx context.Context, userName string) (*api
 }
 
 func (t *KubeOperator) LogOutUser(ctx context.Context, userName string) humane.Error {
-	ctx, span := t.tracer.Start(ctx, "KubeOperator.GetKubeconfig")
+	ctx, span := t.tracer.Start(ctx, "KubeOperator.LogOutUser")
 	defer span.End()
 
 	c := t.mgr.GetClient()

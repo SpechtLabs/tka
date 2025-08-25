@@ -10,9 +10,9 @@ type OperatorOptions struct {
 
 func defaultOperatorOptions() OperatorOptions {
 	return OperatorOptions{
-		Namespace:     "tka-dev",
-		ClusterName:   "tka-cluster",
-		ContextPrefix: "tka-context-",
-		UserPrefix:    "tka-user-",
+		Namespace:     DefaultNamespace,
+		ClusterName:   DefaultClusterName,
+		ContextPrefix: DefaultContextPrefix,
+		UserPrefix:    DefaultUserEntryPrefix,
 	}
 }

@@ -22,7 +22,7 @@ var cmdSignout = &cobra.Command{
 			os.Exit(1)
 		}
 
-		pretty_print.PrintInfoIcon("👋", "You have been signed out")
+		pretty_print.PrintOk("You have been signed out")
 		return nil
 	},
 }

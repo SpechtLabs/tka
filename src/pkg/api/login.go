@@ -1,19 +1,16 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth/capability"
+	mwauth "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
 	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
 	"go.uber.org/zap"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // login handles user authentication through Tailscale for the TKA service
@@ -28,11 +25,11 @@ import (
 // @Failure       422         {object}  models.ErrorResponse      "Unprocessable Entity - Invalid capability rule (period too short)"
 // @Failure       500         {object}  models.ErrorResponse      "Internal Server Error - Error with WhoIs, parsing duration, or signing in user"
 // @Router        /api/v1alpha1/login [post]
-// @Security      tailscaleAuth
+// @Security      TailscaleAuth
 func (t *TKAServer) login(ct *gin.Context) {
 	req := ct.Request
-	userName := tailscale.GetTailscaleUsername(ct)
-	capRule := tailscale.GetTailscaleCapRule[capRule](ct)
+	userName := mwauth.GetUsername(ct)
+	capRule := mwauth.GetCapability[capability.Rule](ct)
 
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.login")
 	defer span.End()
@@ -52,18 +49,9 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	if period < operator.MinSigninValidity {
-		err := humane.New("`period` may not specify a duration less than 10 minutes",
-			fmt.Sprintf("Specify a period greater than 10 minutes in your api ACL for user %s", userName),
-		)
-		otelzap.L().WithError(err).ErrorContext(ctx, "Invalid capRule")
-		ct.JSON(http.StatusUnprocessableEntity, models.NewErrorResponse("Invalid capRule", err))
-		return
-	}
-
-	if err := t.operator.SignInUser(ctx, userName, role, period); err != nil {
+	if err := t.auth.SignIn(ctx, userName, role, period); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
-		ct.JSON(http.StatusInternalServerError, models.FromHumaneError(err))
+		writeHumaneError(ct, err, http.StatusNotFound)
 		return
 	}
 
@@ -88,33 +76,30 @@ func (t *TKAServer) login(ct *gin.Context) {
 // @Failure       400         {object}  models.ErrorResponse      "Bad Request - Tagged nodes not supported or error unmarshaling capability or multiple capability rules"
 // @Failure       403         {object}  models.ErrorResponse      "Forbidden - Request from Funnel or no capability rule found"
 // @Failure       500         {object}  models.ErrorResponse      "Internal Server Error - Error with WhoIs or retrieving user status"
+// @Header        202         {integer} Retry-After               "Seconds until next poll recommended"
 // @Router        /api/v1alpha1/login [get]
 // @Security      TailscaleAuth
 func (t *TKAServer) getLogin(ct *gin.Context) {
 	req := ct.Request
-	userName := tailscale.GetTailscaleUsername(ct)
+	userName := mwauth.GetUsername(ct)
 
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.getLogin")
 	defer span.End()
 
-	if signIn, err := t.operator.GetSignInUser(ctx, userName); err != nil {
-		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
-		if err.Cause() != nil && k8serrors.IsNotFound(err.Cause()) {
-			ct.JSON(http.StatusUnauthorized, models.FromHumaneError(err))
-			return
-		} else {
-			ct.JSON(http.StatusInternalServerError, models.FromHumaneError(err))
-			return
-		}
+	if signIn, err := t.auth.Status(ctx, userName); err != nil {
+		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting login status")
+		// map k8s NotFound to 401 for this endpoint
+		writeHumaneError(ct, err, http.StatusUnauthorized)
+		return
 	} else {
 		status := http.StatusOK
-		until := signIn.Status.ValidUntil
+		until := signIn.ValidUntil
 
-		if !signIn.Status.Provisioned {
+		if !signIn.Provisioned {
 			status = http.StatusAccepted
 			ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 
-			validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
+			validity, err := time.ParseDuration(signIn.ValidityPeriod)
 			if err != nil {
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
 				ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
@@ -123,7 +108,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 			until = time.Now().Add(validity).Format(time.RFC3339)
 		}
 
-		ct.JSON(status, models.NewUserLoginResponse(signIn.Spec.Username, signIn.Spec.Role, until))
+		ct.JSON(status, models.NewUserLoginResponse(signIn.Username, signIn.Role, until))
 		return
 	}
 }
