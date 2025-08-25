@@ -9,7 +9,9 @@ builds:
     goos:
       - linux
     goarch: &goarch
-      - amd64
+      - arm64
+    goarm: &goarm
+      - "7"
     binary: tailscale-k8s-auth
     dir: ./cmd/server/
     mod_timestamp: &mod_timestamp "{{ .CommitTimestamp }}"
@@ -25,6 +27,7 @@ builds:
       - linux
     env: *env
     goarch: *goarch
+    goarm: *goarm
     mod_timestamp: *mod_timestamp
     ldflags: *ldflags
 
