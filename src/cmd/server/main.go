@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spechtlabs/tka/pkg/cmd"
+	"github.com/spechtlabs/tka/internal/cli/cmd"
 	"github.com/spf13/viper"
 )
 
