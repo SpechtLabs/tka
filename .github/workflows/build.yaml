@@ -77,22 +77,24 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       goreleaser_extra_args: ${{ steps.set.outputs.goreleaser_extra_args }}
+      goreleaser_config_file: ${{ steps.set.outputs.goreleaser_config_file }}
       arch_matrix: ${{ steps.set.outputs.arch_matrix }}
     steps:
       - id: set
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-          echo "goreleaser_extra_args=" >> "$GITHUB_OUTPUT"
+            echo "goreleaser_extra_args=" >> "$GITHUB_OUTPUT"
+            echo "goreleaser_config_file=.goreleaser.yaml" >> "$GITHUB_OUTPUT"
             echo "arch_matrix=[{\"platform\":\"linux/arm64\",\"os\":\"linux\",\"arch\":\"arm64\"},{\"platform\":\"linux/amd64\",\"os\":\"linux\",\"arch\":\"amd64\"}]" >> "$GITHUB_OUTPUT"
           else
             echo "goreleaser_extra_args=--snapshot" >> "$GITHUB_OUTPUT"
+            echo "goreleaser_config_file=.goreleaser.pr.yaml" >> "$GITHUB_OUTPUT"
             echo "arch_matrix=[{\"platform\":\"linux/arm64\",\"os\":\"linux\",\"arch\":\"arm64\"}]" >> "$GITHUB_OUTPUT"
           fi
 
   goreleaser:
     runs-on: ubuntu-latest
     needs:
-      - test
       - prepare
 
     steps:
@@ -114,7 +116,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          args: release --clean --config .goreleaser.yaml ${{ needs.prepare.outputs.goreleaser_extra_args }}
+          args: release --clean --config ${{ needs.prepare.outputs.goreleaser_config_file }} ${{ needs.prepare.outputs.goreleaser_extra_args }}
           workdir: src/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -214,6 +216,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - docker-build
+      - test
 
     if: github.event_name != 'pull_request'
 

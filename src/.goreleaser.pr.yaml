@@ -1,0 +1,43 @@
+version: 2
+
+project_name: tailscale-k8s-auth
+
+builds:
+  - id: tailscale-k8s-auth
+    env: &env
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch: &goarch
+      - arm64
+    goarm: &goarm
+      - "7"
+    binary: tailscale-k8s-auth
+    dir: ./cmd/server/
+    mod_timestamp: &mod_timestamp "{{ .CommitTimestamp }}"
+    ldflags: &ldflags
+      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Version={{.Version}}
+      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Commit={{.Commit}}
+      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Date={{ .CommitDate }}
+
+  - id: cli
+    dir: ./cmd/cli/
+    binary: tka
+    goos:
+      - darwin
+    env: *env
+    goarch: *goarch
+    goarm: *goarm
+    mod_timestamp: *mod_timestamp
+    ldflags: *ldflags
+
+archives:
+  - id: tailscale-k8s-auth
+    ids:
+      - tailscale-k8s-auth
+    name_template: 'tailscale-k8s-auth_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+
+  - id: cli
+    ids:
+      - cli
+    name_template: 'tka_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'

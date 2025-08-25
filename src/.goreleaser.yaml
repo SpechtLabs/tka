@@ -2,10 +2,6 @@ version: 2
 
 project_name: tailscale-k8s-auth
 
-before:
-  hooks:
-    - go mod tidy
-
 builds:
   - id: tailscale-k8s-auth
     env: &env
@@ -50,7 +46,7 @@ signs:
       - "--output-certificate=${certificate}"
       - "--output-signature=${signature}"
       - "${artifact}"
-    artifacts: all
+    artifacts: binary
 
 # Regular OS packages (for now only systemd based OSes)
 nfpms:
