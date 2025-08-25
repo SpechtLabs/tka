@@ -5,9 +5,9 @@ LABEL org.opencontainers.image.source="https://github.com/spechtlabs/tka"
 LABEL org.opencontainers.image.description="tka provides secure, ephemeral Kubernetes access using your Tailscale identity and network."
 LABEL org.opencontainers.image.licenses="Apache 2.0"
 
-COPY ./tailscale-k8s-auth /bin/tailscale-k8s-auth
+COPY ./ts-k8s-srv /bin/ts-k8s-srv
 
-ENTRYPOINT ["/bin/tailscale-k8s-auth"]
+ENTRYPOINT ["/bin/ts-k8s-srv"]
 CMD [""]
 
 EXPOSE 8099

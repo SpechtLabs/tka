@@ -46,7 +46,7 @@ func DefaultOptions() PrintOptions {
 		NoColor:       !isTerminal,
 		LevelIcons: map[PrintLevel]string{
 			OkLvl:    "✓",
-			InfoLvl:  "•",
+			InfoLvl:  "ℹ", // "•"
 			WarnLvl:  "!",
 			ErrLvl:   "✗",
 			DebugLvl: "D",

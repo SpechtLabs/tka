@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -10,6 +11,16 @@ import (
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spf13/cobra"
 )
+
+var (
+	quiet  bool
+	setEnv bool
+)
+
+func init() {
+	cmdSignIn.Flags().BoolVarP(&quiet, "quiet", "q", false, "Do not print login information")
+	cmdSignIn.Flags().BoolVarP(&setEnv, "set-env", "e", false, "Set KUBECONFIG environment variable")
+}
 
 var cmdSignIn = &cobra.Command{
 	Use:     "login",
@@ -43,7 +54,11 @@ var cmdGetSignIn = &cobra.Command{
 	},
 }
 
-func signIn(_ *cobra.Command, _ []string) error {
+func signIn(cmd *cobra.Command, args []string) error {
+	if setEnv {
+		_ = cmd.Flags().Set("quiet", "true")
+	}
+
 	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
 		if err.Cause() != nil {
@@ -55,7 +70,11 @@ func signIn(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	pretty_print.PrintOk("sign-in successful!")
+	if !quiet {
+		pretty_print.PrintOk("sign-in successful!")
+		pretty_print.PrintLoginInformation(loginInfo)
+	}
+
 	time.Sleep(100 * time.Millisecond)
 
 	kubecfg, err := fetchKubeConfig()
@@ -70,10 +89,16 @@ func signIn(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	pretty_print.PrintOk("kubeconfig saved to", file)
+	useStatement := fmt.Sprintf("export KUBECONFIG=%s", file)
 
-	pretty_print.PrintInfo("Login Information:")
-	pretty_print.PrintLoginInformation(loginInfo)
+	if setEnv {
+		fmt.Printf("eval $(%s --quiet)", cmd.CommandPath())
+	} else if quiet {
+		fmt.Println(useStatement)
+	} else {
+		pretty_print.PrintOk("kubeconfig written to:", file)
+		pretty_print.PrintInfoIcon("→", "To use this session, run:", useStatement)
+	}
 
 	return nil
 }

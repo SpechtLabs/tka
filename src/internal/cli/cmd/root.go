@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spechtlabs/tka/pkg/operator"
 	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
@@ -34,8 +35,8 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 
 	// rootCmd represents the base command when called without any subcommands
 	cmdRoot := cobra.Command{
-		Use:   "tka",
-		Short: "tka is the CLI for Tailscale Kubernetes Auth",
+		Use:   "ts-k8s-auth",
+		Short: "ts-k8s-auth is the CLI for Tailscale Kubernetes Auth",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			undoFunc = utils.InitObservability()
 		},
@@ -56,13 +57,26 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 	}
 
 	cmdRoot.AddCommand(cmdVersion)
+	cmdRoot.SetHelpFunc(pretty_print.PrintHelpText)
+	cmdRoot.SetErrPrefix(pretty_print.FormatErrorMessage("Error:"))
+	cmdRoot.SetUsageFunc(func(cmd *cobra.Command) error {
+		fmt.Println("")
+		pretty_print.PrintHelpText(cmd, []string{})
+		return nil
+	})
+	cmdRoot.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		pretty_print.PrintErrorMessage("Invalid flag: %s", err.Error())
+		pretty_print.PrintHelpText(cmd, []string{})
+		return nil
+	})
 
 	return &cmdRoot
 }
 
 func NewCliRootCmd(initConfigFunc func()) *cobra.Command {
 	cmdRoot := NewRootCmd(initConfigFunc)
-	cmdRoot.Long = `tka is a small CLI to sign in to a Kubernetes cluster using Tailscale identity.
+	cmdRoot.Use = "ts-k8s-srv"
+	cmdRoot.Long = `ts-k8s-auth is a small CLI to sign in to a Kubernetes cluster using Tailscale identity.
 It talks to a tka-api instance and helps you fetch ephemeral kubeconfigs.`
 	addClientFlags(cmdRoot)
 	return cmdRoot
@@ -70,7 +84,8 @@ It talks to a tka-api instance and helps you fetch ephemeral kubeconfigs.`
 
 func NewServerRootCmd(initConfigFunc func()) *cobra.Command {
 	cmdRoot := NewRootCmd(initConfigFunc)
-	cmdRoot.Long = `tka serves the gRPC API for Tailscale Kubernetes Auth`
+	cmdRoot.Use = "ts-k8s-srv"
+	cmdRoot.Long = `ts-k8s-srv serves the gRPC API for Tailscale Kubernetes Auth`
 	addServerFlags(cmdRoot)
 	return cmdRoot
 }

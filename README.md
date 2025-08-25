@@ -46,13 +46,14 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 
 ## Features
 
-- Access gated via your **Tailscale ACLs + Grants**
-- No ingress needed – everything runs **inside your tailnet**
-- Short-lived **ephemeral credentials**
-- Kubernetes-native RBAC
-- Declarative **grant-to-role mappings** via CRDs
-- Access your cluster's API even if it's hidden behind a NAT, thanks to Tailscale & a small proxy
-- Support for **multi-cluster** federation (future roadmap)
+- **Tailnet-only, zero-ingress**: No public endpoints or reverse proxies. All traffic stays on your tailnet via `tsnet`.
+- **Capability-driven authorization**: Enforce access with a specific Tailscale ACL capability (role + validity period) for least-privilege by default.
+- **Ephemeral credentials**: Per-user ServiceAccounts with short-lived tokens, provisioned on demand and cleaned up on logout/expiry.
+- **Kubernetes-native RBAC**: Map capabilities to standard ClusterRoles; no custom auth layer to learn or operate.
+- **Simple CLI UX**: `tka login` and `tka kubeconfig` produce a ready-to-use kubeconfig; no manual token wrangling.
+- **Built-in observability**: Structured logs, OpenTelemetry tracing, and Prometheus metrics (controller metrics at `/metrics/controller`).
+- **Multi-cluster friendly**: Operator options for `clusterName`, `contextPrefix`, and `userPrefix` make per-user contexts and federation patterns straightforward.
+- **Small, hackable core**: Minimal moving parts, clear extension points (auth middleware, operator service), and a clean Go codebase.
 
 ## Components
 

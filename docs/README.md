@@ -11,9 +11,12 @@ config:
       image: /logo.png
       actions:
         - text: Get Started →
-          link: /guide/overview
+          link: /guide/getting-started
           theme: brand
           icon: simple-icons:bookstack
+        - text: Architecture →
+          link: /architecture/overview
+          theme: alt
         - text: GitHub Releases →
           link: https://github.com/spechtlabs/tka/releases
           theme: alt

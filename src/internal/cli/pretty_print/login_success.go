@@ -35,7 +35,7 @@ func PrintLoginInformation(respBody *models.UserLoginResponse) {
 		Padding(0, 1).
 		MarginTop(0).
 		MarginBottom(0).
-		MarginLeft(2)
+		MarginLeft(4)
 
 	_, _ = fmt.Fprintln(os.Stdout, boxStyle.Render(content))
 }

@@ -5,23 +5,25 @@ export const navbar = defineNavbarConfig([
 
   {
     text: "Getting Started",
+    link: "/guide/getting-started",
+  },
+
+  {
+    text: "Architecture",
     items: [
-      { text: "Overview", link: "/guide/overview" },
-      { text: "Architecture", link: "/guide/architecture" },
-      //     { text: 'Quick Start', link: '/guide/quickstart' },
-      //     { text: 'CLI & Server Usage', link: '/guide/usage' },
+      { text: "Overview", link: "/architecture/overview" },
+      { text: "Security", link: "/architecture/security" },
+      { text: "Authentication Model", link: "/architecture/authentication-model" },
     ],
   },
-  //
-  // {
-  //   text: 'Configuration',
-  //   items: [
-  //     { text: 'Server', link: '/config/server' },
-  //     { text: 'Calendars', link: '/config/calendars' },
-  //     { text: 'Rules Engine', link: '/config/rules' },
-  //     { text: 'Home Assistant Add-On', link: '/config/home_assistant' },
-  //   ],
-  // },
+
+  {
+    text: 'Reference',
+    items: [
+      { text: 'CLI Reference', link: '/reference/cli' },
+      { text: 'Server Configuration', link: '/reference/configuration' },
+    ],
+  },
 
   {
     text: "Download",

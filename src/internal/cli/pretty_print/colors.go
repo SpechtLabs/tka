@@ -9,6 +9,7 @@ import (
 
 var (
 	bold    = lipgloss.NewStyle().Bold(true)
+	italic  = lipgloss.NewStyle().Italic(true)
 	green   = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
 	red     = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 	gray    = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Bold(true)

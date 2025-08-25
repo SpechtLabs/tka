@@ -23,9 +23,11 @@ func main() {
 		Long:  "Get command retrieves resources from your Tailscale Kubernetes Auth tailscale.\nIt can be used to fetch various resources like kubeconfigs or clusters.",
 	}
 
+	cmdRoot.AddCommand(cmdShell)
 	cmdRoot.AddCommand(cmdSignIn)
 	cmdRoot.AddCommand(cmdKubeconfig)
 	cmdRoot.AddCommand(cmdSignout)
+	cmdRoot.AddCommand(cmdReauth)
 
 	cmdRoot.AddCommand(cmdGet)
 	cmdGet.AddCommand(cmdGetSignIn)
