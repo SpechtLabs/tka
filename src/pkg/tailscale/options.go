@@ -20,7 +20,7 @@ func WithPort(port int) Option {
 	return func(s *Server) {
 		s.port = port
 		if s.Server != nil && s.Server.Server != nil {
-			s.Server.Addr = fmt.Sprintf(":%d", port)
+			s.Addr = fmt.Sprintf(":%d", port)
 		}
 	}
 }
@@ -35,7 +35,7 @@ func WithStateDir(dir string) Option {
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil && s.Server.Server != nil {
-			s.Server.ReadTimeout = timeout
+			s.ReadTimeout = timeout
 		}
 	}
 }
@@ -43,7 +43,7 @@ func WithReadTimeout(timeout time.Duration) Option {
 func WithReadHeaderTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil && s.Server.Server != nil {
-			s.Server.ReadHeaderTimeout = timeout
+			s.ReadHeaderTimeout = timeout
 		}
 	}
 }
@@ -51,7 +51,7 @@ func WithReadHeaderTimeout(timeout time.Duration) Option {
 func WithIdleTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil && s.Server.Server != nil {
-			s.Server.IdleTimeout = timeout
+			s.IdleTimeout = timeout
 		}
 	}
 }
@@ -59,7 +59,7 @@ func WithIdleTimeout(timeout time.Duration) Option {
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil && s.Server.Server != nil {
-			s.Server.WriteTimeout = timeout
+			s.WriteTimeout = timeout
 		}
 	}
 }

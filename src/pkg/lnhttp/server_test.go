@@ -139,7 +139,9 @@ func TestServer_Handler(t *testing.T) {
 			defer cancel()
 
 			client := connect(t)
-			defer client.Close()
+			defer func() {
+				_ = client.Close()
+			}()
 
 			// write request and read status so server completes the request
 			code, err := writeRequestAndReadStatus(t, client)

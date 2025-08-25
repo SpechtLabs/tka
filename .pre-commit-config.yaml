@@ -8,6 +8,13 @@ repos:
         pass_filenames: false
         files: ^src/pkg/api/.*\.go$
         stages: [pre-commit]
+      - id: golangci-lint
+        name: golangci-lint (run in src)
+        entry: bash -lc 'cd src && golangci-lint run'
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.(go|mod|sum)$
+        stages: [pre-commit]
   # Generic pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0  # Use the latest version from https://github.com/pre-commit/pre-commit-hooks/releases
