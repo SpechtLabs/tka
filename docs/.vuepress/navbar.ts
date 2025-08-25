@@ -25,14 +25,14 @@ export const navbar = defineNavbarConfig([
 
   {
     text: "Download",
-    link: "https://github.com/SpechtLabs/tailscale-k8s-auth/releases",
+    link: "https://github.com/spechtlabs/tka/releases",
     target: "_blank",
     rel: "noopener noreferrer",
   },
 
   {
     text: "Report an Issue",
-    link: "https://github.com/SpechtLabs/tailscale-k8s-auth/issues/new/choose",
+    link: "https://github.com/spechtlabs/tka/issues/new/choose",
     target: "_blank",
     rel: "noopener noreferrer",
   },

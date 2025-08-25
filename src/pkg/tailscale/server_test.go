@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	"github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/stretchr/testify/require"
 )
 

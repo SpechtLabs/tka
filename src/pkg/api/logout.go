@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	mwauth "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
+	"github.com/spechtlabs/tka/pkg/models"
 )
 
 // logout handles user logout from TKA service

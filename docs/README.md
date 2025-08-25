@@ -15,7 +15,7 @@ config:
           theme: brand
           icon: simple-icons:bookstack
         - text: GitHub Releases →
-          link: https://github.com/SpechtLabs/tailscale-k8s-auth/releases
+          link: https://github.com/spechtlabs/tka/releases
           theme: alt
           icon: simple-icons:github
 
@@ -57,8 +57,8 @@ config:
 
 
   - type: VPReleasesCustom
-    repo: SpechtLabs/tailscale-k8s-auth
+    repo: SpechtLabs/tka
 
   - type: VPContributorsCustom
-    repo: SpechtLabs/tailscale-k8s-auth
+    repo: SpechtLabs/tka
 ---

@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-logr/zapr"
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/api/v1alpha1"
+	"github.com/spechtlabs/tka/api/v1alpha1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"

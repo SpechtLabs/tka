@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/utils"
+	"github.com/spechtlabs/tka/pkg/operator"
+	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

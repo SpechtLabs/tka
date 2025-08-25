@@ -1,6 +1,6 @@
 package api
 
-import "github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+import "github.com/spechtlabs/tka/pkg/models"
 
 // This file ensures all models are included in Swag documentation
 var (

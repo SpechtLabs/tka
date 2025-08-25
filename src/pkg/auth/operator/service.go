@@ -5,8 +5,8 @@ import (
 	"time"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/operator"
+	"github.com/spechtlabs/tka/pkg/auth"
+	"github.com/spechtlabs/tka/pkg/operator"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 

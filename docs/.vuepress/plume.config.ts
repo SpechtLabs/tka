@@ -13,7 +13,7 @@ export default defineThemeConfig({
   social: [
     {
       icon: "github",
-      link: "https://github.com/SpechtLabs/tailscale-k8s-auth",
+      link: "https://github.com/spechtlabs/tka",
     },
   ],
   navbarSocialInclude: ["github"],

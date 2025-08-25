@@ -7,7 +7,7 @@ import (
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"github.com/spechtlabs/tailscale-k8s-auth/api/v1alpha1"
+	"github.com/spechtlabs/tka/api/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

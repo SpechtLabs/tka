@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth/capability"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth/mock"
+	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/auth/capability"
+	"github.com/spechtlabs/tka/pkg/auth/mock"
 	"github.com/stretchr/testify/require"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )

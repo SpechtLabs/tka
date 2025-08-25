@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+	"github.com/spechtlabs/tka/internal/cli/pretty_print"
+	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spf13/cobra"
 )
 

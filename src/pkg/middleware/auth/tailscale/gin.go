@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	"github.com/spechtlabs/tka/pkg/middleware/auth"
+	"github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/tailscale"
 	"go.opentelemetry.io/otel/trace"
 	"tailscale.com/tailcfg"
 )

@@ -58,7 +58,7 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 
 | Component            | Description                                                            |
 |----------------------|------------------------------------------------------------------------|
-| `tailscale-k8s-auth` | Login API pod running in the cluster, reachable via Tailscale          |
+| `tka` | Login API pod running in the cluster, reachable via Tailscale          |
 | `GrantMapping CRD`   | Maps Tailscale identities (user/group/tag) to Kubernetes ClusterRoles  |
 | `tka` CLI            | CLI tool to fetch kubeconfigs, list clusters, etc.                     |
 

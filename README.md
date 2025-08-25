@@ -1,9 +1,9 @@
-# tailscale-k8s-auth
+# Tailscale Kubernetes Auth
 
-[![Go Build & Docker Build](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/build.yaml/badge.svg)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/build.yaml)
-[![Documentation](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/docs-website.yaml/badge.svg)](https://github.com/SpechtLabs/tailscale-k8s-auth/actions/workflows/docs-website.yaml)
+[![Go Build & Docker Build](https://github.com/spechtlabs/tka/actions/workflows/build.yaml/badge.svg)](https://github.com/spechtlabs/tka/actions/workflows/build.yaml)
+[![Documentation](https://github.com/spechtlabs/tka/actions/workflows/docs-website.yaml/badge.svg)](https://github.com/spechtlabs/tka/actions/workflows/docs-website.yaml)
 
-Forget complex auth proxies, VPNs, or OIDC setups. `tailscale-k8s-auth` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.
+Forget complex auth proxies, VPNs, or OIDC setups. `tka` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.
 
 ## Why?
 
@@ -58,7 +58,7 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 
 | Component            | Description                                                            |
 |----------------------|------------------------------------------------------------------------|
-| `tailscale-k8s-auth` | Login API pod running in the cluster, reachable via Tailscale          |
+| `tka`                | Login API pod running in the cluster, reachable via Tailscale          |
 | `GrantMapping CRD`   | Maps Tailscale identities (user/group/tag) to Kubernetes ClusterRoles  |
 | `tka` CLI            | CLI tool to fetch kubeconfigs, list clusters, etc.                     |
 

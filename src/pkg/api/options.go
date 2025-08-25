@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth"
-	mw "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
-	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	"github.com/spechtlabs/tka/pkg/auth"
+	mw "github.com/spechtlabs/tka/pkg/middleware/auth"
+	ts "github.com/spechtlabs/tka/pkg/tailscale"
 )
 
 // Option defines a function type used to modify the configuration of a TKAServer during its initialization.

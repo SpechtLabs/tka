@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+	"github.com/spechtlabs/tka/pkg/models"
 )
 
 var (

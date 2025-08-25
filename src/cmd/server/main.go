@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd"
+	"github.com/spechtlabs/tka/pkg/cmd"
 	"github.com/spf13/viper"
 )
 

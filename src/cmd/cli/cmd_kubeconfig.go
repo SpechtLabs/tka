@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	async_op2 "github.com/spechtlabs/tailscale-k8s-auth/internal/cli/async_operation"
-	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
-	tkaApi "github.com/spechtlabs/tailscale-k8s-auth/pkg/api"
+	async_op2 "github.com/spechtlabs/tka/internal/cli/async_operation"
+	"github.com/spechtlabs/tka/internal/cli/pretty_print"
+	tkaApi "github.com/spechtlabs/tka/pkg/api"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"

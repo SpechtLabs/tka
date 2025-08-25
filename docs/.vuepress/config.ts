@@ -18,7 +18,7 @@ export default defineUserConfig({
       {
         name: "description",
         content:
-          "Forget complex auth proxies, VPNs, or OIDC setups. `tailscale-k8s-auth` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.",
+          "Forget complex auth proxies, VPNs, or OIDC setups. `tka` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.",
       },
     ],
     ["link", { rel: "icon", type: "image/png", href: "/images/specht.png" }],
@@ -34,7 +34,7 @@ export default defineUserConfig({
   ],
 
   theme: plumeTheme({
-    docsRepo: "https://github.com/SpechtLabs/tailscale-k8s-auth",
+    docsRepo: "https://github.com/spechtlabs/tka",
     docsDir: "docs",
     docsBranch: "main",
 

@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/internal/cli/pretty_print"
+	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 )
 
 type pollTriggerMsg struct{}

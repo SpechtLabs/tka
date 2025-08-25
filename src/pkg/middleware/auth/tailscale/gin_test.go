@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	mwauth "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
-	mwtailscale "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth/tailscale"
-	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
+	mwtailscale "github.com/spechtlabs/tka/pkg/middleware/auth/tailscale"
+	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/stretchr/testify/require"
 	nooptrace "go.opentelemetry.io/otel/trace/noop"
 	"tailscale.com/tailcfg"

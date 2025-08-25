@@ -17,9 +17,9 @@ builds:
     dir: ./cmd/server/
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: &ldflags
-      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Version={{.Version}}
-      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Commit={{.Commit}}
-      - -X=github.com/spechtlabs/tailscale-k8s-auth/pkg/cmd.Date={{ .CommitDate }}
+      - -X=github.com/spechtlabs/tka/pkg/cmd.Version={{.Version}}
+      - -X=github.com/spechtlabs/tka/pkg/cmd.Commit={{.Commit}}
+      - -X=github.com/spechtlabs/tka/pkg/cmd.Date={{ .CommitDate }}
 
   - id: cli
     env: *env
@@ -56,7 +56,7 @@ nfpms:
       - cli
     maintainer: Cedric Specht <cedric@specht-labs.de>
     description: tka is a CLI tool for tailscale-k8s-auth, a tailnet-native Kubernetes access system. It allows users to securely log in to Kubernetes clusters using their Tailscale identity, receiving short-lived, auto-expiring kubeconfigs with scoped permissions.
-    homepage: https://tailscale-k8s-auth.specht-labs.de
+    homepage: https://tka.specht-labs.de
     vendor: Specht Labs
     license: Apache 2.0
     formats:

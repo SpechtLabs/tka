@@ -10,7 +10,7 @@ import (
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/lnhttp"
+	"github.com/spechtlabs/tka/pkg/lnhttp"
 	"go.uber.org/zap"
 
 	// Tailscale

@@ -6,9 +6,8 @@ import (
 
 	// gin
 	"github.com/gin-gonic/gin"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth"
-	mw "github.com/spechtlabs/tailscale-k8s-auth/pkg/middleware/auth"
-	_ "github.com/spechtlabs/tailscale-k8s-auth/pkg/swagger"
+	"github.com/spechtlabs/tka/pkg/auth"
+	mw "github.com/spechtlabs/tka/pkg/middleware/auth"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -30,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	// tka
-	ts "github.com/spechtlabs/tailscale-k8s-auth/pkg/tailscale"
+	ts "github.com/spechtlabs/tka/pkg/tailscale"
 )
 
 // @title Tailscale Kubernetes Auth API

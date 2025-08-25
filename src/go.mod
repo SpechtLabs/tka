@@ -1,4 +1,4 @@
-module github.com/spechtlabs/tailscale-k8s-auth
+module github.com/spechtlabs/tka
 
 go 1.24.4
 

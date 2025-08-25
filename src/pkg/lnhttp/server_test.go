@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/lnhttp"
+	"github.com/spechtlabs/tka/pkg/lnhttp"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/auth"
+	"github.com/spechtlabs/tka/pkg/auth"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 

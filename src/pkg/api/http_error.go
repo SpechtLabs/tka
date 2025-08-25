@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tailscale-k8s-auth/pkg/models"
+	"github.com/spechtlabs/tka/pkg/models"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
