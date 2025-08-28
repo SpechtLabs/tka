@@ -4,6 +4,8 @@ config:
 
   # MD013: Disable line length rule
   MD013: false
+  MD024: false
+  MD038: false
 
 # Include all Markdown files in the project
 globs:

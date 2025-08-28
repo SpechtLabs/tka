@@ -10,6 +10,7 @@ var cmdReauth = &cobra.Command{
 	Short:   "Reauthenticate and configure kubectl with temporary access",
 	Long: `Reauthenticate by signing out and then signing in again to refresh your temporary access.
 This command is a convenience wrapper which:
+
 1. Calls signout to revoke your current session
 2. Calls login to obtain a fresh ephemeral kubeconfig`,
 	Example: `# Reauthenticate and see human-friendly output

@@ -52,13 +52,15 @@ func NewCliRootCmd() *cobra.Command {
 ### Theming
 
 Control the CLI's look and feel using one of the following:
+
 - Flag: ` + "`--theme`" + ` or ` + "`-t`" + `
 - Config: ` + "`theme`" + ` (in config file)
 - Environment: ` + "`TKA_THEME`" + `
 
 **Accepted themes**: ascii, dark, dracula, *tokyo-night*, light
 
-### Notes:
+### Notes
+
 - Global flags like ` + "`--theme`" + ` are available to subcommands`
 
 	cmdRoot.Example = `# generic dark theme
@@ -72,9 +74,12 @@ $ tka --theme notty login
 `
 
 	cmdRoot.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		theme := viper.GetString("theme")
+		theme := viper.GetString("output.theme")
+		if theme == "" {
+			theme = "tokyo-night"
+		}
 		if !slices.Contains(pretty_print.AllThemeNames(), theme) {
-			viper.Set("theme", "tokyo-night")
+			viper.Set("output.theme", pretty_print.TokyoNightStyle)
 			return fmt.Errorf("invalid theme: %s", theme)
 		}
 		return nil

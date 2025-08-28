@@ -292,7 +292,7 @@ Expected: your ephemeral resources are removed; access is revoked.
 
 ### Troubleshooting
 
-- If kubeconfig is “not ready yet,” the CLI retries; server sets `Retry-After` hint
+- If kubeconfig is "not ready yet," the CLI retries; server sets `Retry-After` hint
 - Ensure your client is on the tailnet; Funnel requests are rejected
 - Verify the capability mapping and period string in your ACLs
 - Check server logs for WhoIs or capability parsing errors

@@ -30,6 +30,7 @@ tka get login`,
 	cmdRoot.AddCommand(cmdKubeconfig)
 	cmdRoot.AddCommand(cmdSignout)
 	cmdRoot.AddCommand(cmdReauth)
+	cmdRoot.AddCommand(cmdDocumentation)
 
 	cmdRoot.AddCommand(cmdGet)
 	cmdGet.AddCommand(cmdGetSignIn)
