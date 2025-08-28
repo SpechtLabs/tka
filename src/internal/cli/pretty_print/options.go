@@ -103,7 +103,7 @@ func DefaultOptions() *PrintOptions {
 	}
 
 	// Theme selection via config
-	theme := viper.GetString("theme")
+	theme := viper.GetString("output.theme")
 	if theme != "" && slices.Contains(AllThemeNames(), theme) {
 		options.Theme = Theme(theme)
 	}

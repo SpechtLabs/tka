@@ -88,8 +88,8 @@ func addClientFlags(cmd *cobra.Command) {
 	addCommonFlags(cmd)
 
 	cmd.PersistentFlags().StringP("theme", "t", "tokyo-night", "theme to use for the CLI")
-	viper.SetDefault("theme", "tokyo-night")
-	err := viper.BindPFlag("theme", cmd.PersistentFlags().Lookup("theme"))
+	viper.SetDefault("output.theme", "tokyo-night")
+	err := viper.BindPFlag("output.theme", cmd.PersistentFlags().Lookup("theme"))
 	if err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}

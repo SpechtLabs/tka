@@ -118,8 +118,8 @@ var templateFuncs = template.FuncMap{
 	"join":       JoinString,
 }
 
-func FormatHelpText(cmd *cobra.Command, _ []string) string {
-	return render(cmd, true)
+func FormatHelpText(cmd *cobra.Command, _ []string, opts ...Option) string {
+	return render(cmd, true, opts...)
 }
 
 func PrintHelpText(cmd *cobra.Command, args []string) {
@@ -130,8 +130,11 @@ func PrintUsageText(cmd *cobra.Command, _ []string) {
 	fmt.Println(render(cmd, true))
 }
 
-func render(cmd *cobra.Command, showUsage bool) string {
+func render(cmd *cobra.Command, showUsage bool, opts ...Option) string {
 	options := DefaultOptions()
+	for _, opt := range opts {
+		opt(options)
+	}
 
 	// if the user wants long output, show the usage text
 	if viper.GetBool("output.long") {
