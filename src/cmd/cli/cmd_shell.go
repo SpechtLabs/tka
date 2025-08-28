@@ -73,19 +73,31 @@ in your shell for it to take effect.`,
 
 func getBashShell() string {
 	return `
-# Add the following line to your ~/.bashrc or ~/.zshrc:
-#   eval "$(ts-k8s-auth shell bash)"
-#
-# This will install the tka wrapper function that automatically
-# evals login/refresh commands into your current shell.
 tka() {
     case "$1" in
         login|refresh)
+            cmd="$1"
             shift
-            if [[ " $* " == *" --no-eval "* ]]; then
-                command ts-k8s-auth "$1" "$@"
+
+            no_eval=false
+            for arg in "$@"; do
+                if [[ "$arg" == "--no-eval" ]]; then
+                    no_eval=true
+                    break
+                elif [[ "$arg" == "--help" ]]; then
+                    no_eval=true
+                    break
+                elif [[ "$arg" == "--long" ]]; then
+                    no_eval=true
+                    break
+                fi
+            done
+
+            if $no_eval; then
+                command ts-k8s-auth "$cmd" "$@"
             else
-                eval "$($(command -v ts-k8s-auth) "$1" --quiet "$@")"
+                # ts-k8s-auth prints shell exports, so eval them
+                eval "$(command ts-k8s-auth "$cmd" --quiet "$@")"
             fi
             ;;
         *)

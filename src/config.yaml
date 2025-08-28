@@ -1,8 +1,8 @@
 tailscale:
   hostname: tka
   port: 8123
-  stateDir: /tmp/tka-ts-state
   tailnet: sphinx-map.ts.net
+  stateDir: /tmp/tka-ts-state
 
 server:
   debug: true

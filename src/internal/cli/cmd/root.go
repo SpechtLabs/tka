@@ -35,8 +35,8 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 
 	// rootCmd represents the base command when called without any subcommands
 	cmdRoot := cobra.Command{
-		Use:   "ts-k8s-auth",
-		Short: "ts-k8s-auth is the CLI for Tailscale Kubernetes Auth",
+		Use:   "tka",
+		Short: "tka is the CLI for Tailscale Kubernetes Auth",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			utils.InitObservability()
 		},
@@ -194,6 +194,8 @@ func addClientFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc("theme", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return pretty_print.AllThemeNames(), cobra.ShellCompDirectiveDefault
 	})
+
+	cmd.PersistentFlags().BoolP("no-eval", "e", false, "Do not evaluate the command")
 }
 
 func initConfig() {

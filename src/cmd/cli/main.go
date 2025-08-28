@@ -58,5 +58,9 @@ func initConfig() {
 		}
 	}
 
-	serverAddr = fmt.Sprintf("%s%s.%s:%d", prefix, hostname, tailnet, apiPort)
+	if len(tailnet) > 0 && !strings.HasPrefix(tailnet, ".") {
+		tailnet = fmt.Sprintf(".%s", tailnet)
+	}
+
+	serverAddr = fmt.Sprintf("%s%s%s:%d", prefix, hostname, tailnet, apiPort)
 }

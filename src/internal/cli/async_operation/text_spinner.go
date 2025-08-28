@@ -39,13 +39,17 @@ func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 		model, cmd := m.tea.Update(msg)
 		txt := model.View()
 		txt = strings.TrimSuffix(txt, "\n")
-		fmt.Printf("\r%s", txt)
+		if !m.tea.opts.quiet {
+			fmt.Printf("\r%s", txt)
+		}
 
 		msg = cmd()
 		if msg == tea.Quit() {
 			finalModel = model.(teaPollModel[T])
 			txt = finalModel.View()
-			fmt.Printf("\r%s", txt)
+			if !m.tea.opts.quiet {
+				fmt.Printf("\r%s", txt)
+			}
 			break
 		}
 	}

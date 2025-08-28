@@ -44,7 +44,12 @@ func NewSpinner[T any](pollFunc PollFunc[T], opts ...PollModelOption) Spinner[T]
 		opt(&options)
 	}
 
-	if pretty_print.IsTerminal() {
+	// Force the style to Silent if the quiet option is set
+	if options.quiet {
+		options.style = Silent
+	}
+
+	if pretty_print.IsTerminal() && !options.quiet {
 		s.spinner = newTeaSpinner(pollFunc, &options, &s.model)
 	} else {
 		s.spinner = newTextSpinner(pollFunc, &options, &s.model)

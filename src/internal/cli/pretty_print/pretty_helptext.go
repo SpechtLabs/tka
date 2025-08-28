@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/spf13/cobra"
@@ -18,14 +19,14 @@ type templateData struct {
 }
 
 var Template = `
-# Usage
+# Usage ` + "`{{ .Name }}`" + `
 ` + "```bash" + `
 {{if .Runnable}}{{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}{{.CommandPath}} [command]{{end}}
 ` + "```" + `
 
 {{if and .ShowUsage (gt (len .Aliases) 0)}}
 ## Aliases
-- {{.NameAndAliases }}
+- ` + "`{{ .Name }}`, `{{ join .Aliases \"`, `\" }}` " + `
 {{end}}
 
 ## Description
@@ -53,14 +54,14 @@ var Template = `
 > [!TIP]
 > Use ` + "`{{.CommandPath}} [command] --help`" + ` for more information about a command.
 
-| Command | Description |
-|-------------|-------------|{{range $cmds}}{{if and .IsAvailableCommand (ne .Name "help")}}
+| **Command** | **Description** |
+|:------------|:----------------|{{range $cmds}}{{if and .IsAvailableCommand (ne .Name "help")}}
 | **` + "`{{.Name}}`" + `** | {{.Short}} |{{end}}{{end}}
 {{else}}
 {{range $group := .Groups}}
 ### {{.Title}}
-| Command | Description |
-|-------------|-------------|{{range $cmds}}{{if (and (eq .GroupID $group.ID) and .IsAvailableCommand (ne .Name "help"))}}
+| **Command** | **Description** |
+|:------------|:----------------|{{range $cmds}}{{if (and (eq .GroupID $group.ID) and .IsAvailableCommand (ne .Name "help"))}}
 | **{{.Name}}** | {{.Short}} |{{end}}{{end}}
 {{end}}
 
@@ -77,8 +78,8 @@ var Template = `
 {{$localFlags := .LocalFlags | FlagUsages}}
 ## Flags
 
-| Flag | Type | Usage |
-|------|------|-------|{{range $localFlags}}
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|{{range $localFlags}}
 | ` + "`{{.Flag}}`" + ` | {{.Type}} | {{.Usage}} |{{end}}
 {{end}}
 
@@ -86,8 +87,8 @@ var Template = `
 {{$inheritedFlags := .InheritedFlags | FlagUsages}}
 ## Global Flags
 
-| Flag | Type | Usage |
-|------|------|-------|{{range $inheritedFlags}}
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|{{range $inheritedFlags}}
 | ` + "`{{.Flag}}`" + ` | {{.Type}} | {{.Usage}} |{{end}}
 {{end}}
 {{else}}
@@ -96,8 +97,8 @@ var Template = `
 {{$inheritedFlags := .InheritedFlags | FlagUsages}}
 ## Flags
 
-| Flag | Type | Usage |
-|------|------|-------|{{range $localFlags}}
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|{{range $localFlags}}
 | ` + "`{{.Flag}}`" + ` | {{.Type}} | {{.Usage}} |{{end}}{{range $inheritedFlags}}
 | ` + "`{{.Flag}}`" + ` | {{.Type}} | {{.Usage}} |{{end}}
 {{end}}
@@ -114,6 +115,7 @@ var templateFuncs = template.FuncMap{
 	"gt":         Gt,
 	"eq":         Eq,
 	"FlagUsages": FlagUsages,
+	"join":       JoinString,
 }
 
 func FormatHelpText(cmd *cobra.Command, _ []string) string {
@@ -147,8 +149,19 @@ func render(cmd *cobra.Command, showUsage bool) string {
 		panic(err)
 	}
 
-	out, _ := options.MarkdownRenderer(options.Theme).Render(buf.String())
+	mdString := formatMarkdownAlerts(buf)
+	out, _ := options.MarkdownRenderer(options.Theme).Render(mdString)
 	return out
+}
+
+func formatMarkdownAlerts(buf bytes.Buffer) string {
+	mdString := buf.String()
+	mdString = strings.ReplaceAll(mdString, "[!NOTE]", "__ⓘ Note__")
+	mdString = strings.ReplaceAll(mdString, "[!TIP]", "__➤ Tip__")
+	mdString = strings.ReplaceAll(mdString, "[!IMORTANT]", "__‼ Important__")
+	mdString = strings.ReplaceAll(mdString, "[!WARNING]", "__⚠ Warning__")
+	mdString = strings.ReplaceAll(mdString, "[!CRITICAL]", "__☠ Critical__")
+	return mdString
 }
 
 // Gt takes two types and checks whether the first type is greater than the second. In case of types Arrays, Chans,
@@ -197,6 +210,10 @@ func Eq(a interface{}, b interface{}) bool {
 	return false
 }
 
+func JoinString(a []string, sep string) string {
+	return strings.Join(a, sep)
+}
+
 type FlagUsage struct {
 	Flag  string
 	Type  string
@@ -242,18 +259,18 @@ func FlagUsages(f *pflag.FlagSet) []FlagUsage {
 
 		if !defaultIsZeroValue(flag) {
 			if flag.Value.Type() == "string" {
-				usage += fmt.Sprintf(" (default: %q)", flag.DefValue)
+				usage += fmt.Sprintf(" (_default: %q_)", flag.DefValue)
 			} else {
-				usage += fmt.Sprintf(" (default: %s)", flag.DefValue)
+				usage += fmt.Sprintf(" (_default: %s_)", flag.DefValue)
 			}
 		}
 		if len(flag.Deprecated) != 0 {
-			usage = fmt.Sprintf("(DEPRECATED: %s) %s", flag.Deprecated, usage)
+			usage = fmt.Sprintf("(__DEPRECATED__: %s) %s", flag.Deprecated, usage)
 		}
 
 		lines = append(lines, FlagUsage{
 			Flag:  flagStr,
-			Type:  flag.Value.Type(),
+			Type:  fmt.Sprintf("`%s`", flag.Value.Type()),
 			Usage: usage,
 		})
 	})

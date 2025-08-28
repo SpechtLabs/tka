@@ -3,6 +3,7 @@ package pretty_print
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // PrettyPrint prints a message with the global options
@@ -17,6 +18,10 @@ func PrettyPrintWithOptions(lvl PrintLevel, msg string, context []string, opts .
 	// Determine the output writer
 	output := os.Stdout
 	if lvl == ErrLvl {
+		output = os.Stderr
+	}
+
+	if strings.HasPrefix(strings.ToLower(msg), "error") {
 		output = os.Stderr
 	}
 

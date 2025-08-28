@@ -14,6 +14,11 @@ import (
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 )
 
+var silentSpinner = spinner.Spinner{
+	Frames: []string{""},
+	FPS:    0, //nolint:mnd
+}
+
 type pollTriggerMsg struct{}
 
 type pollResultMsg[T any] struct {
@@ -59,7 +64,8 @@ func newTeaSpinner[T any](pollFunc PollFunc[T], opts *spinnerOptions, model *spi
 		s.Spinner = spinner.Hamburger
 	case Ellipsis:
 		s.Spinner = spinner.Ellipsis
-
+	case Silent:
+		s.Spinner = silentSpinner
 	}
 
 	return &teaPollModel[T]{
@@ -154,15 +160,20 @@ func (m teaPollModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m teaPollModel[T]) View() string {
 	switch {
 	case m.model.ready:
-		if m.model.showReadyMsg {
-			return pretty_print.FormatOk(m.opts.doneMessage)
+		if !m.model.showReadyMsg || m.opts.quiet {
+			return ""
 		}
-		return ""
+
+		return pretty_print.FormatOk(m.opts.doneMessage)
 
 	case m.model.err != nil:
 		return pretty_print.FormatError(m.model.err)
 
 	default:
+		if m.opts.quiet {
+			return ""
+		}
+
 		s := strings.TrimSpace(m.s.View())
 		lvl := pretty_print.InfoLvl
 		return pretty_print.FormatWithOptions(lvl, m.opts.inProgressMessage, []string{}, pretty_print.WithIcon(lvl, s))

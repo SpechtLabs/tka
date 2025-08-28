@@ -20,6 +20,7 @@ const (
 	Meter
 	Hamburger
 	Ellipsis
+	Silent
 )
 
 type spinnerOptions struct {
@@ -33,6 +34,7 @@ type spinnerOptions struct {
 	delay             time.Duration
 	expectedCode      int
 	style             SpinnerStyle
+	quiet             bool
 }
 
 type PollModelOption func(*spinnerOptions)
@@ -105,5 +107,12 @@ func WithDefaultOptions() PollModelOption {
 		s.style = Dot
 		s.delay = 100 * time.Millisecond
 		s.expectedCode = http.StatusOK
+	}
+}
+
+func WithQuiet(quiet bool) PollModelOption {
+	return func(s *spinnerOptions) {
+		s.quiet = quiet
+		s.style = Silent
 	}
 }

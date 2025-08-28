@@ -33,7 +33,7 @@ tka get kubeconfig
 }
 
 func getKubeconfig(_ *cobra.Command, _ []string) error {
-	kubecfg, err := fetchKubeConfig()
+	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
 		pretty_print.PrintError(err)
 		os.Exit(1)
@@ -50,7 +50,7 @@ func getKubeconfig(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func fetchKubeConfig() (*api.Config, humane.Error) {
+func fetchKubeConfig(quiet bool) (*api.Config, humane.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -66,6 +66,7 @@ func fetchKubeConfig() (*api.Config, humane.Error) {
 		async_op2.WithInProgressMessage("Waiting for kubeconfig to be ready..."),
 		async_op2.WithDoneMessage("Kubeconfig is ready."),
 		async_op2.WithFailedMessage("Fetching kubeconfig failed."),
+		async_op2.WithQuiet(quiet),
 	)
 
 	result, err := operation.Run(ctx)

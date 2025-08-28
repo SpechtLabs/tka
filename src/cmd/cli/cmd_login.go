@@ -22,7 +22,7 @@ func init() {
 
 var cmdSignIn = &cobra.Command{
 	Use:     "login",
-	Aliases: []string{"signin"},
+	Aliases: []string{"signin", "auth"},
 	Short:   "Sign in and configure kubectl with temporary access",
 	Long: `Authenticate using your Tailscale identity and retrieve a temporary
 Kubernetes access token. This command automatically fetches your kubeconfig,
@@ -82,7 +82,7 @@ func signIn(cmd *cobra.Command, args []string) error {
 
 	time.Sleep(100 * time.Millisecond)
 
-	kubecfg, err := fetchKubeConfig()
+	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
 		pretty_print.PrintError(err)
 		os.Exit(1)
