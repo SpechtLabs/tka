@@ -27,7 +27,7 @@ var cmdDocumentation = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		rootCmd := cmd.Parent()
 
-		renderedHelp := renderReferenceHelp(rootCmd, 1)
+		renderedHelp := renderReferenceHelp(rootCmd, 0)
 		markdown := strings.Join(renderedHelp, "")
 		page := frontMatter + "\n\n" + markdown
 
@@ -72,8 +72,8 @@ func renderReferenceHelp(cmd *cobra.Command, depth int) []string {
 // fixHeadingLevels increases the heading level of markdown text by `depth`.
 // Example: "# Title" with depth=1 -> "## Title"
 func fixHeadingLevels(helpText string, depth int) string {
-	if depth <= 0 {
-		return helpText
+	if depth == 0 {
+		depth = 1
 	}
 
 	lines := strings.Split(helpText, "\n")

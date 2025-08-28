@@ -1,6 +1,7 @@
 ---
 title: CLI Reference
 permalink: /reference/cli
+createTime: 2025/08/28 23:12:22
 ---
 
 
@@ -71,17 +72,17 @@ $ tka --theme notty login
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
-### Usage `get`
+## Usage `get`
 
 ```bash
 tka get [command]
 ```
 
-#### Description
+### Description
 
 The get command retrieves resources from your Tailscale Kubernetes Auth service
 
-#### Examples
+### Examples
 
 ```bash
 # Fetch your current kubeconfig
@@ -91,7 +92,7 @@ tka get kubeconfig
 tka get login
 ```
 
-#### Available Commands
+### Available Commands
 
 > [!TIP]
 > Use `tka get [command] --help` for more information about a command.
@@ -101,78 +102,7 @@ tka get login
 | **`kubeconfig`** | Fetch your temporary kubeconfig |
 | **`login`** | Show current login information and provisioning status. |
 
-#### Global Flags
-
-| **Flag** | **Type** | **Usage** |
-|:---------|:--------:|:----------|
-| `-c, --config` | `string` | Name of the config file |
-| `    --debug` | `bool` | enable debug logging |
-| `-l, --long` | `bool` | Show long output (where available) |
-| `-e, --no-eval` | `bool` | Do not evaluate the command |
-| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
-| `-q, --quiet` | `bool` | Show no output (where available) |
-| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
-| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
-
-#### Usage `kubeconfig`
-
-```bash
-tka get kubeconfig [--quiet|-q] [--no-eval|-e]
-```
-
-##### Description
-
-Retrieve an ephemeral kubeconfig for your current session and save it to a temporary file.
-This command downloads the kubeconfig from the TKA server and writes it to a temp file.
-It also sets KUBECONFIG for this process so that subsequent kubectl calls from this process
-use the new file.
-To update your interactive shell, export KUBECONFIG yourself
-
-##### Examples
-
-```bash
-# Fetch and save your current ephemeral kubeconfig
-tka kubeconfig
-tka get kubeconfig
-
-```
-
-##### Global Flags
-
-| **Flag** | **Type** | **Usage** |
-|:---------|:--------:|:----------|
-| `-c, --config` | `string` | Name of the config file |
-| `    --debug` | `bool` | enable debug logging |
-| `-l, --long` | `bool` | Show long output (where available) |
-| `-e, --no-eval` | `bool` | Do not evaluate the command |
-| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
-| `-q, --quiet` | `bool` | Show no output (where available) |
-| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
-| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
-
-#### Usage `login`
-
-```bash
-tka get login
-```
-
-##### Aliases
-
-- `login`, `signin`
-
-##### Description
-
-Display details about your current login state, including whether provisioning was successful.
-This does not modify your session.
-
-##### Examples
-
-```bash
-# Display current login status information
-tka get login
-```
-
-##### Global Flags
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -188,7 +118,7 @@ tka get login
 ### Usage `kubeconfig`
 
 ```bash
-tka get kubeconfig [--quiet|-q] [--no-eval|-e] [flags]
+tka get kubeconfig [--quiet|-q] [--no-eval|-e]
 ```
 
 #### Description
@@ -224,20 +154,91 @@ tka get kubeconfig
 ### Usage `login`
 
 ```bash
-tka login [--quiet|-q] [--long|-l|--no-eval|-e]
+tka get login
 ```
 
 #### Aliases
 
-- `login`, `signin`, `auth`
+- `login`, `signin`
 
 #### Description
+
+Display details about your current login state, including whether provisioning was successful.
+This does not modify your session.
+
+#### Examples
+
+```bash
+# Display current login status information
+tka get login
+```
+
+#### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `kubeconfig`
+
+```bash
+tka get kubeconfig [--quiet|-q] [--no-eval|-e] [flags]
+```
+
+### Description
+
+Retrieve an ephemeral kubeconfig for your current session and save it to a temporary file.
+This command downloads the kubeconfig from the TKA server and writes it to a temp file.
+It also sets KUBECONFIG for this process so that subsequent kubectl calls from this process
+use the new file.
+To update your interactive shell, export KUBECONFIG yourself
+
+### Examples
+
+```bash
+# Fetch and save your current ephemeral kubeconfig
+tka kubeconfig
+tka get kubeconfig
+
+```
+
+### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `login`
+
+```bash
+tka login [--quiet|-q] [--long|-l|--no-eval|-e]
+```
+
+### Aliases
+
+- `login`, `signin`, `auth`
+
+### Description
 
 Authenticate using your Tailscale identity and retrieve a temporary
 Kubernetes access token. This command automatically fetches your kubeconfig,
 writes it to a temporary file, sets the KUBECONFIG environment variable.
 
-#### Examples
+### Examples
 
 ```bash
 # Sign in with user friendly output
@@ -248,7 +249,7 @@ tka login
 kubectl get pods
 ```
 
-#### Global Flags
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -261,17 +262,17 @@ kubectl get pods
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
-### Usage `reauthenticate`
+## Usage `reauthenticate`
 
 ```bash
 tka reauthenticate [--quiet|-q] [--long|-l|--no-eval|-e]
 ```
 
-#### Aliases
+### Aliases
 
 - `reauthenticate`, `reauth`, `refresh`
 
-#### Description
+### Description
 
 Reauthenticate by signing out and then signing in again to refresh your temporary access.
 This command is a convenience wrapper which:
@@ -279,7 +280,7 @@ This command is a convenience wrapper which:
 1. Calls signout to revoke your current session
 2. Calls login to obtain a fresh ephemeral kubeconfig
 
-#### Examples
+### Examples
 
 ```bash
 # Reauthenticate and see human-friendly output
@@ -289,7 +290,7 @@ tka reauthenticate --no-eval
 tka reauthenticate
 ```
 
-#### Global Flags
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -302,13 +303,13 @@ tka reauthenticate
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
-### Usage `shell`
+## Usage `shell`
 
 ```bash
 tka shell <bash|zsh|fish|powershell>
 ```
 
-#### Description
+### Description
 
 The "shell" command generates shell integration code for the tka wrapper.
 
@@ -341,7 +342,7 @@ tka login --no-eval
 This command only prints the integration code. You must eval or source it
 in your shell for it to take effect.
 
-#### Examples
+### Examples
 
 ```bash
 # For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
@@ -355,7 +356,7 @@ ts-k8s-auth shell powershell | Out-String | Invoke-Expression
 
 ```
 
-#### Global Flags
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -368,17 +369,17 @@ ts-k8s-auth shell powershell | Out-String | Invoke-Expression
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
-### Usage `signout`
+## Usage `signout`
 
 ```bash
 tka signout [--quiet|-q]
 ```
 
-#### Aliases
+### Aliases
 
 - `signout`, `logout`
 
-#### Description
+### Description
 
 Sign out of the TKA service and revoke your current session.
 
@@ -386,7 +387,7 @@ This command requests the server to invalidate your active credentials. It does
 not modify your shell environment automatically. If you previously exported
 KUBECONFIG to point at an ephemeral file, consider unsetting or updating it.
 
-#### Examples
+### Examples
 
 ```bash
 # Sign out and revoke your access
@@ -399,7 +400,7 @@ tka logout
 tka signout --quiet
 ```
 
-#### Global Flags
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -412,17 +413,17 @@ tka signout --quiet
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
-### Usage `version`
+## Usage `version`
 
 ```bash
 tka version
 ```
 
-#### Description
+### Description
 
 Shows version information
 
-#### Global Flags
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|

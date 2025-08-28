@@ -23,10 +23,10 @@ func TestFixHeadingLevels(t *testing.T) {
 ### Notes
 `,
 			expected: `
-# Usage tka
-## Description
-### Theming
-### Notes
+## Usage tka
+### Description
+#### Theming
+#### Notes
 `,
 		},
 		{
