@@ -10,11 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewRootCmd(initConfigFunc func()) *cobra.Command {
-	cobra.OnInitialize(func() {
-		initConfig()
-		initConfigFunc()
-	})
+func NewRootCmd() *cobra.Command {
+	cobra.OnInitialize(initConfig)
 
 	// rootCmd represents the base command when called without any subcommands
 	cmdRoot := cobra.Command{
@@ -45,9 +42,10 @@ func NewRootCmd(initConfigFunc func()) *cobra.Command {
 	return &cmdRoot
 }
 
-func NewCliRootCmd(initConfigFunc func()) *cobra.Command {
-	cmdRoot := NewRootCmd(initConfigFunc)
+func NewCliRootCmd() *cobra.Command {
+	cmdRoot := NewRootCmd()
 	addClientFlags(cmdRoot)
+	cmdRoot.Use = "tka [--config|-c <string>] [--debug] [--server|-s <string>] [--port|-p <int>] [--long|-l] [--theme|-t <string>] [--no-eval|-e]"
 
 	cmdRoot.Long = `tka is the client for Tailscale Kubernetes Auth. It lets you authenticate to clusters over Tailscale, manage kubeconfig entries, and inspect status with readable, themed output.
 
@@ -85,8 +83,9 @@ $ tka --theme notty login
 	return cmdRoot
 }
 
-func NewServerRootCmd(initConfigFunc func()) *cobra.Command {
-	cmdRoot := NewRootCmd(initConfigFunc)
+func NewServerRootCmd() *cobra.Command {
+	cmdRoot := NewRootCmd()
 	addServerFlags(cmdRoot)
+	cmdRoot.Use = "tka [--config|-c <string>] [--debug]"
 	return cmdRoot
 }

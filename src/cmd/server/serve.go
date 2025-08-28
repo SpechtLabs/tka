@@ -24,7 +24,7 @@ import (
 
 var (
 	serveCmd = &cobra.Command{
-		Use:   "serve",
+		Use:   "serve [--server|-s <string>] [--port|-p <int>] [--dir|-d <string>] [--cap-name|-n <string>]",
 		Short: "Run the TKA API and Kubernetes operator services",
 		Long: `Start the Tailscale-embedded HTTP API and the Kubernetes operator.
 
@@ -47,10 +47,18 @@ tka serve --cap-name specht-labs.de/cap/custom`,
 )
 
 func runE(cmd *cobra.Command, _ []string) error {
+	debug := viper.GetBool("debug")
 	if debug {
-		if file, err := os.ReadFile(viper.GetViper().ConfigFileUsed()); err == nil && len(file) > 0 {
-			otelzap.L().Sugar().With("config_file", string(file)).Debug("Config file used")
+		configFileName := viper.GetViper().ConfigFileUsed()
+		if file, err := os.ReadFile(configFileName); err == nil && len(file) > 0 {
+			otelzap.L().Sugar().With(
+				"config_file", configFileName,
+				string(file), "config", string(file),
+			).Debug("Config file used")
 		}
+	} else {
+		configFileName := viper.GetViper().ConfigFileUsed()
+		otelzap.L().Sugar().With("config_file", configFileName).Debug("Config file used")
 	}
 
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())

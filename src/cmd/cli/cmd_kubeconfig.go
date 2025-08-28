@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -11,12 +12,13 @@ import (
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	tkaApi "github.com/spechtlabs/tka/pkg/api"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 var cmdKubeconfig = &cobra.Command{
-	Use:   "kubeconfig",
+	Use:   "kubeconfig [--quiet|-q] [--no-eval|-e]",
 	Short: "Fetch your temporary kubeconfig",
 	Long: `Retrieve an ephemeral kubeconfig for your current session and save it to a temporary file.
 This command downloads the kubeconfig from the TKA server and writes it to a temp file.
@@ -33,6 +35,7 @@ tka get kubeconfig
 }
 
 func getKubeconfig(_ *cobra.Command, _ []string) error {
+	quiet := viper.GetBool("output.quiet")
 	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
 		pretty_print.PrintError(err)
@@ -45,7 +48,7 @@ func getKubeconfig(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	pretty_print.PrintOk("kubeconfig saved to", file)
+	printUseStatement(file, quiet)
 
 	return nil
 }
@@ -98,4 +101,15 @@ func serializeKubeconfig(kubecfg *api.Config) (string, humane.Error) {
 	}
 
 	return tempFile.Name(), nil
+}
+
+func printUseStatement(fileName string, quiet bool) {
+	useStatement := fmt.Sprintf("export KUBECONFIG=%s", fileName)
+
+	if quiet {
+		fmt.Println(useStatement)
+	} else {
+		pretty_print.PrintOk("kubeconfig written to:", fileName)
+		pretty_print.PrintInfoIcon("→", "To use this session, run:", useStatement)
+	}
 }

@@ -18,6 +18,7 @@ const (
 	TokyoNightStyle Theme = "tokyo-night"
 	LightStyle      Theme = "light"
 	NoTTYStyle      Theme = "notty"
+	MarkdownStyle   Theme = "markdown"
 )
 
 func AllThemes() []Theme {

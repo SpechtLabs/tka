@@ -8,14 +8,11 @@ import (
 	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func init() {
-	cmdSignout.Flags().BoolVarP(&quiet, "quiet", "q", false, "Do not print signout information")
-}
-
 var cmdSignout = &cobra.Command{
-	Use:     "signout",
+	Use:     "signout [--quiet|-q]",
 	Aliases: []string{"logout"},
 	Short:   "Sign out and remove access from the cluster",
 	Long: `Sign out of the TKA service and revoke your current session.
@@ -43,6 +40,7 @@ func signOut(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
+	quiet := viper.GetBool("output.quiet")
 	if !quiet {
 		pretty_print.PrintOk("You have been signed out")
 	}

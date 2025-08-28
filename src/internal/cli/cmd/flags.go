@@ -52,6 +52,13 @@ func addCommonFlags(cmd *cobra.Command) {
 	if err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
+
+	cmd.PersistentFlags().BoolP("quiet", "q", false, "Show no output (where available)")
+	viper.SetDefault("output.quiet", false)
+	err = viper.BindPFlag("output.quiet", cmd.PersistentFlags().Lookup("quiet"))
+	if err != nil {
+		panic(fmt.Errorf("fatal binding flag: %w", err))
+	}
 }
 
 func addServerFlags(cmd *cobra.Command) {

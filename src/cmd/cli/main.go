@@ -10,17 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	serverAddr string
-)
-
 func main() {
-	cmdRoot := cmd.NewCliRootCmd(initConfig)
+	cmdRoot := cmd.NewCliRootCmd()
 
 	var cmdGet = &cobra.Command{
-		Use:   "get",
+		Use:   "get <command>",
 		Short: "Retrieve read-only resources from TKA.",
 		Long:  `The get command retrieves resources from your Tailscale Kubernetes Auth service`,
+		Args:  cobra.ExactArgs(0),
 		Example: `# Fetch your current kubeconfig
 tka get kubeconfig
 
@@ -44,7 +41,7 @@ tka get login`,
 	}
 }
 
-func initConfig() {
+func getServerAddr() string {
 	hostname := viper.GetString("tailscale.hostname")
 	tailnet := viper.GetString("tailscale.tailnet")
 	apiPort := viper.GetInt("tailscale.port")
@@ -62,5 +59,5 @@ func initConfig() {
 		tailnet = fmt.Sprintf(".%s", tailnet)
 	}
 
-	serverAddr = fmt.Sprintf("%s%s%s:%d", prefix, hostname, tailnet, apiPort)
+	return fmt.Sprintf("%s%s%s:%d", prefix, hostname, tailnet, apiPort)
 }

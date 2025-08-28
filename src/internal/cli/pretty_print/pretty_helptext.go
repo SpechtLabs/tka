@@ -149,13 +149,28 @@ func render(cmd *cobra.Command, showUsage bool) string {
 		return cmd.UsageString()
 	}
 
-	mdString := formatMarkdownAlerts(buf)
-	out, _ := options.MarkdownRenderer(options.Theme).Render(mdString)
-	return out
+	mdString := buf.String()
+
+	// Return raw markdown without rendering for MarkdownStyle
+	if options.Theme == MarkdownStyle {
+		return mdString
+	}
+
+	// For non-Markdown themes, optionally format alerts then render once
+	if options.Theme != NoTTYStyle && options.Theme != AsciiStyle {
+		mdString = formatMarkdownAlerts(mdString)
+	}
+
+	// Render markdown
+	if out, err := options.MarkdownRenderer(options.Theme).Render(mdString); err == nil {
+		return out
+	}
+
+	// If rendering fails for any reason, return the raw markdown
+	return mdString
 }
 
-func formatMarkdownAlerts(buf bytes.Buffer) string {
-	mdString := buf.String()
+func formatMarkdownAlerts(mdString string) string {
 	mdString = strings.ReplaceAll(mdString, "[!NOTE]", "__ⓘ Note__")
 	mdString = strings.ReplaceAll(mdString, "[!TIP]", "__➤ Tip__")
 	mdString = strings.ReplaceAll(mdString, "[!IMPORTANT]", "__‼ Important__")

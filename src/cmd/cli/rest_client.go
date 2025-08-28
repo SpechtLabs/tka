@@ -23,6 +23,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	}
 
 	// Assemble the request URL
+	serverAddr := getServerAddr()
 	url := fmt.Sprintf("%s%s%s", serverAddr, api.ApiRouteV1Alpha1, uri)
 
 	// Create the request

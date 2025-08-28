@@ -4,12 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	cmdReauth.Flags().BoolVarP(&quiet, "quiet", "q", false, "Do not print login information")
-}
-
 var cmdReauth = &cobra.Command{
-	Use:     "reauthenticate",
+	Use:     "reauthenticate [--quiet|-q] [--long|-l|--no-eval|-e]",
 	Aliases: []string{"reauth", "refresh"},
 	Short:   "Reauthenticate and configure kubectl with temporary access",
 	Long: `Reauthenticate by signing out and then signing in again to refresh your temporary access.

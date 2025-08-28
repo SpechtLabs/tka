@@ -5,15 +5,10 @@ import (
 	"os"
 
 	"github.com/spechtlabs/tka/internal/cli/cmd"
-	"github.com/spf13/viper"
-)
-
-var (
-	debug bool
 )
 
 func main() {
-	cmdRoot := cmd.NewServerRootCmd(initConfig)
+	cmdRoot := cmd.NewServerRootCmd()
 
 	cmdRoot.AddCommand(serveCmd)
 
@@ -22,8 +17,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func initConfig() {
-	debug = viper.GetBool("debug")
 }

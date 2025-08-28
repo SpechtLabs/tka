@@ -10,7 +10,7 @@ import (
 
 var cmdShell = &cobra.Command{
 	ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
-	Use:       "shell [bash|zsh|fish|powershell]",
+	Use:       "shell <bash|zsh|fish|powershell>",
 	Short:     "Generate shell integration for tka wrapper",
 	Example: `# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
 eval "$(ts-k8s-auth shell bash)"

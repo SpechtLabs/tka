@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -10,18 +9,11 @@ import (
 	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
-
-var (
-	quiet bool
-)
-
-func init() {
-	cmdSignIn.Flags().BoolVarP(&quiet, "quiet", "q", false, "Do not print login information")
-}
 
 var cmdSignIn = &cobra.Command{
-	Use:     "login",
+	Use:     "login [--quiet|-q] [--long|-l|--no-eval|-e]",
 	Aliases: []string{"signin", "auth"},
 	Short:   "Sign in and configure kubectl with temporary access",
 	Long: `Authenticate using your Tailscale identity and retrieve a temporary
@@ -75,6 +67,7 @@ func signIn(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	quiet := viper.GetBool("output.quiet")
 	if !quiet {
 		pretty_print.PrintOk("sign-in successful!")
 		pretty_print.PrintLoginInformation(loginInfo)
@@ -94,14 +87,7 @@ func signIn(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	useStatement := fmt.Sprintf("export KUBECONFIG=%s", file)
-
-	if quiet {
-		fmt.Println(useStatement)
-	} else {
-		pretty_print.PrintOk("kubeconfig written to:", file)
-		pretty_print.PrintInfoIcon("→", "To use this session, run:", useStatement)
-	}
+	printUseStatement(file, quiet)
 
 	return nil
 }
