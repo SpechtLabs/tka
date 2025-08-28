@@ -56,12 +56,12 @@ in your shell for it to take effect.`,
 		shell := strings.ToLower(args[0])
 		switch shell {
 		case "bash":
-			fmt.Println("Add the following line to your ~/.bashrc:")
-			fmt.Println("   eval \"$(ts-k8s-auth shell bash)\"")
+			fmt.Println("# Add the following line to your ~/.bashrc:")
+			fmt.Println("#    eval \"$(ts-k8s-auth shell bash)\"")
 			fmt.Println(getBashShell())
 		case "zsh":
-			fmt.Println("Add the following line to your ~/.zshrc:")
-			fmt.Println("   eval \"$(ts-k8s-auth shell zsh)\"")
+			fmt.Println("# Add the following line to your ~/.zshrc:")
+			fmt.Println("#    eval \"$(ts-k8s-auth shell zsh)\"")
 			fmt.Println(getZshShell())
 		case "fish":
 			fmt.Println("# Add the following line to your ~/.config/fish/config.fish:")
@@ -81,13 +81,11 @@ in your shell for it to take effect.`,
 
 func getBashShell() string {
 	return `tka() {
-    # Subcommands that should normally be eval'd
-    local eval_cmds=("login" "refresh" "get kubeconfig")
+    local eval_cmds=("login" "refresh" "kubeconfig")
 
     local cmd="$1"
     shift || true
 
-    # Check if this command is in the eval list
     local should_eval=false
     for ec in "${eval_cmds[@]}"; do
         if [[ "$cmd" == "$ec" ]]; then
@@ -96,13 +94,11 @@ func getBashShell() string {
         fi
     done
 
-    # If no subcommand matched, just passthrough
     if [[ "$should_eval" == false ]]; then
         command ts-k8s-auth "$cmd" "$@"
         return
     fi
 
-    # Flags that disable eval
     local disable_flags=("--no-eval" "--help" "--long")
     local no_eval=false
     for arg in "$@"; do
@@ -117,7 +113,6 @@ func getBashShell() string {
     if $no_eval; then
         command ts-k8s-auth "$cmd" "$@"
     else
-        # ts-k8s-auth prints shell exports, so eval them
         eval "$(command ts-k8s-auth "$cmd" --quiet "$@")"
     fi
 }
@@ -137,7 +132,6 @@ func getFishShell() string {
     set cmd $argv[1]
     set args $argv[2..-1]
 
-    # Check if command is in eval list
     set should_eval false
     for ec in $eval_cmds
         if test "$cmd" = "$ec"
@@ -146,7 +140,6 @@ func getFishShell() string {
         end
     end
 
-    # Special case: "get kubeconfig" (two-word subcommand)
     if test "$cmd" = "get"
         if test (count $args) -ge 1 -a "$args[1]" = "kubeconfig"
             set should_eval true
@@ -158,7 +151,6 @@ func getFishShell() string {
         return
     end
 
-    # Check for disable flags
     set no_eval false
     for arg in $args
         for df in $disable_flags
@@ -203,13 +195,11 @@ func getPowerShell() string {
     $cmd = $Args[0]
     $rest = $Args[1..($Args.Count - 1)]
 
-    # Check if command is in eval list
     $shouldEval = $false
     if ($evalCmds -contains $cmd) {
         $shouldEval = $true
     }
 
-    # Special case: "get kubeconfig"
     if ($cmd -eq "get" -and $rest.Count -ge 1 -and $rest[0] -eq "kubeconfig") {
         $shouldEval = $true
     }
@@ -219,7 +209,6 @@ func getPowerShell() string {
         return
     }
 
-    # Check for disable flags
     $noEval = $false
     foreach ($arg in $rest) {
         if ($disableFlags -contains $arg) {
@@ -232,7 +221,6 @@ func getPowerShell() string {
         & ts-k8s-auth @Args
     }
     else {
-        # Capture output and eval it
         $output = & ts-k8s-auth $Args[0] --quiet @($rest)
         Invoke-Expression $output
     }
