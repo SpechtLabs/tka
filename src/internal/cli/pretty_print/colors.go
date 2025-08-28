@@ -49,17 +49,6 @@ var (
 		LightStyle:      styles.LightStyleConfig,
 		NoTTYStyle:      styles.NoTTYStyleConfig,
 	}
-
-	// defaultStyle     = styles.TokyoNightStyleConfig
-	// defaultStyle = styles.DarkStyleConfig
-	// baseStyle    = defaultStyle.CodeBlock.Chroma
-
-	// bold   = lipgloss.NewStyle().Foreground(lipgloss.Color(*baseStyle.Text.Color)).Bold(true)
-	// green  = lipgloss.NewStyle().Foreground(lipgloss.Color(*baseStyle.NameAttribute.Color))
-	// red    = lipgloss.NewStyle().Foreground(lipgloss.Color(*baseStyle.GenericDeleted.Color))
-	// gray   = lipgloss.NewStyle().Foreground(lipgloss.Color(*baseStyle.KeywordType.Color))
-	// blue   = lipgloss.NewStyle().Foreground(lipgloss.Color(*baseStyle.LiteralStringEscape.Color))
-	// yellow = lipgloss.NewStyle().Foreground(lipgloss.Color(*baseStyle.LiteralString.Color))
 )
 
 func IsTerminal() bool {
@@ -77,34 +66,51 @@ func styleColor(style ansi.StylePrimitive) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(*style.Color))
 }
 
+// styleFromTheme safely obtains a style using the provided getter. If any
+// intermediate nil dereference would occur, it returns a neutral style.
+func styleFromTheme(getter func() ansi.StylePrimitive) (st lipgloss.Style) {
+	defer func() {
+		if r := recover(); r != nil {
+			st = lipgloss.NewStyle()
+		}
+	}()
+	return styleColor(getter())
+}
+
 func boldStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.Text).Bold(true)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.Text }).Bold(true)
 }
 
 func normalStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.Text)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.Text })
 }
 
 func secondaryStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.KeywordType)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.KeywordType })
 }
+
 func errStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.GenericDeleted)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.GenericDeleted })
 }
 
 func warnStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.LiteralString)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.LiteralString })
 }
 
 func infoStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.LiteralStringEscape)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.LiteralStringEscape })
 }
 
 func okStyle(theme Theme) lipgloss.Style {
-	return styleColor(styleMap[theme].CodeBlock.Chroma.NameAttribute)
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.NameAttribute })
 }
 
-func okColor(theme Theme) lipgloss.Color {
+func okColor(theme Theme) (c lipgloss.Color) {
+	defer func() {
+		if r := recover(); r != nil {
+			c = lipgloss.Color("10")
+		}
+	}()
 	colorPtr := styleMap[theme].CodeBlock.Chroma.NameAttribute.Color
 	if colorPtr == nil {
 		return lipgloss.Color("10")
