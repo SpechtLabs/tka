@@ -56,12 +56,20 @@ in your shell for it to take effect.`,
 		shell := strings.ToLower(args[0])
 		switch shell {
 		case "bash":
+			fmt.Println("Add the following line to your ~/.bashrc:")
+			fmt.Println("   eval \"$(ts-k8s-auth shell bash)\"")
 			fmt.Println(getBashShell())
 		case "zsh":
+			fmt.Println("Add the following line to your ~/.zshrc:")
+			fmt.Println("   eval \"$(ts-k8s-auth shell zsh)\"")
 			fmt.Println(getZshShell())
 		case "fish":
+			fmt.Println("# Add the following line to your ~/.config/fish/config.fish:")
+			fmt.Println("#   ts-k8s-auth shell fish | source")
 			fmt.Println(getFishShell())
 		case "powershell":
+			fmt.Println("# Add the following line to your PowerShell profile:")
+			fmt.Println("#   ts-k8s-auth shell powershell | Out-String | Invoke-Expression")
 			fmt.Println(getPowerShell())
 		default:
 			pretty_print.PrintErrorMessage("Unsupported shell: " + shell)
@@ -72,58 +80,102 @@ in your shell for it to take effect.`,
 }
 
 func getBashShell() string {
-	return `
-tka() {
-    case "$1" in
-        login|refresh)
-            cmd="$1"
-            shift
+	return `tka() {
+    # Subcommands that should normally be eval'd
+    local eval_cmds=("login" "refresh" "get kubeconfig")
 
-            no_eval=false
-            for arg in "$@"; do
-                if [[ "$arg" == "--no-eval" ]]; then
-                    no_eval=true
-                    break
-                elif [[ "$arg" == "--help" ]]; then
-                    no_eval=true
-                    break
-                elif [[ "$arg" == "--long" ]]; then
-                    no_eval=true
-                    break
-                fi
-            done
+    local cmd="$1"
+    shift || true
 
-            if $no_eval; then
-                command ts-k8s-auth "$cmd" "$@"
-            else
-                # ts-k8s-auth prints shell exports, so eval them
-                eval "$(command ts-k8s-auth "$cmd" --quiet "$@")"
+    # Check if this command is in the eval list
+    local should_eval=false
+    for ec in "${eval_cmds[@]}"; do
+        if [[ "$cmd" == "$ec" ]]; then
+            should_eval=true
+            break
+        fi
+    done
+
+    # If no subcommand matched, just passthrough
+    if [[ "$should_eval" == false ]]; then
+        command ts-k8s-auth "$cmd" "$@"
+        return
+    fi
+
+    # Flags that disable eval
+    local disable_flags=("--no-eval" "--help" "--long")
+    local no_eval=false
+    for arg in "$@"; do
+        for df in "${disable_flags[@]}"; do
+            if [[ "$arg" == "$df" ]]; then
+                no_eval=true
+                break 2
             fi
-            ;;
-        *)
-            command ts-k8s-auth "$@"
-            ;;
-    esac
+        done
+    done
+
+    if $no_eval; then
+        command ts-k8s-auth "$cmd" "$@"
+    else
+        # ts-k8s-auth prints shell exports, so eval them
+        eval "$(command ts-k8s-auth "$cmd" --quiet "$@")"
+    fi
 }
 	`
 }
 
 func getFishShell() string {
-	return `
-# Add the following line to your ~/.config/fish/config.fish:
-#   ts-k8s-auth shell fish | source
-function tka
+	return `function tka
+    set eval_cmds login refresh "get kubeconfig"
+    set disable_flags --no-eval --help --long
+
+    if test (count $argv) -eq 0
+        command ts-k8s-auth
+        return
+    end
+
     set cmd $argv[1]
-    switch $cmd
-        case login refresh
-            set -e argv[1]
-            if contains -- --no-eval $argv
-                command ts-k8s-auth $cmd $argv
-            else
-                eval (ts-k8s-auth $cmd --quiet $argv)
+    set args $argv[2..-1]
+
+    # Check if command is in eval list
+    set should_eval false
+    for ec in $eval_cmds
+        if test "$cmd" = "$ec"
+            set should_eval true
+            break
+        end
+    end
+
+    # Special case: "get kubeconfig" (two-word subcommand)
+    if test "$cmd" = "get"
+        if test (count $args) -ge 1 -a "$args[1]" = "kubeconfig"
+            set should_eval true
+        end
+    end
+
+    if test "$should_eval" = false
+        command ts-k8s-auth $cmd $args
+        return
+    end
+
+    # Check for disable flags
+    set no_eval false
+    for arg in $args
+        for df in $disable_flags
+            if test "$arg" = "$df"
+                set no_eval true
+                break
             end
-        case '*'
-            command ts-k8s-auth $argv
+        end
+        if test "$no_eval" = true
+            break
+        end
+    end
+
+    if test "$no_eval" = true
+        command ts-k8s-auth $cmd $args
+    else
+        eval (command ts-k8s-auth $cmd --quiet $args)
     end
 end
 	`
@@ -134,15 +186,55 @@ func getZshShell() string {
 }
 
 func getPowerShell() string {
-	return `
-# Add the following line to your PowerShell profile:
-#   ts-k8s-auth shell powershell | Out-String | Invoke-Expression
-function tka {
-    param([string]$cmd, [Parameter(ValueFromRemainingArguments=$true)]$args)
-    switch ($cmd) {
-        "login" { & ts-k8s-auth $cmd --quiet @args | Invoke-Expression }
-        "refresh" { & ts-k8s-auth $cmd --quiet @args | Invoke-Expression }
-        default { & ts-k8s-auth $cmd @args }
+	return `function tka {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Args
+    )
+
+    $evalCmds = @("login", "refresh")
+    $disableFlags = @("--no-eval", "--help", "--long")
+
+    if ($Args.Count -eq 0) {
+        & ts-k8s-auth
+        return
+    }
+
+    $cmd = $Args[0]
+    $rest = $Args[1..($Args.Count - 1)]
+
+    # Check if command is in eval list
+    $shouldEval = $false
+    if ($evalCmds -contains $cmd) {
+        $shouldEval = $true
+    }
+
+    # Special case: "get kubeconfig"
+    if ($cmd -eq "get" -and $rest.Count -ge 1 -and $rest[0] -eq "kubeconfig") {
+        $shouldEval = $true
+    }
+
+    if (-not $shouldEval) {
+        & ts-k8s-auth @Args
+        return
+    }
+
+    # Check for disable flags
+    $noEval = $false
+    foreach ($arg in $rest) {
+        if ($disableFlags -contains $arg) {
+            $noEval = $true
+            break
+        }
+    }
+
+    if ($noEval) {
+        & ts-k8s-auth @Args
+    }
+    else {
+        # Capture output and eval it
+        $output = & ts-k8s-auth $Args[0] --quiet @($rest)
+        Invoke-Expression $output
     }
 }
 	`
