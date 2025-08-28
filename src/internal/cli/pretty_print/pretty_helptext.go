@@ -140,13 +140,13 @@ func render(cmd *cobra.Command, showUsage bool) string {
 
 	tmpl, err := template.New("top").Funcs(templateFuncs).Parse(Template)
 	if err != nil {
-		panic(err)
+		return cmd.UsageString()
 	}
 
 	var buf bytes.Buffer
 	data := templateData{Command: cmd, ShowUsage: showUsage}
 	if err := tmpl.Execute(&buf, data); err != nil {
-		panic(err)
+		return cmd.UsageString()
 	}
 
 	mdString := formatMarkdownAlerts(buf)
@@ -158,7 +158,7 @@ func formatMarkdownAlerts(buf bytes.Buffer) string {
 	mdString := buf.String()
 	mdString = strings.ReplaceAll(mdString, "[!NOTE]", "__ⓘ Note__")
 	mdString = strings.ReplaceAll(mdString, "[!TIP]", "__➤ Tip__")
-	mdString = strings.ReplaceAll(mdString, "[!IMORTANT]", "__‼ Important__")
+	mdString = strings.ReplaceAll(mdString, "[!IMPORTANT]", "__‼ Important__")
 	mdString = strings.ReplaceAll(mdString, "[!WARNING]", "__⚠ Warning__")
 	mdString = strings.ReplaceAll(mdString, "[!CRITICAL]", "__☠ Critical__")
 	return mdString

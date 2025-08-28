@@ -47,6 +47,7 @@ var (
 		DraculaStyle:    styles.DraculaStyleConfig,
 		TokyoNightStyle: styles.TokyoNightStyleConfig,
 		LightStyle:      styles.LightStyleConfig,
+		NoTTYStyle:      styles.NoTTYStyleConfig,
 	}
 
 	// defaultStyle     = styles.TokyoNightStyleConfig
@@ -62,12 +63,17 @@ var (
 )
 
 func IsTerminal() bool {
+	if os.Getenv("TERM") == "dumb" {
+		return false
+	}
 	return isatty.IsTerminal(os.Stdout.Fd()) ||
-		isatty.IsCygwinTerminal(os.Stdout.Fd()) ||
-		os.Getenv("TERM") == "dumb"
+		isatty.IsCygwinTerminal(os.Stdout.Fd())
 }
 
 func styleColor(style ansi.StylePrimitive) lipgloss.Style {
+	if style.Color == nil {
+		return lipgloss.NewStyle()
+	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(*style.Color))
 }
 
@@ -99,5 +105,9 @@ func okStyle(theme Theme) lipgloss.Style {
 }
 
 func okColor(theme Theme) lipgloss.Color {
-	return lipgloss.Color(*styleMap[theme].CodeBlock.Chroma.NameAttribute.Color)
+	colorPtr := styleMap[theme].CodeBlock.Chroma.NameAttribute.Color
+	if colorPtr == nil {
+		return lipgloss.Color("10")
+	}
+	return lipgloss.Color(*colorPtr)
 }

@@ -1,6 +1,7 @@
 package pretty_print
 
 import (
+	"os"
 	"slices"
 
 	"github.com/charmbracelet/glamour"
@@ -62,7 +63,7 @@ func DefaultOptions() *PrintOptions {
 		IndentSize:    4,
 		ShowTimestamp: false,
 		TimeFormat:    "15:04:05",
-		NoColor:       false, //!IsTerminal(),
+		NoColor:       false,
 		LevelIcons: map[PrintLevel]string{
 			OkLvl:    "✓",
 			InfoLvl:  "ℹ", // "•"
@@ -90,7 +91,7 @@ func DefaultOptions() *PrintOptions {
 				)
 			} else {
 				markdownRenderer, _ = glamour.NewTermRenderer(
-					glamour.WithStandardStyle(string(theme)), //styles.NoTTYStyle
+					glamour.WithStandardStyle(string(NoTTYStyle)),
 					glamour.WithWordWrap(0),
 				)
 			}
@@ -101,9 +102,20 @@ func DefaultOptions() *PrintOptions {
 		NoNewline:         false,
 	}
 
+	// Theme selection via config
 	theme := viper.GetString("theme")
 	if theme != "" && slices.Contains(AllThemeNames(), theme) {
 		options.Theme = Theme(theme)
+	}
+
+	// Auto-select NoTTY theme when not in a TTY
+	if !IsTerminal() {
+		options.Theme = NoTTYStyle
+	}
+
+	// Auto-detect no color via NO_COLOR or non-TTY
+	if _, hasNoColor := os.LookupEnv("NO_COLOR"); hasNoColor || !IsTerminal() {
+		options.NoColor = true
 	}
 
 	return options
