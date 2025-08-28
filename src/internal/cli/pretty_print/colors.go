@@ -29,6 +29,7 @@ func AllThemes() []Theme {
 		TokyoNightStyle,
 		LightStyle,
 		NoTTYStyle,
+		MarkdownStyle,
 	}
 }
 
@@ -49,6 +50,7 @@ var (
 		TokyoNightStyle: styles.TokyoNightStyleConfig,
 		LightStyle:      styles.LightStyleConfig,
 		NoTTYStyle:      styles.NoTTYStyleConfig,
+		MarkdownStyle:   styles.NoTTYStyleConfig,
 	}
 )
 
