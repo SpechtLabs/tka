@@ -35,7 +35,7 @@
     "typescript": "^5.7.3",
     "vue": "^3.5.13",
     "vuepress": "2.0.0-rc.24",
-    "vuepress-theme-plume": "1.0.0-rc.160"
+    "vuepress-theme-plume": "1.0.0-rc.162"
   },
   "dependencies": {
     "@vue/component-compiler-utils": "^3.3.0",
