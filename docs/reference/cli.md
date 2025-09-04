@@ -1,7 +1,6 @@
 ---
 title: CLI Reference
 permalink: /reference/cli
-createTime: 2025/08/28 23:12:22
 ---
 
 
@@ -52,10 +51,11 @@ $ tka --theme notty login
 |:------------|:----------------|
 | **`completion`** | Generate the autocompletion script for the specified shell |
 | **`get`** | Retrieve read-only resources from TKA. |
+| **`integration`** | Generate shell integration for tka wrapper |
 | **`kubeconfig`** | Fetch your temporary kubeconfig |
 | **`login`** | Sign in and configure kubectl with temporary access |
 | **`reauthenticate`** | Reauthenticate and configure kubectl with temporary access |
-| **`shell`** | Generate shell integration for tka wrapper |
+| **`shell`** | Start a subshell with temporary Kubernetes access via Tailscale identity |
 | **`signout`** | Sign out and remove access from the cluster |
 | **`version`** | Shows version information |
 
@@ -186,6 +186,72 @@ tka get login
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
+## Usage `integration`
+
+```bash
+tka integration <bash|zsh|fish|powershell>
+```
+
+### Description
+
+The "shell" command generates shell integration code for the tka wrapper.
+
+By default, the ts-k8s-auth binary cannot directly modify your shell's
+environment variables (such as "${KUBECONFIG}"), because a subprocess cannot
+change the parent shell's state. To work around this, tka provides a
+wrapper function that you can install into your shell. This wrapper
+intercepts certain commands (like "login" and "refresh") and automatically
+evaluates the environment variable exports in your current shell session.
+
+This makes commands like "tka login" feel seamless: your session is
+authenticated and your "${KUBECONFIG}" is updated without needing to manually
+copy and paste an "export" command.
+
+Once installed, you can use "tka" as your entrypoint:
+
+```bash
+tka login        # signs in and updates your environment
+tka refresh      # refreshes credentials and updates your environment
+tka logout       # signs out
+```
+
+If you want to bypass the automatic environment updates and see the full
+human-friendly output, you can pass the "--no-eval" flag:
+
+```bash
+tka login --no-eval
+```
+
+This command only prints the integration code. You must eval or source it
+in your shell for it to take effect.
+
+### Examples
+
+```bash
+# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
+eval "$(ts-k8s-auth shell bash)"
+
+# For fish, add this line to your ~/.config/fish/config.fish:
+ts-k8s-auth shell fish | source
+
+# For PowerShell, add this line to your profile (e.g. $PROFILE):
+ts-k8s-auth shell powershell | Out-String | Invoke-Expression
+
+```
+
+### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
 ## Usage `kubeconfig`
 
 ```bash
@@ -225,7 +291,7 @@ tka get kubeconfig
 ## Usage `login`
 
 ```bash
-tka login [--quiet|-q] [--long|-l|--no-eval|-e]
+tka login [--quiet|-q] [--long|-l|--no-eval|-e] [--shell]
 ```
 
 ### Aliases
@@ -248,6 +314,12 @@ tka login --no-eval
 tka login
 kubectl get pods
 ```
+
+### Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `    --shell` | `bool` | Start a subshell with temporary Kubernetes access |
 
 ### Global Flags
 
@@ -306,54 +378,42 @@ tka reauthenticate
 ## Usage `shell`
 
 ```bash
-tka shell <bash|zsh|fish|powershell>
+tka shell
 ```
 
 ### Description
 
-The "shell" command generates shell integration code for the tka wrapper.
+## Shell Command
 
-By default, the ts-k8s-auth binary cannot directly modify your shell's
-environment variables (such as "${KUBECONFIG}"), because a subprocess cannot
-change the parent shell's state. To work around this, tka provides a
-wrapper function that you can install into your shell. This wrapper
-intercepts certain commands (like "login" and "refresh") and automatically
-evaluates the environment variable exports in your current shell session.
+The **shell** command authenticates you using your Tailscale identity and
+retrieves a short‑lived Kubernetes access token. It then spawns an interactive
+subshell (using your login shell, e.g. `bash` or `zsh`") with the
+`KUBECONFIG` environment variable set to a temporary kubeconfig file.
 
-This makes commands like "tka login" feel seamless: your session is
-authenticated and your "${KUBECONFIG}" is updated without needing to manually
-copy and paste an "export" command.
+This provides a clean and secure workflow:
 
-Once installed, you can use "tka" as your entrypoint:
+- Your existing shell environment remains untouched.
+- All Kubernetes operations inside the subshell use the temporary credentials.
+- When you exit the subshell, the credentials are automatically revoked and
+  the temporary kubeconfig file is deleted.
 
-```bash
-tka login        # signs in and updates your environment
-tka refresh      # refreshes credentials and updates your environment
-tka logout       # signs out
-```
-
-If you want to bypass the automatic environment updates and see the full
-human-friendly output, you can pass the "--no-eval" flag:
-
-```bash
-tka login --no-eval
-```
-
-This command only prints the integration code. You must eval or source it
-in your shell for it to take effect.
+This is useful for administrators and developers who need ephemeral access to
+a cluster without persisting credentials on disk or leaking them into their
+long‑lived shell environment.
 
 ### Examples
 
 ```bash
-# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
-eval "$(ts-k8s-auth shell bash)"
+# Start a subshell with temporary Kubernetes access
+tka shell
 
-# For fish, add this line to your ~/.config/fish/config.fish:
-ts-k8s-auth shell fish | source
+# Inside the subshell, run kubectl commands as usual
+kubectl get pods -n default
 
-# For PowerShell, add this line to your profile (e.g. $PROFILE):
-ts-k8s-auth shell powershell | Out-String | Invoke-Expression
+# When finished, exit the subshell
+exit
 
+# At this point, the temporary credentials are revoked automatically
 ```
 
 ### Global Flags

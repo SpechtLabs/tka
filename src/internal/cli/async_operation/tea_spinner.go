@@ -16,7 +16,7 @@ import (
 
 var silentSpinner = spinner.Spinner{
 	Frames: []string{""},
-	FPS:    0, //nolint:mnd
+	FPS:    0, //nolint:gomnd
 }
 
 type pollTriggerMsg struct{}

@@ -13,7 +13,7 @@ import (
 func main() {
 	cmdRoot := cmd.NewCliRootCmd()
 
-	var cmdGet = &cobra.Command{
+	cmdGet := &cobra.Command{
 		Use:   "get <command>",
 		Short: "Retrieve read-only resources from TKA.",
 		Long:  `The get command retrieves resources from your Tailscale Kubernetes Auth service`,
@@ -25,8 +25,9 @@ tka get kubeconfig
 tka get login`,
 	}
 
-	cmdRoot.AddCommand(cmdShell)
+	cmdRoot.AddCommand(cmdIntegration)
 	cmdRoot.AddCommand(cmdSignIn)
+	cmdRoot.AddCommand(cmdShell)
 	cmdRoot.AddCommand(cmdKubeconfig)
 	cmdRoot.AddCommand(cmdSignout)
 	cmdRoot.AddCommand(cmdReauth)

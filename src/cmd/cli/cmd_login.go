@@ -12,8 +12,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+func init() {
+	cmdSignIn.PersistentFlags().Bool("shell", false, "Start a subshell with temporary Kubernetes access")
+}
+
 var cmdSignIn = &cobra.Command{
-	Use:     "login [--quiet|-q] [--long|-l|--no-eval|-e]",
+	Use:     "login [--quiet|-q] [--long|-l|--no-eval|-e] [--shell]",
 	Aliases: []string{"signin", "auth"},
 	Short:   "Sign in and configure kubectl with temporary access",
 	Long: `Authenticate using your Tailscale identity and retrieve a temporary
@@ -28,7 +32,32 @@ kubectl get pods`,
 
 	Args:      cobra.ExactArgs(0),
 	ValidArgs: []string{},
-	RunE:      signIn,
+	Run: func(cmd *cobra.Command, args []string) {
+		quiet := viper.GetBool("output.quiet")
+
+		useShell, err := cmd.Flags().GetBool("shell")
+		if err != nil {
+			useShell = false
+		}
+
+		if useShell {
+			err := forkShell(cmd, args)
+			if err != nil {
+				pretty_print.PrintError(err)
+				os.Exit(1)
+			} else {
+				return
+			}
+		}
+
+		file, err := signIn(quiet)
+		if err != nil {
+			pretty_print.PrintError(err)
+			os.Exit(1)
+		}
+
+		printUseStatement(file, quiet)
+	},
 }
 
 var cmdGetSignIn = &cobra.Command{
@@ -55,19 +84,16 @@ tka get login`,
 	},
 }
 
-func signIn(cmd *cobra.Command, args []string) error {
+func signIn(quiet bool) (string, error) {
 	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
 		if err.Cause() != nil {
-			pretty_print.PrintError(err.Cause())
-		} else {
-			pretty_print.PrintError(err)
+			return "", err.Cause()
 		}
 
-		os.Exit(1)
+		return "", err
 	}
 
-	quiet := viper.GetBool("output.quiet")
 	if !quiet {
 		pretty_print.PrintOk("sign-in successful!")
 		pretty_print.PrintLoginInformation(loginInfo)
@@ -77,17 +103,13 @@ func signIn(cmd *cobra.Command, args []string) error {
 
 	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
-		pretty_print.PrintError(err)
-		os.Exit(1)
+		return "", err
 	}
 
 	file, err := serializeKubeconfig(kubecfg)
 	if err != nil {
-		pretty_print.PrintError(err)
-		os.Exit(1)
+		return "", err
 	}
 
-	printUseStatement(file, quiet)
-
-	return nil
+	return file, nil
 }

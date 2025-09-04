@@ -1,7 +1,11 @@
 package main
 
 import (
+	"os"
+
+	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cmdReauth = &cobra.Command{
@@ -20,11 +24,20 @@ tka reauthenticate --no-eval
 tka reauthenticate`,
 	Args:      cobra.ExactArgs(0),
 	ValidArgs: []string{},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		if err := signOut(cmd, args); err != nil {
-			return err
+			pretty_print.PrintError(err)
+			os.Exit(1)
 		}
 
-		return signIn(cmd, args)
+		quiet := viper.GetBool("output.quiet")
+
+		file, err := signIn(quiet)
+		if err != nil {
+			pretty_print.PrintError(err)
+			os.Exit(1)
+		}
+
+		printUseStatement(file, quiet)
 	},
 }
