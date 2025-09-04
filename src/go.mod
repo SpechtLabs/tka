@@ -12,13 +12,13 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/prometheus/client_golang v1.23.0
-	github.com/sierrasoftworks/humane-errors-go v0.0.0-20250811205537-5f14a04ebff5
+	github.com/sierrasoftworks/humane-errors-go v0.0.0-20250827210959-431bf8bde796
 	github.com/spechtlabs/go-otel-utils/otelprovider v0.0.13
 	github.com/spechtlabs/go-otel-utils/otelzap v0.0.13
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.20.1
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.6
