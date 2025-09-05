@@ -59,7 +59,9 @@ func forkShell(cmd *cobra.Command, args []string) error {
 	}
 
 	// 3. Cleanup after shell exits
-	defer os.Remove(kubeCfgPath)
+	defer func() {
+		_ = os.Remove(kubeCfgPath)
+	}()
 
 	return signOut(cmd, args)
 }
