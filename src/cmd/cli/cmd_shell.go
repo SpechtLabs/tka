@@ -3,7 +3,14 @@ package main
 import (
 	"os"
 	"os/exec"
+	"os/signal"
+	"runtime"
+	"syscall"
 
+	"golang.org/x/sys/unix"
+	"golang.org/x/term"
+
+	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -67,6 +74,13 @@ func forkShell(cmd *cobra.Command, args []string) error {
 }
 
 func runShell(kubeconfig string) error {
+	if runtime.GOOS == "windows" {
+		return humane.New("shell is not supported on Windows",
+			"If you want to use `tka shell` for spawning ephemeral subshells on Windows, consider using WSL",
+			"If you want to use tka on PowerShell, use `tka login` instead.",
+		)
+	}
+
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/bash"
@@ -80,6 +94,36 @@ func runShell(kubeconfig string) error {
 		"KUBECONFIG="+kubeconfig,
 		"PS1=(tka) "+os.Getenv("PS1"),
 	)
+
+	// Forward signals to the child shell
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGWINCH)
+
+	go func() {
+		for s := range sig {
+			if cmd.Process != nil && cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
+				if s == syscall.SIGWINCH {
+					// On resize, propagate terminal size to child
+					if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
+						if w, h, err := term.GetSize(fd); err == nil {
+							// TIOCSWINSZ ioctl to set window size
+							_ = unix.IoctlSetWinsize(int(cmd.Process.Pid), syscall.TIOCSWINSZ, &unix.Winsize{
+								Row: uint16(h),
+								Col: uint16(w),
+							})
+						}
+					}
+				} else {
+					// Forward other signals directly
+					_ = cmd.Process.Signal(s)
+				}
+			}
+		}
+	}()
+	defer func() {
+		signal.Stop(sig)
+		close(sig)
+	}()
 
 	return cmd.Run()
 }
