@@ -7,14 +7,14 @@ on:
       - main
     paths:
       - docs/**/*
-      - .github/workflows/**
+      - .github/workflows/docs-website.yaml
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
       - main
     paths:
       - docs/**/*
-      - .github/workflows/**
+      - .github/workflows/docs-website.yaml
 
 jobs:
   build:
