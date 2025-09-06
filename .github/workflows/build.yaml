@@ -9,14 +9,14 @@ on:
       - "*"
     paths:
       - src/**/*
-      - .github/workflows/**
+      - .github/workflows/build.yaml
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
       - main
     paths:
       - src/**/*
-      - .github/workflows/**
+      - .github/workflows/build.yaml
 
 permissions:
   contents: write
