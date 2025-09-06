@@ -345,6 +345,8 @@ github.com/sierrasoftworks/humane-errors-go v0.0.0-20250811205537-5f14a04ebff5 h
 github.com/sierrasoftworks/humane-errors-go v0.0.0-20250811205537-5f14a04ebff5/go.mod h1:CbJLj9L1qHdzLg4YRh2Lzr0noe9pR6QrVEqfLbITRKw=
 github.com/sierrasoftworks/humane-errors-go v0.0.0-20250827210959-431bf8bde796 h1:QKx3FFMNacX6eSdvvE4CgDL4166n38KUr9rCNoFzTFc=
 github.com/sierrasoftworks/humane-errors-go v0.0.0-20250827210959-431bf8bde796/go.mod h1:p4jbkjZuTzb8snmKhhMJJwPjAwO5fh8UZ2Gkstwt71k=
+github.com/sierrasoftworks/humane-errors-go v0.0.0-20250904141959-2224f06cddb4 h1:DhtzIOyKx70jgHIK0kb4eAbot9b/lko8EpPiDxbEtgo=
+github.com/sierrasoftworks/humane-errors-go v0.0.0-20250904141959-2224f06cddb4/go.mod h1:p4jbkjZuTzb8snmKhhMJJwPjAwO5fh8UZ2Gkstwt71k=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
