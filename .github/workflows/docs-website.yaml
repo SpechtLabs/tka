@@ -17,6 +17,19 @@ on:
       - .github/workflows/docs-website.yaml
 
 jobs:
+  md:
+    name: Markdown
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - uses: DavidAnson/markdownlint-cli2-action@v20
+        with:
+          globs: '**/*.md'
+
   build:
     runs-on: ubuntu-latest
     name: Build (Docs)
@@ -45,7 +58,9 @@ jobs:
 
   deploy-gh-pages:
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - build
+      - md
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
 
     permissions:
@@ -75,7 +90,9 @@ jobs:
 
   deploy-static-pages:
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - build
+      - md
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
 
     permissions:

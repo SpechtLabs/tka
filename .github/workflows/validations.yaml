@@ -8,15 +8,20 @@ on:
     tags:
       - "*"
     paths:
-      - src/**/*
-      - .github/workflows/build.yaml
+      - .github/workflows/validations.yaml
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/*.md'
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
       - main
     paths:
       - src/**/*
-      - .github/workflows/build.yaml
+      - .github/workflows/validations.yaml
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/*.md'
 
 permissions:
   contents: read
@@ -26,39 +31,6 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  go:
-    name: GoLang
-    runs-on: ubuntu-latest
-
-    steps:
-      # Checkout code
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      # Set up Go environment
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "src/go.mod"
-          cache: true
-          cache-dependency-path: "**/*.sum"
-
-      - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          working-directory: src/
-          version: latest
-
-      - name: Run format-check
-        working-directory: "src/"
-        run: |
-          UNFORMATTED=$(gofmt -l .)
-          if [ -n "$UNFORMATTED" ]; then
-            echo "The following files are not formatted according to gofmt:"
-            echo "$UNFORMATTED"
-            exit 1
-          fi
-
   md:
     name: Markdown
     runs-on: ubuntu-latest
@@ -71,7 +43,6 @@ jobs:
       - uses: DavidAnson/markdownlint-cli2-action@v20
         with:
           globs: '**/*.md'
-
 
   yaml:
     name: YAML

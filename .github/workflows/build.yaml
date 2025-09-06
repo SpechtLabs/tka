@@ -29,6 +29,39 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  validate:
+    name: Quality Validations
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Set up Go environment
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "src/go.mod"
+          cache: true
+          cache-dependency-path: "**/*.sum"
+
+      - name: GolangCI Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: src/
+          version: latest
+
+      - name: Run format-check
+        working-directory: "src/"
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not formatted according to gofmt:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -218,6 +251,7 @@ jobs:
     needs:
       - docker-build
       - test
+      - validate
 
     if: github.event_name != 'pull_request'
 
