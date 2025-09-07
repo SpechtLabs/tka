@@ -11,11 +11,11 @@ config:
       image: /logo.png
       actions:
         - text: Overview →
-          link: /overview/overview
+          link: /explanation/overview
           theme: brand
           icon: fa:book
         - text: Get Started →
-          link: /guide/getting-started
+          link: /tutorials/quick
           theme: alt
           icon: fa:paper-plane
         - text: GitHub Releases →
