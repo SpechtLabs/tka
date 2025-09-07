@@ -55,14 +55,6 @@ With `tka`, we can define ephemeral access with zero-permission-by-default but s
 - **Multi-cluster friendly**: Operator options for `clusterName`, `contextPrefix`, and `userPrefix` make per-user contexts and federation patterns straightforward.
 - **Small, hackable core**: Minimal moving parts, clear extension points (auth middleware, operator service), and a clean Go codebase.
 
-## Components
-
-| Component            | Description                                                            |
-|----------------------|------------------------------------------------------------------------|
-| `tka`                | Login API pod running in the cluster, reachable via Tailscale          |
-| `GrantMapping CRD`   | Maps Tailscale identities (user/group/tag) to Kubernetes ClusterRoles  |
-| `tka` CLI            | CLI tool to fetch kubeconfigs, list clusters, etc.                     |
-
 ## Example Flow
 
 ```shell
@@ -82,6 +74,7 @@ $ kubectl get ns
 Contributions are welcome! Please open an issue or submit a pull request.
 
 <!-- Links -->
+
 [Tailscale ACLs and Grants]: https://tailscale.com/kb/1393/access-control
 [Teleport]: https://goteleport.com
 [gh-teleport]: https://github.com/gravitational/teleport

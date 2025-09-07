@@ -4,24 +4,34 @@ export const navbar = defineNavbarConfig([
   { text: "Home", link: "/" },
 
   {
-    text: "Getting Started",
-    link: "/guide/getting-started",
+    text: "Overview",
+    items: [
+      { text: "Overview", link: "/overview/overview" },
+      { text: "Security", link: "/overview/security" },
+    ],
   },
 
   {
-    text: "Architecture",
+    text: "Guides",
     items: [
-      { text: "Overview", link: "/architecture/overview" },
-      { text: "Security", link: "/architecture/security" },
-      { text: "Authentication Model", link: "/architecture/authentication-model" },
+      { text: "Getting Started", link: "/guide/getting-started" },
     ],
   },
 
   {
     text: 'Reference',
     items: [
-      { text: 'CLI Reference', link: '/reference/cli' },
-      { text: 'Server Configuration', link: '/reference/configuration' },
+      {
+        text: 'Application Documentation', items: [
+          { text: 'CLI Reference', link: '/reference/cli' },
+          { text: 'Server Configuration', link: '/reference/configuration' },
+        ]
+      },
+      {
+        text: 'Developer Documentation', items: [
+          { text: 'Request Flows', link: '/reference/developer/request-flows' },
+        ]
+      },
     ],
   },
 
