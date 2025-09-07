@@ -140,7 +140,7 @@ For more detailed setup with explanations and alternatives:
 
    1. Command flags (highest priority)
    2. Environment variables (`TKA_` prefix)
-   3. Config files (current dir, `$HOME`, `$HOME/.config/tka/`, `/data`)
+   3. Config files (current dir, `$HOME`, `$HOME/.config/tka/`, `/etc/tka`)
    4. Default values (lowest priority)
 
 5. ### Step 5: Configure Tailscale ACLs

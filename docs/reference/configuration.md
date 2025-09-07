@@ -9,7 +9,7 @@ This page lists all configuration keys, their defaults, and effects. Sources: fl
 ### Conventions
 
 - Env var mapping replaces `.` with `_` and uppercases keys, prefixed with `TKA_` (e.g., `tailscale.hostname` → `TKA_TAILSCALE_HOSTNAME`).
-- Default config search paths: `.`, `$HOME`, `$HOME/.config/tka/`, `/data`.
+- Default config search paths: `.`, `$HOME/.config/tka/`, `/etc/tka/`.
 
 ### Common
 

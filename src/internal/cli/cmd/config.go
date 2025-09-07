@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -13,15 +12,11 @@ func initConfig() {
 	if configFileName != "" {
 		viper.SetConfigFile(configFileName)
 	} else {
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath(".")
-		viper.AddConfigPath(home)
 		viper.AddConfigPath("$HOME/.config/tka/")
-		viper.AddConfigPath("/data")
+		viper.AddConfigPath("/etc/tka/")
 	}
 
 	viper.SetEnvPrefix("TKA")

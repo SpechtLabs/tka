@@ -154,9 +154,8 @@ Represents a user session request.
 
 1. `--config` flag
 2. `./config.yaml`
-3. `$HOME/config.yaml`
-4. `$HOME/.config/tka/config.yaml`
-5. `/data/config.yaml`
+3. `$HOME/.config/tka/config.yaml`
+4. `/etc/tka/config.yaml`
 
 ## Observability
 
