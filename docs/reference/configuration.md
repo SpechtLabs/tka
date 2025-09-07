@@ -22,7 +22,7 @@ This page lists all configuration keys, their defaults, and effects. Sources: fl
 
 ### Tailscale
 
-- `tailscale.hostname` (string, default empty via flag default `tka` for CLI/server)
+- `tailscale.hostname` (string, default `tka`)
   - Hostname for the tsnet node; also used by the CLI to build `https://{hostname}.{tailnet}`.
 - `tailscale.port` (int, default `443`)
   - API port. Scheme is `https` if `443`, otherwise `http`.
@@ -87,7 +87,7 @@ Server and CLI share some flags via the root command:
 --config, -c            Path to config file
 --debug                 Enable debug logging (maps to debug)
 --server, -s            Tailscale hostname (maps to tailscale.hostname)
---port, -p              API port (maps to tailscale.port)
+--port, -p              API port (HTTP) (maps to tailscale.port)
 ```
 
 Server-only flags:
@@ -100,11 +100,15 @@ Server-only flags:
 ### Example config.yaml
 
 ```yaml
+# Enable debug logging (top-level, not under server)
+debug: false
+
 tailscale:
   hostname: tka
-  port: 8123
-  stateDir: /tmp/tka-ts-state
+  port: 443
+  stateDir: /var/lib/tka/tsnet-state
   tailnet: your-tailnet.ts.net
+  capName: specht-labs.de/cap/tka
 
 server:
   readTimeout: 10s
@@ -117,7 +121,7 @@ otel:
   insecure: true
 
 operator:
-  namespace: tka-dev
+  namespace: tka-system
   clusterName: tka-cluster
   contextPrefix: tka-context-
   userPrefix: tka-user-

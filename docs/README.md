@@ -88,6 +88,7 @@ Or needed to stay logged in all day as a cluster admin without juggling tokens?
 
 - **`tka shell`** → ephemeral, auto‑cleaned sessions (perfect for quick debugging)
 - **`tka login`** → longer‑lived sessions with full control (great for admins)
+- **`tka login --quiet`** → same as `tka login` but less verbose
 
 ::: tabs
 
@@ -139,6 +140,29 @@ $ tka logout
 
 $ kubectl get ns
 error: You must be logged in to the server (Unauthorized)
+
+@tab `tka login --quiet`
+
+You can use `tka login --quiet` to only print the use statement for your kubeconfig
+
+```shell
+$ tka login --no-eval --quiet
+export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+
+$ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+$ kubectl version | grep Server
+Server Version: v1.31.1+k3s1
+
+$ tka logout --quiet
+
+$ kubectl get ns
+error: You must be logged in to the server (Unauthorized)
+```
+
+which is almost what the [Shell Integration](./how-to/shell-integration.md) does under the hood:
+
+```bash
+eval "$(command ts-k8s-auth login --quiet)"
 ```
 
 :::

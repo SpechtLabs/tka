@@ -1,0 +1,428 @@
+---
+title: Troubleshooting Guide
+permalink: /how-to/troubleshooting
+createTime: 2025/01/27 10:00:00
+---
+
+Common issues and solutions when using TKA.
+
+## Authentication Issues
+
+### 403 Forbidden from Funnel
+
+**Problem**: Getting 403 errors when trying to access TKA.
+
+**Cause**: Requests are coming through Tailscale Funnel instead of direct tailnet access.
+
+**Solution**:
+
+- Ensure you're connected to the tailnet
+- Disable Funnel for the TKA server if enabled
+- Check that your client device is authenticated to Tailscale
+
+```bash
+# Verify Tailscale status
+tailscale status
+
+# Check if you can reach the TKA server
+curl -k https://tka.your-tailnet.ts.net/metrics
+```
+
+### 400 Bad Request on Capability
+
+**Problem**: Authentication fails with 400 error mentioning capabilities.
+
+**Cause**: Multiple capability rules or malformed capability in ACL.
+
+**Solution**:
+
+- Ensure only one capability rule per user/group
+- Validate ACL JSON syntax
+- Check capability name matches server configuration
+
+```jsonc
+// Bad: Multiple rules for same user
+{
+  "grants": [
+    {
+      "src": ["alice@example.com"],
+      "dst": ["tag:tka"],
+      "app": { "specht-labs.de/cap/tka": [{"role": "admin", "period": "8h"}] }
+    },
+    {
+      "src": ["alice@example.com"],
+      "dst": ["tag:tka"],
+      "app": { "specht-labs.de/cap/tka": [{"role": "dev", "period": "4h"}] }
+    }
+  ]
+}
+
+// Good: Single rule per user
+{
+  "grants": [
+    {
+      "src": ["alice@example.com"],
+      "dst": ["tag:tka"],
+      "app": { "specht-labs.de/cap/tka": [{"role": "admin", "period": "8h"}] }
+    }
+  ]
+}
+```
+
+### 401 Unauthorized on Kubeconfig
+
+**Problem**: Getting 401 when fetching kubeconfig.
+
+**Cause**: Not signed in or session expired.
+
+**Solution**:
+
+```bash
+# Sign in first
+tka login
+
+# Then fetch kubeconfig
+tka kubeconfig
+```
+
+## Provisioning Issues
+
+### 202 Accepted - Kubeconfig Not Ready
+
+**Problem**: `tka kubeconfig` returns 202 and says provisioning in progress.
+
+**Cause**: Kubernetes operator is still creating ServiceAccount and RBAC.
+
+**Solution**:
+
+- Wait and retry (CLI does this automatically)
+- Check controller logs for errors
+- Verify RBAC permissions for TKA controller
+
+```bash
+# Check controller logs
+kubectl logs -l control-plane=controller-manager -n tka-system
+
+# Check TkaSignin resources
+kubectl get tkasignins -n tka-system
+
+# Check ServiceAccounts
+kubectl get serviceaccounts -n tka-system
+```
+
+### Long Provisioning Times
+
+**Problem**: Taking too long to provision credentials.
+
+**Cause**: Controller performance or resource constraints.
+
+**Solution**:
+
+```bash
+# Check controller resource usage
+kubectl top pods -n tka-system
+
+# Check for pending resources
+kubectl get events -n tka-system --sort-by='.lastTimestamp'
+
+# Verify controller is running
+kubectl get pods -l control-plane=controller-manager -n tka-system
+```
+
+## Configuration Issues
+
+### Environment Variables Not Applied
+
+**Problem**: Setting `TKA_TAILSCALE_HOSTNAME` doesn't work.
+
+**Cause**: Nested configuration keys need specific format or config file.
+
+**Solution**:
+
+```bash
+# Use underscores for nested keys
+export TKA_TAILSCALE_HOSTNAME=tka
+export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
+
+# Or use config file
+cat > ~/.config/tka/config.yaml << EOF
+tailscale:
+  hostname: tka
+  tailnet: your-tailnet.ts.net
+EOF
+
+# Or use command flags
+tka --server tka --port 443 login
+```
+
+### Server Connection Issues
+
+**Problem**: Cannot connect to TKA server.
+
+**Diagnostics**:
+
+```bash
+# Check server address construction
+tka --debug login
+
+# Test connectivity
+curl -k https://tka.your-tailnet.ts.net/metrics
+
+# Check DNS resolution
+nslookup tka.your-tailnet.ts.net
+
+# Verify Tailscale connectivity
+tailscale ping tka.your-tailnet.ts.net
+```
+
+## Server Issues
+
+### Server Won't Start
+
+**Problem**: TKA server fails to start.
+
+**Common Causes and Solutions**:
+
+1. **Invalid Auth Key**:
+
+   ```bash
+   # Check auth key validity
+   export TS_AUTHKEY=tskey-auth-your-new-key
+   tka-server serve
+   ```
+
+2. **Port Already in Use**:
+
+   ```bash
+   # Check what's using the port
+   sudo lsof -i :443
+
+   # Use different port
+   tka-server serve --port 8443
+   ```
+
+3. **Permission Issues**:
+
+   ```bash
+   # Ensure binary is executable
+   chmod +x tka-server
+
+   # Check if port requires privileges
+   # Port 443 needs root or CAP_NET_BIND_SERVICE
+   sudo tka-server serve --port 443
+   ```
+
+### Tailscale Connection Issues
+
+**Problem**: Server can't connect to Tailscale.
+
+**Solution**:
+
+```bash
+# Check auth key permissions
+# Key should allow device registration
+
+# Verify network connectivity
+ping login.tailscale.com
+
+# Check for corporate firewall issues
+# Tailscale needs outbound HTTPS (443) and UDP (41641)
+
+# Use different state directory
+tka-server serve --dir /tmp/tka-state
+```
+
+## Client Issues
+
+### Shell Integration Not Working
+
+**Problem**: `tka login` doesn't update KUBECONFIG automatically.
+
+**Solution**:
+
+```bash
+# Verify integration is installed
+type tka  # Should show function, not binary
+
+# Reinstall integration
+eval "$(tka integration bash)"  # or your shell
+
+# Manual verification
+tka login --no-eval
+# Then manually export the shown KUBECONFIG
+```
+
+### kubectl Commands Fail After Login
+
+**Problem**: kubectl still shows unauthorized after `tka login`.
+
+**Diagnostics**:
+
+```bash
+# Check KUBECONFIG is set
+echo $KUBECONFIG
+
+# Verify kubeconfig content
+kubectl config view
+
+# Test with explicit kubeconfig
+kubectl --kubeconfig=/path/to/tka-kubeconfig get pods
+
+# Check token validity
+kubectl auth whoami
+```
+
+## Kubernetes Integration Issues
+
+### RBAC Permission Denied
+
+**Problem**: kubectl commands fail with permission errors.
+
+**Cause**: Role specified in ACL doesn't exist or lacks permissions.
+
+**Solution**:
+
+```bash
+# Check what role you're assigned
+tka get login
+
+# Verify role exists
+kubectl get clusterrole cluster-admin  # or your role
+
+# Check role permissions
+kubectl describe clusterrole cluster-admin
+
+# Create custom role if needed
+kubectl create clusterrole tka-developer --verb=get,list --resource=pods,services
+```
+
+### ServiceAccount Issues
+
+**Problem**: ServiceAccount creation fails.
+
+**Solution**:
+
+```bash
+# Check TKA controller permissions
+kubectl auth can-i create serviceaccounts --as=system:serviceaccount:tka-system:tka-controller
+
+# Check namespace exists
+kubectl get namespace tka-system
+
+# Check for resource quotas
+kubectl describe namespace tka-system
+```
+
+## Network and Connectivity
+
+### DNS Resolution Issues
+
+**Problem**: Cannot resolve `tka.your-tailnet.ts.net`.
+
+**Solution**:
+
+```bash
+# Check MagicDNS is enabled
+tailscale status
+
+# Try IP address directly
+tailscale ip tka
+
+# Use full hostname
+ping tka.your-tailnet.ts.net
+```
+
+### Certificate Issues
+
+**Problem**: SSL/TLS certificate errors.
+
+**Cause**: HTTPS not enabled in Tailscale or wrong port.
+
+**Solution**:
+
+```bash
+# Enable HTTPS in Tailscale admin console
+# Go to DNS settings and enable HTTPS certificates
+
+# Use HTTP for non-443 ports
+tka-server serve --port 8080  # Uses HTTP automatically
+
+# Or force HTTPS scheme
+export TKA_TAILSCALE_HOSTNAME=https://tka
+```
+
+## Performance Issues
+
+### Slow Response Times
+
+**Problem**: TKA operations are slow.
+
+**Diagnostics**:
+
+```bash
+# Check server logs for bottlenecks
+kubectl logs -l app=tka-server -n tka-system
+
+# Monitor resource usage
+kubectl top pods -n tka-system
+
+# Check network latency
+tailscale ping tka.your-tailnet.ts.net
+```
+
+### High Memory Usage
+
+**Problem**: TKA server consuming too much memory.
+
+**Solution**:
+
+```bash
+# Set resource limits in Kubernetes
+kubectl patch deployment tka-server -n tka-system -p '
+{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [{
+          "name": "tka-server",
+          "resources": {
+            "limits": {"memory": "512Mi"},
+            "requests": {"memory": "256Mi"}
+          }
+        }]
+      }
+    }
+  }
+}'
+```
+
+## Debug Mode
+
+Enable debug logging for more detailed troubleshooting:
+
+```bash
+# Client debug
+tka --debug login
+
+# Server debug
+tka-server serve --debug
+
+# Via environment
+export TKA_DEBUG=true
+```
+
+## Getting Help
+
+If you're still experiencing issues:
+
+1. **Check Server Logs**: `kubectl logs -l app=tka-server -n tka-system`
+2. **Check Controller Logs**: `kubectl logs -l control-plane=controller-manager -n tka-system`
+3. **Enable Debug Mode**: Add `--debug` flag to commands
+4. **Review Configuration**: Verify ACLs, network policies, and RBAC
+5. **Open an Issue**: [GitHub Issues](https://github.com/spechtlabs/tka/issues) with debug output
+
+## Related Guides
+
+- [Configuration Reference](../reference/configuration.md)
+- [Security Model](../explanation/security.md)
+- [Production Deployment](./deploy-production.md)

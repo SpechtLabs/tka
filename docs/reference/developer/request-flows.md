@@ -23,8 +23,8 @@ sequenceDiagram
 
     alt is Not Allowed
         api-->>cli: 403 Forbidden
-    else Bad Request
-        api-->>cli: 400 Forbidden
+    else Capability error
+        api-->>cli: 400 Bad Request
     else is allowed
         api->>k8s: write TkaSignIn CRD
         api-->> cli: 202 Accepted
@@ -56,7 +56,7 @@ sequenceDiagram
         api-->>cli: 202 + RetryAfter header - Credentials not ready yet
     else Is provisioned
         operator->>k8s: Generate token
-        operator-->>api: Kueconfig
+        operator-->>api: Kubeconfig
         api-->>cli: 200 - Kubeconfig
     end
 

@@ -25,7 +25,7 @@ func initConfig() {
 	}
 
 	viper.SetEnvPrefix("TKA")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	viper.AutomaticEnv()
 
 	// Find and read the config file (optional). If not found, continue; if malformed, print and exit.

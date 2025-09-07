@@ -1,6 +1,6 @@
 ---
 title: Security Model
-permalink: /overview/security
+permalink: /explanation/security
 createTime: 2025/08/25 06:31:28
 ---
 
@@ -86,7 +86,7 @@ That’s it - no digging through cert lifecycles.
 
 - Funnel traffic is rejected (no off-tailnet access)
 - Tagged nodes are denied (to avoid ambiguous identity semantics)
-- Capability JSON is validated (multiple rules for a user = rejected)
+- Capability JSON is validated (multiple rules for a user = rejected with 400)
 - Tokens are generated on demand and never persisted by the server
 - Logs include trace IDs; metrics are exposed separately under `/metrics/controller`
 

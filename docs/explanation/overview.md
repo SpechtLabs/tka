@@ -1,6 +1,6 @@
 ---
 title: TKA Overview
-permalink: /overview/overview
+permalink: /explanation/overview
 createTime: 2025/08/25 06:33:41
 ---
 
@@ -17,7 +17,7 @@ For more details, see the [Security Model documentation](security.md).
 
 ## How it works on a high level
 
-1. A TKA server runs inside your Kubernetes cluster and exposes an HTTP API over you [Tailscale] _[tailnet]_.
+1. A TKA server runs inside your Kubernetes cluster and exposes an HTTP API over your [Tailscale] _[tailnet]_.
    - Since the API is only available via your [tailnet], the only users who can reach the API endpoint are already trusted due to their membership in your [tailnet] and explicit ACLs allowing them access to the API endpoint via a [Tailscale ACL grant]
 2. Incoming requests are resolved to the User who is performing the request and authorized by the capability in your ACL, naming a role and validity period.
 3. The TKA operator running in your cluster provisions a short-lived [ServiceAccount] and binds appropriate [RBAC].
@@ -63,7 +63,7 @@ sequenceDiagram
     activate operator
 
     operator->>k8s: Generate token
-    operator-->>api: Kueconfig
+    operator-->>api: Kubeconfig
     api-->>cli: 200 - Kubeconfig
 
     deactivate operator

@@ -1,3 +1,48 @@
+// Package tailscale provides a Tailscale-network-only HTTP server by combining
+// pkg/lnhttp with Tailscale's tsnet as the listener provider. This creates HTTP
+// servers that are only accessible via the Tailscale network (tailnet), providing
+// automatic security, TLS certificates, and identity resolution.
+//
+// The package builds on pkg/lnhttp to provide:
+//   - Network Isolation: HTTP server only accessible via Tailscale network
+//   - Automatic TLS: HTTPS certificates handled by Tailscale
+//   - Identity Resolution: Built-in user identity and capability checking
+//   - Funnel Detection: Ability to detect and reject public Funnel traffic
+//   - Standard Interface: Drop-in replacement for http.Server
+//
+// Example usage:
+//
+//	// Create server with Tailscale networking
+//	server := tailscale.NewServer("myapp",
+//		tailscale.WithPort(443),
+//		tailscale.WithDebug(true),
+//	)
+//
+//	// Define handler with identity checking
+//	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		// Reject Funnel traffic
+//		if tailscale.IsFunnelRequest(r) {
+//			http.Error(w, "Access denied", http.StatusForbidden)
+//			return
+//		}
+//
+//		// Get user identity
+//		info, err := server.WhoIs(r.Context(), r.RemoteAddr)
+//		if err != nil {
+//			http.Error(w, "Authentication failed", http.StatusUnauthorized)
+//			return
+//		}
+//
+//		fmt.Fprintf(w, "Hello, %s!", info.LoginName)
+//	})
+//
+//	// Start server
+//	if err := server.Serve(ctx, handler); err != nil {
+//		log.Fatal(err)
+//	}
+//
+// For detailed documentation and examples, see:
+// https://spechtlabs.github.io/tka/reference/developer/tailscale-server
 package tailscale
 
 import (
@@ -19,35 +64,58 @@ import (
 	"tailscale.com/tsnet"
 )
 
-// Server provides a generic HTTP server that connects to a Tailnet
+// Server provides an HTTP server that is only accessible via Tailscale network.
+// It embeds lnhttp.Server and adds Tailscale-specific functionality including
+// automatic TLS, identity resolution, and network isolation.
+//
+// The server uses Tailscale's tsnet package to create a listener that is only
+// accessible from within the tailnet, providing automatic security and avoiding
+// the need for public ingress or complex firewall configurations.
 type Server struct {
 	*lnhttp.Server
 
-	// Options
+	// Configuration options
 	debug bool
 	port  int
 
-	// stateDir specifies the name of the directory to use for
-	// state. If empty, a directory is selected automatically
-	// under os.UserConfigDir (https://golang.org/pkg/os/#UserConfigDir).
+	// stateDir specifies the directory to use for Tailscale state storage.
+	// If empty, a directory is selected automatically under os.UserConfigDir
 	// based on the name of the binary.
 	//
-	// If you want to use multiple tsnet services in the same
-	// binary, you will need to make sure that Dir is set uniquely
-	// for each service. A good pattern for this is to have a
-	// "base" directory (such as your mutable storage folder) and
-	// then append the hostname on the end of it.
+	// If you want to use multiple tsnet services in the same binary, you will
+	// need to make sure that stateDir is set uniquely for each service. A good
+	// pattern is to have a "base" directory and append the hostname.
 	stateDir string
 	hostname string
 
-	// Tailscale Server
-	ts        *tsnet.Server
-	lc        *local.Client
-	st        *ipnstate.Status
-	serverURL string // "https://foo.bar.ts.net"
+	// Tailscale components
+	ts        *tsnet.Server    // Embedded Tailscale server
+	lc        *local.Client    // Local client for WhoIs lookups
+	st        *ipnstate.Status // Connection status
+	serverURL string           // Full server URL (e.g., "https://myapp.tailnet.ts.net:443")
 }
 
-// NewServer creates a new Server with the given hostname and options
+// NewServer creates a new Tailscale HTTP server with the given hostname and options.
+//
+// The hostname parameter specifies the Tailscale hostname for this server (e.g., "myapp").
+// The server will be accessible at https://hostname.tailnet.ts.net (or the configured port).
+//
+// Configuration options can be provided to customize the server behavior:
+//   - WithPort: Set the listening port (default: 443)
+//   - WithDebug: Enable debug logging
+//   - WithStateDir: Set Tailscale state directory
+//   - HTTP timeout options: WithReadTimeout, WithWriteTimeout, etc.
+//
+// Example:
+//
+//	server := tailscale.NewServer("myapp",
+//		tailscale.WithPort(443),
+//		tailscale.WithStateDir("/var/lib/myapp/ts-state"),
+//		tailscale.WithDebug(false),
+//	)
+//
+// The returned server must be started with Serve() and can be gracefully
+// stopped with Shutdown().
 func NewServer(hostname string, opts ...Option) *Server {
 	// Initialize Tailscale server early to pass into the listener provider
 	ts := &tsnet.Server{Hostname: hostname}
@@ -101,7 +169,33 @@ func NewServer(hostname string, opts ...Option) *Server {
 	return server
 }
 
-// Serve starts the Server with the provided HTTP handler
+// Serve starts the Tailscale HTTP server with the provided handler.
+//
+// This method:
+//  1. Connects to the Tailscale network using the configured hostname
+//  2. Creates a tailnet-only listener using tsnet
+//  3. Starts the HTTP server with the provided handler
+//  4. Returns when the server stops (via Shutdown) or encounters an error
+//
+// The context is used for the initial Tailscale connection setup. Once connected,
+// the server runs until Shutdown is called or an error occurs.
+//
+// The handler will receive requests from authenticated Tailscale devices. Use
+// IsFunnelRequest() to detect and reject public traffic if needed.
+//
+// Example:
+//
+//	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		if tailscale.IsFunnelRequest(r) {
+//			http.Error(w, "Access denied", http.StatusForbidden)
+//			return
+//		}
+//		fmt.Fprintf(w, "Hello from tailnet!")
+//	})
+//
+//	if err := server.Serve(ctx, handler); err != nil {
+//		log.Printf("Server error: %v", err)
+//	}
 func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error {
 	if err := s.connectTailnet(ctx); err != nil {
 		return humane.Wrap(err, "failed to connect to tailnet", "check (debug) logs for more details")

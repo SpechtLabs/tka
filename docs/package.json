@@ -42,6 +42,8 @@
     "lru-cache": "^11.0.0",
     "markdown-it-emoji": "^3.0.0",
     "mermaid": "^11.5.0",
+    "redoc": "^2.5.0",
+    "swagger-ui-dist": "^5.28.1",
     "vue-template-compiler": "^2.7.16"
   },
   "optionalDependencies": {
