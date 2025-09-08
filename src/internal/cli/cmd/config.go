@@ -14,7 +14,6 @@ func initConfig() {
 	} else {
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
 		viper.AddConfigPath("$HOME/.config/tka/")
 		viper.AddConfigPath("/etc/tka/")
 	}

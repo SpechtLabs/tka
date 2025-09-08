@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -103,8 +105,80 @@ func serializeKubeconfig(kubecfg *api.Config) (string, humane.Error) {
 	return tempFile.Name(), nil
 }
 
+// shellType represents supported shell types
+type shellType string
+
+const (
+	shellBash       shellType = "bash"
+	shellZsh        shellType = "zsh"
+	shellFish       shellType = "fish"
+	shellPowerShell shellType = "powershell"
+	shellUnknown    shellType = "unknown"
+)
+
+// detectShell attempts to detect the current shell type
+func detectShell() shellType {
+	// Check if we're on Windows - assume PowerShell
+	if runtime.GOOS == "windows" {
+		return shellPowerShell
+	}
+
+	// Check SHELL environment variable first
+	shell := os.Getenv("SHELL")
+	if shell != "" {
+		shellName := filepath.Base(shell)
+		switch shellName {
+		case "bash":
+			return shellBash
+		case "zsh":
+			return shellZsh
+		case "fish":
+			return shellFish
+		}
+	}
+
+	// Check if we're in PowerShell on non-Windows (e.g., PowerShell Core)
+	if psHome := os.Getenv("POWERSHELL_DISTRIBUTION_CHANNEL"); psHome != "" {
+		return shellPowerShell
+	}
+
+	// Check for Fish-specific environment variables
+	if fishVersion := os.Getenv("FISH_VERSION"); fishVersion != "" {
+		return shellFish
+	}
+
+	// Check for Zsh-specific environment variables
+	if zshVersion := os.Getenv("ZSH_VERSION"); zshVersion != "" {
+		return shellZsh
+	}
+
+	// Check for Bash-specific environment variables
+	if bashVersion := os.Getenv("BASH_VERSION"); bashVersion != "" {
+		return shellBash
+	}
+
+	// Fallback: assume bash/zsh (POSIX-compatible)
+	return shellBash
+}
+
+// generateExportStatement creates the appropriate export statement for the detected shell
+func generateExportStatement(fileName string, shell shellType) string {
+	switch shell {
+	case shellFish:
+		return fmt.Sprintf("set -gx KUBECONFIG %s", fileName)
+	case shellPowerShell:
+		return fmt.Sprintf("$env:KUBECONFIG = \"%s\"", fileName)
+	case shellBash, shellZsh, shellUnknown:
+		fallthrough
+	default:
+		// Default to POSIX-compatible export for bash, zsh, and unknown shells
+		return fmt.Sprintf("export KUBECONFIG=%s", fileName)
+	}
+}
+
 func printUseStatement(fileName string, quiet bool) {
-	useStatement := fmt.Sprintf("export KUBECONFIG=%s", fileName)
+	shell := detectShell()
+	useStatement := generateExportStatement(fileName, shell)
 
 	if quiet {
 		fmt.Println(useStatement)

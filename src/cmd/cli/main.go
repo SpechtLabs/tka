@@ -25,17 +25,52 @@ tka get kubeconfig
 tka get login`,
 	}
 
-	cmdRoot.AddCommand(cmdIntegration)
+	cmdSet := &cobra.Command{
+		Use:   "set <command>",
+		Short: "Set resources in TKA.",
+		Long:  `The set command sets resources in your Tailscale Kubernetes Auth service`,
+		Args:  cobra.ExactArgs(0),
+		Example: `# Set the debug setting to true
+tka set output.theme dark`,
+	}
+
+	cmdGenerate := &cobra.Command{
+		Use:   "generate <command>",
+		Short: "Generate resources in TKA.",
+		Long:  `The generate command generates resources in your Tailscale Kubernetes Auth service`,
+		Args:  cobra.ExactArgs(0),
+		Example: `# Generate a kubeconfig
+tka generate kubeconfig`,
+	}
+
+	// Add the verbs
+	cmdRoot.AddCommand(cmdGenerate)
+	cmdRoot.AddCommand(cmdGet)
+	cmdRoot.AddCommand(cmdSet)
+
+	// Config
+	cmdRoot.AddCommand(cmdConfig)
+	cmdGet.AddCommand(cmdGetConfig)
+	cmdSet.AddCommand(cmdSetConfig)
+
+	// Integration
+	cmdGenerate.AddCommand(cmdIntegration)
+	cmdGenerate.AddCommand(cmdDocumentation)
+
+	// Sign in
 	cmdRoot.AddCommand(cmdSignIn)
-	cmdRoot.AddCommand(cmdShell)
+	cmdGet.AddCommand(cmdGetSignIn)
+
+	// Kubeconfig
 	cmdRoot.AddCommand(cmdKubeconfig)
+	cmdGet.AddCommand(cmdKubeconfig)
+
+	// Shell
+	cmdRoot.AddCommand(cmdShell)
+
+	// Sign out
 	cmdRoot.AddCommand(cmdSignout)
 	cmdRoot.AddCommand(cmdReauth)
-	cmdRoot.AddCommand(cmdDocumentation)
-
-	cmdRoot.AddCommand(cmdGet)
-	cmdGet.AddCommand(cmdGetSignIn)
-	cmdGet.AddCommand(cmdKubeconfig)
 
 	if err := cmdRoot.Execute(); err != nil {
 		fmt.Println(err)

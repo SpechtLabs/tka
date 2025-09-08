@@ -26,13 +26,18 @@ func NewRootCmd() *cobra.Command {
 	errPrefix := pretty_print.FormatWithOptions(pretty_print.ErrLvl, "Error:", []string{}, pretty_print.WithoutNewline())
 	cmdRoot.SetErrPrefix(errPrefix)
 
-	cmdRoot.SetHelpFunc(pretty_print.PrintHelpText)
+	cmdRoot.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		initConfig()
+		pretty_print.PrintHelpText(cmd, args)
+	})
 	cmdRoot.SetUsageFunc(func(cmd *cobra.Command) error {
+		initConfig()
 		fmt.Println("")
 		pretty_print.PrintUsageText(cmd, []string{})
 		return nil
 	})
 	cmdRoot.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		initConfig()
 		pretty_print.PrintErrorMessage(err.Error())
 		fmt.Println("")
 		pretty_print.PrintHelpText(cmd, []string{})

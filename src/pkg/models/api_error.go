@@ -22,7 +22,7 @@ type ErrorResponse struct {
 	Cause *ErrorResponse `json:"cause,omitempty" swaggerignore:"true"`
 
 	// HTTP status code (not included in JSON response)
-	StatusCode int `json:"-,omitempty"`
+	StatusCode int `json:"-"`
 }
 
 func NewErrorResponse(message string, cause error) *ErrorResponse {

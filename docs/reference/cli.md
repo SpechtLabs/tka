@@ -1,7 +1,6 @@
 ---
 title: CLI Reference
 permalink: /reference/cli
-createTime: 2025/08/28 23:12:22
 ---
 
 
@@ -51,16 +50,219 @@ $ tka --theme notty login
 | **Command** | **Description** |
 |:------------|:----------------|
 | **`completion`** | Generate the autocompletion script for the specified shell |
+| **`config`** | Get or set configuration values |
+| **`config`** | Set configuration values |
+| **`generate`** | Generate resources in TKA. |
 | **`get`** | Retrieve read-only resources from TKA. |
-| **`integration`** | Generate shell integration for tka wrapper |
 | **`kubeconfig`** | Fetch your temporary kubeconfig |
 | **`login`** | Sign in and configure kubectl with temporary access |
 | **`reauthenticate`** | Reauthenticate and configure kubectl with temporary access |
+| **`set`** | Set resources in TKA. |
 | **`shell`** | Start a subshell with temporary Kubernetes access via Tailscale identity |
 | **`signout`** | Sign out and remove access from the cluster |
 | **`version`** | Shows version information |
 
 ### Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `config`
+
+```bash
+tka config [key] [value] [--force] [flags]
+```
+
+### Description
+
+Get or set configuration values in the TKA configuration file.
+
+This command works similarly to `git config --global`:
+
+- When called with no arguments, shows all current configuration
+- When called with just a key, it shows the current value
+- When called with key and value, it sets the configuration
+- Configuration is written to the file that was used to load the current config
+- If no config file exists and `--force` is used, creates `~/.config/tka/config.yaml`
+
+### Examples
+
+```bash
+# Show all current configuration
+tka config
+
+# Show the current debug setting
+tka config debug
+
+# Set documentation.markdownlint-fix to true
+tka config "documentation.markdownlint-fix" true
+
+# Create a config file and set a value (when no config exists)
+tka config debug false --force
+```
+
+### Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-f, --force` | `bool` | Create config file at the lowest tier if no config file exists |
+
+### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `config`
+
+```bash
+tka set config <key> <value> [--force]
+```
+
+### Description
+
+Set configuration values in the TKA configuration file.
+
+This command works similarly to `git config --global`:
+
+- When called with key and value, it sets the configuration
+- Configuration is written to the file that was used to load the current config
+- If no config file exists and `--force` is used, creates `~/.config/tka/config.yaml`
+
+### Examples
+
+```bash
+# Set the debug setting to true
+tka config output.theme dark
+
+# Set documentation.markdownlint-fix to true
+tka config documentation.markdownlint-fix true
+
+# Create a config file and set a value (when no config exists)
+tka config output.long true --force
+```
+
+### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `generate`
+
+```bash
+tka generate [command]
+```
+
+### Description
+
+The generate command generates resources in your Tailscale Kubernetes Auth service
+
+### Examples
+
+```bash
+# Generate a kubeconfig
+tka generate kubeconfig
+```
+
+### Available Commands
+
+> [!TIP]
+> Use `tka generate [command] --help` for more information about a command.
+
+| **Command** | **Description** |
+|:------------|:----------------|
+| **`integration`** | Generate shell integration for tka wrapper |
+
+### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+### Usage `integration`
+
+```bash
+tka generate integration <bash|zsh|fish|powershell>
+```
+
+#### Description
+
+The "shell" command generates shell integration code for the tka wrapper.
+
+By default, the ts-k8s-auth binary cannot directly modify your shell's
+environment variables (such as "${KUBECONFIG}"), because a subprocess cannot
+change the parent shell's state. To work around this, tka provides a
+wrapper function that you can install into your shell. This wrapper
+intercepts certain commands (like "login" and "refresh") and automatically
+evaluates the environment variable exports in your current shell session.
+
+This makes commands like "tka login" feel seamless: your session is
+authenticated and your "${KUBECONFIG}" is updated without needing to manually
+copy and paste an "export" command.
+
+Once installed, you can use "tka" as your entrypoint:
+
+```bash
+tka login        # signs in and updates your environment
+tka refresh      # refreshes credentials and updates your environment
+tka logout       # signs out
+```
+
+If you want to bypass the automatic environment updates and see the full
+human-friendly output, you can pass the "--no-eval" flag:
+
+```bash
+tka login --no-eval
+```
+
+This command only prints the integration code. You must eval or source it
+in your shell for it to take effect.
+
+#### Examples
+
+```bash
+# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
+eval "$(ts-k8s-auth shell bash)"
+
+# For fish, add this line to your ~/.config/fish/config.fish:
+ts-k8s-auth shell fish | source
+
+# For PowerShell, add this line to your profile (e.g. $PROFILE):
+ts-k8s-auth shell powershell | Out-String | Invoke-Expression
+
+```
+
+#### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -187,72 +389,6 @@ tka get login
 | `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
 | `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
 
-## Usage `integration`
-
-```bash
-tka integration <bash|zsh|fish|powershell>
-```
-
-### Description
-
-The "shell" command generates shell integration code for the tka wrapper.
-
-By default, the ts-k8s-auth binary cannot directly modify your shell's
-environment variables (such as "${KUBECONFIG}"), because a subprocess cannot
-change the parent shell's state. To work around this, tka provides a
-wrapper function that you can install into your shell. This wrapper
-intercepts certain commands (like "login" and "refresh") and automatically
-evaluates the environment variable exports in your current shell session.
-
-This makes commands like "tka login" feel seamless: your session is
-authenticated and your "${KUBECONFIG}" is updated without needing to manually
-copy and paste an "export" command.
-
-Once installed, you can use "tka" as your entrypoint:
-
-```bash
-tka login        # signs in and updates your environment
-tka refresh      # refreshes credentials and updates your environment
-tka logout       # signs out
-```
-
-If you want to bypass the automatic environment updates and see the full
-human-friendly output, you can pass the "--no-eval" flag:
-
-```bash
-tka login --no-eval
-```
-
-This command only prints the integration code. You must eval or source it
-in your shell for it to take effect.
-
-### Examples
-
-```bash
-# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
-eval "$(ts-k8s-auth shell bash)"
-
-# For fish, add this line to your ~/.config/fish/config.fish:
-ts-k8s-auth shell fish | source
-
-# For PowerShell, add this line to your profile (e.g. $PROFILE):
-ts-k8s-auth shell powershell | Out-String | Invoke-Expression
-
-```
-
-### Global Flags
-
-| **Flag** | **Type** | **Usage** |
-|:---------|:--------:|:----------|
-| `-c, --config` | `string` | Name of the config file |
-| `    --debug` | `bool` | enable debug logging |
-| `-l, --long` | `bool` | Show long output (where available) |
-| `-e, --no-eval` | `bool` | Do not evaluate the command |
-| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
-| `-q, --quiet` | `bool` | Show no output (where available) |
-| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
-| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
-
 ## Usage `kubeconfig`
 
 ```bash
@@ -364,6 +500,87 @@ tka reauthenticate
 ```
 
 ### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `set`
+
+```bash
+tka set [command]
+```
+
+### Description
+
+The set command sets resources in your Tailscale Kubernetes Auth service
+
+### Examples
+
+```bash
+# Set the debug setting to true
+tka set output.theme dark
+```
+
+### Available Commands
+
+> [!TIP]
+> Use `tka set [command] --help` for more information about a command.
+
+| **Command** | **Description** |
+|:------------|:----------------|
+| **`config`** | Set configuration values |
+
+### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+### Usage `config`
+
+```bash
+tka set config <key> <value> [--force] [flags]
+```
+
+#### Description
+
+Set configuration values in the TKA configuration file.
+
+This command works similarly to `git config --global`:
+
+- When called with key and value, it sets the configuration
+- Configuration is written to the file that was used to load the current config
+- If no config file exists and `--force` is used, creates `~/.config/tka/config.yaml`
+
+#### Examples
+
+```bash
+# Set the debug setting to true
+tka config output.theme dark
+
+# Set documentation.markdownlint-fix to true
+tka config documentation.markdownlint-fix true
+
+# Create a config file and set a value (when no config exists)
+tka config output.long true --force
+```
+
+#### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const frontMatter = `---
@@ -14,8 +16,17 @@ title: CLI Reference
 permalink: /reference/cli
 ---`
 
+func init() {
+	cmdDocumentation.Flags().BoolP("markdownlint-fix", "m", false, "Fix markdownlint errors")
+	viper.SetDefault("output.markdownlint-fix", false)
+	err := viper.BindPFlag("output.markdownlint-fix", cmdDocumentation.Flags().Lookup("markdownlint-fix"))
+	if err != nil {
+		panic(fmt.Errorf("fatal binding flag: %w", err))
+	}
+}
+
 var cmdDocumentation = &cobra.Command{
-	Use:    "documentation <path>",
+	Use:    "documentation <path> [--markdownlint-fix]",
 	Short:  "Generate the reference documentation for the tka CLI commands",
 	Long:   `The documentation command generates the reference markdown documentation for the tka CLI commands.`,
 	Hidden: true,
@@ -23,9 +34,12 @@ var cmdDocumentation = &cobra.Command{
 	Example: `
 	# Refresh the documentation into docs/reference/cli.md
 	tka documentation docs/reference/cli.md
+
+	# Refresh the documentation into docs/reference/cli.md and fix markdownlint errors
+	tka documentation docs/reference/cli.md --markdownlint-fix
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		rootCmd := cmd.Parent()
+		rootCmd := getRootCmd(cmd)
 
 		renderedHelp := renderReferenceHelp(rootCmd, 0)
 		markdown := strings.Join(renderedHelp, "")
@@ -38,12 +52,21 @@ var cmdDocumentation = &cobra.Command{
 			os.Exit(1)
 		}
 
-		proc := exec.Command("markdownlint-cli2", "--fix", filePath)
-		if err := proc.Run(); err != nil {
-			pretty_print.PrintError(err)
-			os.Exit(1)
+		if viper.GetBool("output.markdownlint-fix") {
+			proc := exec.Command("markdownlint-cli2", "--fix", filePath)
+			if err := proc.Run(); err != nil {
+				pretty_print.PrintError(err)
+				os.Exit(1)
+			}
 		}
 	},
+}
+
+func getRootCmd(cmd *cobra.Command) *cobra.Command {
+	if cmd.Parent() == nil {
+		return cmd
+	}
+	return getRootCmd(cmd.Parent())
 }
 
 // Since all cobra commands are structured in a tree, we can perform a simple in-order DFS to render the help text

@@ -94,56 +94,76 @@ func TestLoginHandler(t *testing.T) {
 }
 
 func TestGetLoginHandler(t *testing.T) {
-	m := mock.NewMockAuthService()
-	_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
-
 	tests := []struct {
 		name            string
-		setup           func()
+		setup           func(m *mock.MockAuthService) *mock.MockAuthService
 		expectedStatus  int
 		expectRetry     bool
 		expectedMessage string
 	}{
 		{
 			name: "provisioned true -> 200",
-			setup: func() {
+			setup: func(m *mock.MockAuthService) *mock.MockAuthService {
 				m.StatusFn = func(string) (*auth.SignInInfo, humane.Error) {
 					return &auth.SignInInfo{Username: "alice", Role: "dev", ValidUntil: time.Now().Add(10 * time.Minute).Format(time.RFC3339), Provisioned: true}, nil
 				}
+
+				return m
 			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "not provisioned -> 202 with Retry-After",
-			setup: func() {
+			setup: func(m *mock.MockAuthService) *mock.MockAuthService {
 				m.StatusFn = func(string) (*auth.SignInInfo, humane.Error) {
 					return &auth.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10m", Provisioned: false}, nil
 				}
+
+				return m
 			},
 			expectedStatus: http.StatusAccepted,
 			expectRetry:    true,
 		},
 		{
 			name: "not found -> 401",
-			setup: func() {
+			setup: func(m *mock.MockAuthService) *mock.MockAuthService {
 				m.StatusFn = func(string) (*auth.SignInInfo, humane.Error) { return nil, noSigninError }
+
+				return m
 			},
 			expectedStatus:  http.StatusUnauthorized,
 			expectedMessage: "no signin",
 		},
 		{
 			name: "generic error -> 500",
-			setup: func() {
+			setup: func(m *mock.MockAuthService) *mock.MockAuthService {
 				m.StatusFn = func(string) (*auth.SignInInfo, humane.Error) { return nil, humane.New("kaput") }
+
+				return m
 			},
 			expectedStatus:  http.StatusInternalServerError,
 			expectedMessage: "kaput",
+		},
+		{
+			name: "invalid duration -> 500",
+			setup: func(m *mock.MockAuthService) *mock.MockAuthService {
+				m.StatusFn = func(string) (*auth.SignInInfo, humane.Error) {
+					return &auth.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10t", Provisioned: false}, nil
+				}
+
+				return m
+			},
+			expectedStatus:  http.StatusInternalServerError,
+			expectedMessage: "Error parsing duration",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.setup()
+			m := mock.NewMockAuthService()
+			_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
+
+			tc.setup(m)
 			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode)
 			if tc.expectRetry {
