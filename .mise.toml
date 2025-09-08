@@ -1,6 +1,6 @@
 [tools]
 # Go version from your go.mod file
-go = "1.25.0"
+go = "1.25.1"
 
 # Node.js for JavaScript/TypeScript
 node = "24.6.0"
