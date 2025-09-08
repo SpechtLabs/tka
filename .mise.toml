@@ -3,19 +3,18 @@
 go = "1.25.0"
 
 # Node.js for JavaScript/TypeScript
-node = "22.18.0"
-npm = "10.5.0"
+node = "24.6.0"
+npm = "11.5.1"
 
 # Pre-commit for Git hooks
 pre-commit = "4.3.0"
 
 # Additional tools for development
 golangci-lint = "2.4.0"
-goreleaser = "2.11.2"
+goreleaser = "2.12.0"
 kind = "0.29.0"
 kubectl = "1.33.4"
-markdownlint-cli2 = "0.18.1"
-prettier = "3.1.0"
+markdownlint-cli2 = "0.38.0"
 
 swag = "1.8.7"
 
