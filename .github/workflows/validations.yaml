@@ -9,19 +9,18 @@ on:
       - "*"
     paths:
       - .github/workflows/validations.yaml
-      - '**/*.yml'
-      - '**/*.yaml'
-      - '**/*.md'
+      - "**/*.yml"
+      - "**/*.yaml"
+      - "**/*.md"
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
       - main
     paths:
-      - src/**/*
       - .github/workflows/validations.yaml
-      - '**/*.yml'
-      - '**/*.yaml'
-      - '**/*.md'
+      - "**/*.yml"
+      - "**/*.yaml"
+      - "**/*.md"
 
 permissions:
   contents: read
@@ -42,7 +41,7 @@ jobs:
 
       - uses: DavidAnson/markdownlint-cli2-action@v20
         with:
-          globs: '**/*.md'
+          globs: "**/*.md"
 
   yaml:
     name: YAML

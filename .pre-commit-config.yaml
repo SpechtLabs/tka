@@ -2,18 +2,18 @@ repos:
   - repo: local
     hooks:
       - id: make-generate
-        name: Run 'make -C src generate'
-        entry: make -C src generate
+        name: Run 'make generate'
+        entry: make generate
         language: system
         pass_filenames: false
-        files: ^src/pkg/api/.*\.go$
+        files: ^pkg/api/.*\.go$
         stages: [pre-commit]
       - id: golangci-lint
-        name: golangci-lint (run in src)
-        entry: bash -lc 'cd src && golangci-lint run'
+        name: golangci-lint
+        entry: bash -lc 'golangci-lint run'
         language: system
         pass_filenames: false
-        files: ^src/.*\.(go|mod|sum)$
+        files: ^.*\.(go|mod|sum)$
         stages: [pre-commit]
   # Generic pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -23,13 +23,13 @@ repos:
       - id: detect-private-key
       - id: check-case-conflict
       - id: trailing-whitespace
-        exclude: ^src/pkg/swagger/
+        exclude: ^pkg/swagger/
       - id: end-of-file-fixer
-        exclude: ^src/pkg/swagger/
+        exclude: ^pkg/swagger/
       - id: check-yaml
       - id: check-json
       - id: mixed-line-ending
-        exclude: ^src/pkg/swagger/
+        exclude: ^pkg/swagger/
       - id: check-added-large-files
         name: check for added large files
         description: Prevents giant files from being committed

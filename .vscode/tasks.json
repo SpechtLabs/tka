@@ -12,7 +12,7 @@
 				"./cmd/cli"
 			],
 			"options": {
-				"cwd": "${workspaceFolder}/src"
+				"cwd": "${workspaceFolder}"
 			},
 			"group": "build",
 			"presentation": {
@@ -36,7 +36,7 @@
 				"./cmd/server"
 			],
 			"options": {
-				"cwd": "${workspaceFolder}/src"
+				"cwd": "${workspaceFolder}/"
 			},
 			"group": "build",
 			"presentation": {

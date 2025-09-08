@@ -15,4 +15,4 @@ globs:
 ignores:
   - "docs/node_modules/**"
   - ".git/**"
-  - "src/vendor/**"
+  - "vendor/**"

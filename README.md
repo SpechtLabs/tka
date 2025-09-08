@@ -70,7 +70,7 @@ The server runs inside your cluster and is only accessible via your Tailscale ne
 ## Repository Structure
 
 ```text
-src/
+.
 ├── cmd/
 │   ├── cli/          # TKA CLI implementation
 │   └── server/       # TKA server and operator

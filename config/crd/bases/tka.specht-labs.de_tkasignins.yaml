@@ -37,6 +37,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: TkaSignin represents a Kubernetes custom resource for managing
+          temporary user sign-ins with specific roles and validity.
         properties:
           apiVersion:
             description: |-

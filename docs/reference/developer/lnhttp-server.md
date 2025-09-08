@@ -4,7 +4,7 @@ permalink: /reference/developer/lnhttp-server
 createTime: 2025/01/27 12:00:00
 ---
 
-The [`pkg/lnhttp`](https://github.com/SpechtLabs/tka/tree/main/src/pkg/lnhttp) package provides a thin abstraction layer over Go's standard `http.Server` that decouples listener creation from server operation. This enables pluggable listener implementations (like Tailscale's tsnet) while maintaining full compatibility with the standard HTTP server interface.
+The [`pkg/lnhttp`](https://github.com/SpechtLabs/tka/tree/main/pkg/lnhttp) package provides a thin abstraction layer over Go's standard `http.Server` that decouples listener creation from server operation. This enables pluggable listener implementations (like Tailscale's tsnet) while maintaining full compatibility with the standard HTTP server interface.
 
 **Go Documentation**: [pkg.go.dev/github.com/spechtlabs/tka/pkg/lnhttp](https://pkg.go.dev/github.com/spechtlabs/tka/pkg/lnhttp)
 

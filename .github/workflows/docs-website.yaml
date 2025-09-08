@@ -8,7 +8,7 @@ on:
     paths:
       - docs/**/*
       - .github/workflows/docs-website.yaml
-      - src/pkg/swagger/swagger.json
+      - pkg/swagger/swagger.json
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
@@ -16,7 +16,7 @@ on:
     paths:
       - docs/**/*
       - .github/workflows/docs-website.yaml
-      - src/pkg/swagger/swagger.json
+      - pkg/swagger/swagger.json
 
 jobs:
   md:
@@ -50,7 +50,7 @@ jobs:
         run: cd docs && npm ci
 
       - name: Copy Swagger JSON
-        run: cp src/pkg/swagger/swagger.json docs/.vuepress/public/swagger.json
+        run: cp pkg/swagger/swagger.json docs/.vuepress/public/swagger.json
 
       - name: Build
         run: cd docs && npm run build
