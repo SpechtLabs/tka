@@ -51,7 +51,6 @@ $ tka --theme notty login
 |:------------|:----------------|
 | **`completion`** | Generate the autocompletion script for the specified shell |
 | **`config`** | Get or set configuration values |
-| **`config`** | Set configuration values |
 | **`generate`** | Generate resources in TKA. |
 | **`get`** | Retrieve read-only resources from TKA. |
 | **`kubeconfig`** | Fetch your temporary kubeconfig |
@@ -102,11 +101,11 @@ tka config
 # Show the current debug setting
 tka config debug
 
-# Set documentation.markdownlint-fix to true
-tka config "documentation.markdownlint-fix" true
+# Set output.markdownlint-fix to true
+tka config output.markdownlint-fix true
 
 # Create a config file and set a value (when no config exists)
-tka config debug false --force
+tka config output.long true --force
 ```
 
 ### Flags
@@ -114,48 +113,6 @@ tka config debug false --force
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
 | `-f, --force` | `bool` | Create config file at the lowest tier if no config file exists |
-
-### Global Flags
-
-| **Flag** | **Type** | **Usage** |
-|:---------|:--------:|:----------|
-| `-c, --config` | `string` | Name of the config file |
-| `    --debug` | `bool` | enable debug logging |
-| `-l, --long` | `bool` | Show long output (where available) |
-| `-e, --no-eval` | `bool` | Do not evaluate the command |
-| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
-| `-q, --quiet` | `bool` | Show no output (where available) |
-| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
-| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
-
-## Usage `config`
-
-```bash
-tka set config <key> <value> [--force]
-```
-
-### Description
-
-Set configuration values in the TKA configuration file.
-
-This command works similarly to `git config --global`:
-
-- When called with key and value, it sets the configuration
-- Configuration is written to the file that was used to load the current config
-- If no config file exists and `--force` is used, creates `~/.config/tka/config.yaml`
-
-### Examples
-
-```bash
-# Set the debug setting to true
-tka config output.theme dark
-
-# Set documentation.markdownlint-fix to true
-tka config documentation.markdownlint-fix true
-
-# Create a config file and set a value (when no config exists)
-tka config output.long true --force
-```
 
 ### Global Flags
 
@@ -302,10 +259,102 @@ tka get login
 
 | **Command** | **Description** |
 |:------------|:----------------|
+| **`config`** | Get configuration values |
 | **`kubeconfig`** | Fetch your temporary kubeconfig |
 | **`login`** | Show current login information and provisioning status. |
 
 ### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+### Usage `config`
+
+```bash
+tka get config [key] [flags]
+```
+
+#### Description
+
+Get configuration values in the TKA configuration file.
+
+This command works similarly to `git config --global`:
+
+- When called with no arguments, shows all current configuration
+- When called with just a key, it shows the current value
+
+#### Examples
+
+```bash
+# Show all current configuration
+$ tka get config
+api:
+    retryafterseconds: 1
+debug: false
+output:
+    long: true
+    markdownlint-fix: false
+    quiet: false
+    theme: dracula
+...snip...
+
+# Show the current theme setting
+$ tka get config output.theme
+tokyo-night
+
+# Show the current theme setting and the filename of the config file used
+$ go run ./cmd/cli get config output.theme
+→ output.theme: dracula
+
+# Show the current theme setting and only the value
+$ go run ./cmd/cli get config output.theme --quiet
+dracula
+
+# Show the current theme setting and the filename of the config file used
+$ go run ./cmd/cli get config output.theme --filename
+→ output.theme: dracula
+    Config file used: /Users/cedi/.config/tka/config.yaml
+
+# Show the all configuration and the filename of the config file used
+$ tka get config --filename
+ℹ Config file used:
+    /Users/cedi/.config/tka/config.yaml
+
+api:
+    retryafterseconds: 1
+debug: false
+output:
+    long: true
+    markdownlint-fix: false
+    quiet: false
+    theme: dracula
+..snip...
+
+# Show only the filepath of the config file used
+$ tka get config --filename --quiet
+/Users/cedi/.config/tka/config.yaml
+
+# Invalid: combine --filename and --quiet when using  key
+$ tka get config output.theme --filename --quiet
+✗ Invalid: cannot combine --filename and --quiet when also specifying a [key]
+
+```
+
+#### Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `    --filename` | `bool` | Show the filename of the config file used |
+
+#### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -554,7 +603,7 @@ tka set output.theme dark
 ### Usage `config`
 
 ```bash
-tka set config <key> <value> [--force] [flags]
+tka set config <key> <value> [--force]
 ```
 
 #### Description
@@ -573,8 +622,8 @@ This command works similarly to `git config --global`:
 # Set the debug setting to true
 tka config output.theme dark
 
-# Set documentation.markdownlint-fix to true
-tka config documentation.markdownlint-fix true
+# Set output.markdownlint-fix to true
+tka config output.markdownlint-fix true
 
 # Create a config file and set a value (when no config exists)
 tka config output.long true --force
