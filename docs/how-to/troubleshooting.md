@@ -245,7 +245,7 @@ tka-server serve --dir /tmp/tka-state
 type tka  # Should show function, not binary
 
 # Reinstall integration
-eval "$(tka integration bash)"  # or your shell
+eval "$(tka generate integration bash)"  # or your shell
 
 # Manual verification
 tka login --no-eval

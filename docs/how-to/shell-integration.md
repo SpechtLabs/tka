@@ -26,7 +26,7 @@ By default, TKA cannot modify your shell's environment variables because subproc
    First, generate the shell integration code for your shell:
 
    ```bash
-   tka integration [bash|fish|powershell]
+   tka generate integration [bash|zsh|fish|powershell]
    ```
 
 2. ### Install Integration
@@ -39,7 +39,7 @@ By default, TKA cannot modify your shell's environment variables because subproc
 
    ```bash
    # add to ~/.bashrc or ~/.bash_profile
-   eval "$(tka integration bash)"
+   eval "$(tka generate integration bash)"
    ```
 
    Then reload your shell:
@@ -54,7 +54,7 @@ By default, TKA cannot modify your shell's environment variables because subproc
 
    ```zsh
    # add to ~/.zshrc
-   eval "$(tka integration zsh)"
+   eval "$(tka generate integration zsh)"
    ```
 
    Then reload your shell:
@@ -69,7 +69,7 @@ By default, TKA cannot modify your shell's environment variables because subproc
 
    ```fish
    # Add to ~/.config/fish/config.fish
-   tka integration fish | source
+   tka generate integration fish | source
    ```
 
    Reload Fish:
@@ -87,7 +87,7 @@ By default, TKA cannot modify your shell's environment variables because subproc
    $PROFILE
 
    # Add this line to your profile
-   tka integration powershell | Out-String | Invoke-Expression
+   tka generate integration powershell | Out-String | Invoke-Expression
    ```
 
    Reload PowerShell or run:
@@ -192,7 +192,7 @@ If you have multiple TKA binaries:
 
 ```bash
 # Specify full path in integration
-eval "$(/usr/local/bin/tka integration bash)"
+eval "$(/usr/local/bin/tka generate integration bash)"
 ```
 
 ### Permission Issues
@@ -218,7 +218,7 @@ Fish uses different syntax. If you see errors:
 fish --version
 
 # Verify integration code works
-tka integration fish | fish_indent
+tka generate integration fish | fish_indent
 ```
 
 ### PowerShell-Specific Issues
@@ -241,7 +241,7 @@ Store the wrapper in a custom location:
 
 ```bash
 # Generate and save wrapper
-tka integration bash > ~/.local/share/tka/wrapper.sh
+tka generate integration bash > ~/.local/share/tka/wrapper.sh
 
 # Source from your shell config
 source ~/.local/share/tka/wrapper.sh
@@ -254,7 +254,7 @@ Load integration only when TKA is available:
 ```bash
 # In ~/.bashrc or ~/.zshrc
 if command -v tka >/dev/null 2>&1; then
-    eval "$(tka integration bash)"  # or zsh
+    eval "$(tka generate integration bash)"  # or zsh
 fi
 ```
 
@@ -276,7 +276,7 @@ alias tka-dev='TKA_TAILSCALE_TAILNET=dev.ts.net tka'
 2. **Remove or comment out the integration line**:
 
    ```bash
-   # eval "$(tka integration bash)"
+   # eval "$(tka generate integration bash)"
    ```
 
 3. **Reload your shell**

@@ -88,82 +88,127 @@ Or needed to stay logged in all day as a cluster admin without juggling tokens?
 
 - **`tka shell`** → ephemeral, auto‑cleaned sessions (perfect for quick debugging)
 - **`tka login`** → longer‑lived sessions with full control (great for admins)
-- **`tka login --quiet`** → same as `tka login` but less verbose
 
 ::: tabs
 
 @tab `tka shell`
 
-```shell
-$ kubectl get ns
-error: You must be logged in to the server (Unauthorized)
+  ::: collapse accordion expand
 
-(tka) $ tka shell
-✓ sign-in successful!
-    ╭───────────────────────────────────────╮
-    │ User:  cedi                           │
-    │ Role:  developer                      │
-    │ Until: Sun, 07 Sep 2025 19:24:29 CEST │
-    ╰───────────────────────────────────────╯
+- Quiet output
 
-(tka) $ kubectl version | grep Server
-Server Version: v1.31.1+k3s1
+  ```shell
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
 
-(tka) $ exit
-✓ You have been signed out
+  $ tka shell --quiet
+  (tka) $ kubectl version | grep Server
+  Server Version: v1.31.1+k3s1
 
-$ kubectl get ns
-error: You must be logged in to the server (Unauthorized)
-```
+  (tka) $ exit
+
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
+  ```
+
+- :- Verbose output
+
+  ```shell
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
+
+  $ tka shell
+  ✓ sign-in successful!
+      ╭───────────────────────────────────────╮
+      │ User:  cedi                           │
+      │ Role:  developer                      │
+      │ Until: Sun, 07 Sep 2025 19:24:29 CEST │
+      ╰───────────────────────────────────────╯
+
+  (tka) $ kubectl version | grep Server
+  Server Version: v1.31.1+k3s1
+
+  (tka) $ exit
+  ✓ You have been signed out
+
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
+  ```
+
+  :::
 
 @tab `tka login`
 
-```shell
-$ tka login --no-eval
-✓ sign-in successful!
-    ╭───────────────────────────────────────╮
-    │ User:  cedi                           │
-    │ Role:  cluster-admin                  │
-    │ Until: Mon, 08 Sep 2025 19:25:01 CEST │
-    ╰───────────────────────────────────────╯
-✓ kubeconfig written to:
-    /tmp/kubeconfig-2950671502.yaml
-→ To use this session, run:
-    export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+  ::: collapse accordion expand
 
-$ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
-$ kubectl version | grep Server
-Server Version: v1.31.1+k3s1
+- With [Shell Integration](./how-to/shell-integration.md)
 
-$ tka logout
-✓ You have been signed out
+  ```shell
+  $ tka login
 
-$ kubectl get ns
-error: You must be logged in to the server (Unauthorized)
+  $ kubectl version | grep Server
+  Server Version: v1.31.1+k3s1
 
-@tab `tka login --quiet`
+  $ tka logout --quiet
 
-You can use `tka login --quiet` to only print the use statement for your kubeconfig
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
+  ```
 
-```shell
-$ tka login --no-eval --quiet
-export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+- :- Quiet output / Without [Shell integration](./how-to/shell-integration.md)
 
-$ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
-$ kubectl version | grep Server
-Server Version: v1.31.1+k3s1
+  You can use `tka login --quiet` to only print the use statement for your kubeconfig
 
-$ tka logout --quiet
+  ```shell
+  $ tka login --no-eval --quiet
+  export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
 
-$ kubectl get ns
-error: You must be logged in to the server (Unauthorized)
-```
+  $ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+  $ kubectl version | grep Server
+  Server Version: v1.31.1+k3s1
 
-which is almost what the [Shell Integration](./how-to/shell-integration.md) does under the hood:
+  $ tka logout --quiet
 
-```bash
-eval "$(command ts-k8s-auth login --quiet)"
-```
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
+  ```
+
+  > [!TIP]
+  > This is what the [Shell Integration](./how-to/shell-integration.md) uses under the hood, to essentially do a
+  >
+  > ```bash
+  > eval "$(command ts-k8s-auth login --quiet)"
+  > ```
+  >
+  > when you run `tka login`.
+  >
+  > You can leverage this for your own, custom shell integrations.
+
+- :- Verbose output without [Shell integration](./how-to/shell-integration.md)
+
+  ```shell
+  $ tka login --no-eval
+  ✓ sign-in successful!
+      ╭───────────────────────────────────────╮
+      │ User:  cedi                           │
+      │ Role:  cluster-admin                  │
+      │ Until: Mon, 08 Sep 2025 19:25:01 CEST │
+      ╰───────────────────────────────────────╯
+  ✓ kubeconfig written to:
+      /tmp/kubeconfig-2950671502.yaml
+  → To use this session, run:
+      export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+
+  $ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
+  $ kubectl version | grep Server
+  Server Version: v1.31.1+k3s1
+
+  $ tka logout
+  ✓ You have been signed out
+
+  $ kubectl get ns
+  error: You must be logged in to the server (Unauthorized)
+  ```
 
 :::
 

@@ -96,7 +96,7 @@ Test that autocompletion is working:
 # Type this and press Tab
 tka <Tab>
 
-# Should show: completion get integration kubeconfig login reauthenticate shell signout version
+# Should show: generate completion get integration kubeconfig login reauthenticate shell signout version
 
 # Test flag completion
 tka --<Tab>
@@ -293,7 +293,7 @@ TKA's autocompletion provides intelligent suggestions for:
 - `login` - Sign in and configure kubectl
 - `get` - Retrieve resources
 - `shell` - Start temporary subshell
-- `integration` - Generate shell integration
+- `generate integration` - Generate shell integration
 - `completion` - Generate completion scripts
 - `kubeconfig` - Fetch kubeconfig
 - `reauthenticate` - Refresh authentication

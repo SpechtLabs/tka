@@ -32,6 +32,7 @@ export const navbar = defineNavbarConfig([
       { text: "Shell Integration", link: "/how-to/shell-integration" },
       { text: "CLI Autocompletion", link: "/how-to/autocompletion" },
       { text: "Production Deployment", link: "/how-to/deploy-production" },
+      { text: "Configure Settings", link: "/how-to/configure-settings" },
       { text: "Troubleshooting", link: "/how-to/troubleshooting" },
     ],
   },

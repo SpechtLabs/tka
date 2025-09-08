@@ -79,6 +79,19 @@ Defaults from code: `namespace=tka-dev`, `clusterName=tka-cluster`, `contextPref
 - `api.retryAfterSeconds` (int, default `1`)
   - Hint for clients polling async operations (e.g., kubeconfig provisioning).
 
+### CLI Output Settings
+
+These settings control how the TKA CLI displays information and are used by client commands:
+
+- `output.theme` (string, default `tokyo-night`)
+  - Color theme for CLI output. Available themes: `ascii`, `dark`, `dracula`, `light`, `markdown`, `notty`, `tokyo-night`
+- `output.long` (bool, default `true`)
+  - Show detailed output by default when available
+- `output.quiet` (bool, default `false`)
+  - Suppress non-essential output when available
+- `output.markdownlint-fix` (bool, default `false`)
+  - Apply markdown formatting fixes to generated documentation
+
 ### Flags
 
 Server and CLI share some flags via the root command:
@@ -102,6 +115,13 @@ Server-only flags:
 ```yaml
 # Enable debug logging (top-level, not under server)
 debug: false
+
+# CLI output settings
+output:
+  theme: tokyo-night
+  long: true
+  quiet: false
+  markdownlint-fix: false
 
 tailscale:
   hostname: tka
