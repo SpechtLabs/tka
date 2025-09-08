@@ -74,7 +74,7 @@ $ tka --theme dark login
 # light theme
 TKA_THEME=light tka kubeconfig
 
-# no theme (usefull in non-interactive contexts)
+# no theme (useful in non-interactive contexts)
 $ tka --theme notty login
 `
 
