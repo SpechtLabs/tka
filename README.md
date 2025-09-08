@@ -1,81 +1,168 @@
-# Tailscale Kubernetes Auth
+# Tailscale Kubernetes Auth (TKA)
 
 [![Go Build & Docker Build](https://github.com/spechtlabs/tka/actions/workflows/build.yaml/badge.svg)](https://github.com/spechtlabs/tka/actions/workflows/build.yaml)
 [![Documentation](https://github.com/spechtlabs/tka/actions/workflows/docs-website.yaml/badge.svg)](https://github.com/spechtlabs/tka/actions/workflows/docs-website.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/spechtlabs/tka)](https://goreportcard.com/report/github.com/spechtlabs/tka)
 
-Forget complex auth proxies, VPNs, or OIDC setups. `tka` gives you secure, identity-aware access to your Kubernetes clusters using just your Tailscale identity and network — with short-lived, auto-cleaned credentials.
+> Secure, ephemeral Kubernetes access powered by your Tailscale network and identity.
 
-## Why?
+TKA eliminates the complexity of traditional Kubernetes access control by leveraging your existing Tailscale infrastructure. No auth proxies, no OIDC headaches, no kubeconfig sprawl - just clean, auditable access with short-lived credentials.
 
-Traditional Kubernetes access control is either:
+**[Full Documentation & Getting Started Guide →](https://tka.specht-labs.de)**
 
-- Painful to manage (e.g., OIDC integrations, kubeconfig sprawl), or
-- Overly centralized and complex (e.g., auth proxies and bastion-style gateways).
+## What is TKA?
 
-We believe Kubernetes access should be:
+TKA (Tailscale Kubernetes Auth) is a zero-trust authentication system that issues short-lived Kubernetes credentials based on your Tailscale identity and ACL grants. It runs entirely within your private Tailscale network with no public endpoints.
 
-- **Secure by default** via ephemeral, scoped credentials
-- **Simple to use** via `tsh login`-like UX
-- **Network-gated** via your existing [Tailscale ACLs and Grants]
-- **Kubernetes-native** using built-in ServiceAccounts and RBAC
+### Key Benefits
 
-### What about [Teleport]?
+- **Zero-trust by design** - No public endpoints, access gated by Tailscale ACLs and device attestation
+- **Ephemeral credentials** - Short-lived tokens that auto-expire, reducing blast radius
+- **Kubernetes-native** - Built on ServiceAccounts, ClusterRoles, and standard APIs
+- **Developer-friendly** - `tsh login`-like UX that just works
+- **GitOps-ready** - Declarative grant-to-role mapping via CRDs
 
-We love [Teleport][gh-teleport] dearly, and it was a major inspiration for this project.
-It's a robust, production-proven system that handles multi-protocol access with powerful SSO, audit, and session recording features.
+## Quick Start
 
-That said, we needed something just for Kubernetes, something much lighter weight, and most importantly, something that works with our existing Tailscale setup. Why have two ZTNA systems that provide _almost_ the same features, when you can go out of your way to waste time building your own thing, learn a ton in the process, and make it integrate better into your existing setup?
+```bash
+# Install TKA CLI
+curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/install.sh | sh
 
-### What about [Tailscale's API server proxy]
+# Start an ephemeral session (perfect for debugging)
+tka shell
+(tka) $ kubectl get pods
+(tka) $ exit  # Access automatically revoked
 
-Tailscale’s Kubernetes Operator is a fantastic way to access your Kubernetes cluster over the tailnet.
-It can proxy requests to the Kubernetes API and impersonate users or groups based on tailnet identity, allowing you to define fine-grained access via standard Kubernetes RBAC.
-It’s a great fit for many use cases.
-
-However, we wanted a different model of access.
-Our idea around access is about dynamically provisioning ephemeral Service Accounts for users, with the Cluster Role Bindings configured via the tailscale ACL file.
-With `tka`, we can define ephemeral access with zero-permission-by-default but still tie in to a kube-native experience.
+# Or login for persistent access
+tka login
+$ kubectl get namespaces
+$ tka logout
+```
 
 ## How It Works
 
-1. **Login API**: A deployment running in your cluster, reachable only via Tailscale, exposing a login API
-2. **Tailscale Identity Validation**: Requests to the login API are authenticated using the Tailscale API and grant syntax (e.g., `user@example.com can access k8s with role read-only`)
-3. **Credential Issuance**: The API dynamically provisions a short-lived Kubernetes `ServiceAccount` and a scoped `ClusterRoleBinding`
-4. **Kubeconfig Returned**: A time-limited `kubeconfig` is assembled and returned to the user
-5. **Automatic Cleanup**: A controller reconciles active logins, cleaning up expired SAs and bindings, keeping your cluster's RBAC config tidy and auditable
-
-## Features
-
-- **Tailnet-only, zero-ingress**: No public endpoints or reverse proxies. All traffic stays on your tailnet via `tsnet`.
-- **Capability-driven authorization**: Enforce access with a specific Tailscale ACL capability (role + validity period) for least-privilege by default.
-- **Ephemeral credentials**: Per-user ServiceAccounts with short-lived tokens, provisioned on demand and cleaned up on logout/expiry.
-- **Kubernetes-native RBAC**: Map capabilities to standard ClusterRoles; no custom auth layer to learn or operate.
-- **Simple CLI UX**: `tka login` and `tka kubeconfig` produce a ready-to-use kubeconfig; no manual token wrangling.
-- **Built-in observability**: Structured logs, OpenTelemetry tracing, and Prometheus metrics (controller metrics at `/metrics/controller`).
-- **Multi-cluster friendly**: Operator options for `clusterName`, `contextPrefix`, and `userPrefix` make per-user contexts and federation patterns straightforward.
-- **Small, hackable core**: Minimal moving parts, clear extension points (auth middleware, operator service), and a clean Go codebase.
-
-## Example Flow
-
-```shell
-# Step 1: list available clusters
-$ tka list
-...
-
-# Step 1: login to the cluster
-$ tka login aws-us-central-prod
-
-# Step 2: Use Kubernetes as usual
-$ kubectl get ns
+```mermaid
+graph TB
+    A[Developer] -->|1 - tka login| B[TKA Server]
+    B -->|2 - Validate identity| C[Tailscale API]
+    B -->|3 - Check grants| D[Tailscale ACLs]
+    B -->|4 - Create ServiceAccount| E[Kubernetes API]
+    B -->|5 - Return kubeconfig| A
+    F[TKA Operator] -->|6. Cleanup expired tokens| E
 ```
 
-## Contributing
+1. **Identity verification** - TKA validates your Tailscale identity and device
+2. **Authorization** - Checks your ACL grants for Kubernetes access permissions
+3. **Credential provisioning** - Creates ephemeral ServiceAccount and token
+4. **Access granted** - Returns time-limited kubeconfig for direct cluster access
+5. **Automatic cleanup** - Expired credentials are automatically revoked
 
-Contributions are welcome! Please open an issue or submit a pull request.
+## Architecture
 
-<!-- Links -->
+TKA consists of two main components:
 
-[Tailscale ACLs and Grants]: https://tailscale.com/kb/1393/access-control
-[Teleport]: https://goteleport.com
-[gh-teleport]: https://github.com/gravitational/teleport
-[Tailscale's API server proxy]: https://tailscale.com/kb/1437/kubernetes-operator-api-server-proxy
+- **CLI** (`tka`) - User-facing command for authentication and kubeconfig management
+- **Server** - In-cluster service handling authentication and credential issuance
+- **Operator** - Kubernetes controller managing ServiceAccount lifecycle
+
+The server runs inside your cluster and is only accessible via your Tailscale network. No ingress controllers, load balancers, or public endpoints required.
+
+## Repository Structure
+
+```text
+src/
+├── cmd/
+│   ├── cli/          # TKA CLI implementation
+│   └── server/       # TKA server and operator
+├── pkg/
+│   ├── api/          # HTTP API handlers
+│   ├── auth/         # Authentication middleware
+│   ├── operator/     # Kubernetes operator logic
+│   └── tailscale/    # Tailscale integration
+└── internal/
+    └── cli/          # CLI-specific utilities
+```
+
+## Development
+
+### Prerequisites
+
+- Go 1.21+
+- Kubernetes cluster (for testing)
+- Tailscale account and tailnet
+
+### Building
+
+```bash
+# Build CLI
+make build-cli
+
+# Build server
+make build-server
+
+# Run tests
+make test
+
+# Generate documentation
+make docs
+```
+
+### Running Locally
+
+```bash
+# Start development server
+make dev-server
+
+# Run CLI against local server
+export TKA_TAILSCALE_HOSTNAME=localhost
+export TKA_TAILSCALE_PORT=8080
+./bin/tka-cli login
+```
+
+## Security Model
+
+TKA's security model is built on several key principles:
+
+- **Network isolation** - All communication happens within your private Tailscale network
+- **Device attestation** - Access requires authenticated Tailscale device
+- **Ephemeral credentials** - Short-lived tokens minimize exposure window
+- **Principle of least privilege** - Explicit grant mapping to Kubernetes roles
+- **Audit trail** - All access is logged and attributable to specific users/devices
+
+> [!WARNING]
+> TKA's security model is thoughtfully designed but still evolving.
+> While suitable for many use cases, it hasn't undergone professional security auditing.
+>
+> See the [Security Documentation](https://tka.specht-labs.de/explanation/security) for details.
+
+## Comparison with Alternatives
+
+| Feature | TKA | Teleport | Tailscale K8s Operator |
+|---------|-----|----------|-------------------------|
+| **Zero public endpoints** | ✅ | ❌ | ✅ |
+| **Ephemeral credentials** | ✅ | ✅ | ❌ |
+| **Tailscale native** | ✅ | ❌ | ✅ |
+| **Multi-protocol support** | ❌ | ✅ | ❌ |
+| **Session recording** | ❌ | ✅ | ❌ |
+| **Lightweight deployment** | ✅ | ❌ | ✅ |
+
+## Documentation
+
+- **[Full Documentation](https://tka.specht-labs.de)** - Comprehensive guides and reference
+- **[Quick Start Tutorial](https://tka.specht-labs.de/tutorials/quick)** - Get up and running in 5 minutes
+- **[Production Deployment](https://tka.specht-labs.de/how-to/deploy-production)** - Production-ready setup guide
+- **[Configuration Reference](https://tka.specht-labs.de/reference/configuration)** - All configuration options
+- **[Troubleshooting](https://tka.specht-labs.de/how-to/troubleshooting)** - Common issues and solutions
+
+### Reporting Issues
+
+Found a bug or have a feature request? Please check existing [issues](https://github.com/spechtlabs/tka/issues) first, then [open a new issue](https://github.com/spechtlabs/tka/issues/new/choose) with details.
+
+## Acknowledgments
+
+- **[Tailscale](https://tailscale.com)** - For the amazing zero-trust networking platform
+- **[Teleport](https://goteleport.com)** - Inspiration for the UX and security model
+
+---
+
+**Built by SREs, for SREs.** TKA is designed for real-world production operations with security, reliability, and developer experience as top priorities.

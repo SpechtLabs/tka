@@ -6,8 +6,8 @@ config:
   - type: doc-hero
     hero:
       name: Tailscale-native Kubernetes access
-      text: Skip the proxies, VPNs, and OIDC headaches.
-      tagline: Secure, short-lived cluster access — powered entirely by your Tailscale identity and network.
+      text: Skip the proxies, gateways, and OIDC complexity.
+      tagline: Secure, ephemeral cluster access — powered entirely by your Tailscale network and identity.
       image: /logo.png
       actions:
         - text: Overview →
@@ -29,27 +29,27 @@ config:
     features:
       - title: Zero-trust, zero-ingress
         icon: mdi:shield-lock-outline
-        details: No public endpoints. Access is gated by your Tailscale ACLs, identity, and devices — and nothing else.
+        details: No public endpoints or exposed services. Access flows through your private Tailscale network with device-level attestation and ACL enforcement.
 
-      - title: Ephemeral credentials, by default
+      - title: Ephemeral credentials by design
         icon: mdi:timer-sand
-        details: All kubeconfigs are short-lived and auto-expiring. You get access when you need it, and not a second longer.
+        details: Short-lived tokens that auto-expire. Get access exactly when you need it, for exactly as long as you need it — and not a second longer.
 
-      - title: Kubernetes-native RBAC
+      - title: Kubernetes-native architecture
         icon: mdi:kubernetes
-        details: Grants are mapped to native ClusterRoles, and credentials are provisioned as real Kubernetes ServiceAccounts.
+        details: Built on ServiceAccounts, ClusterRoles, and standard APIs. No custom auth protocols or vendor lock-in — just native Kubernetes security.
 
-      - title: Declarative grant-to-role mapping
+      - title: GitOps-ready configuration
         icon: mdi:account-key-outline
-        details: Use a CRD to define how Tailscale users, groups, or tags map to Kubernetes roles — GitOps ready.
+        details: Declarative grant-to-role mapping via CRDs. Define who gets what access in code, review in pull requests, deploy via GitOps.
 
-      - title: No complex proxies or auth chains
+      - title: Zero-proxy simplicity
         icon: mdi:link-off
-        details: Say goodbye to reverse proxies and auth headers. Access is handled with direct, secure API calls inside the tailnet.
+        details: Direct API access without auth proxies, reverse tunnels, or complex gateway chains. Your kubectl talks directly to the cluster.
 
-      - title: Central login API, federation-ready
+      - title: Multi-cluster federation
         icon: mdi:server-network
-        details: Supports a central login cluster with other clusters registering dynamically — ideal for multi-cluster orgs.
+        details: Central authentication with distributed clusters. One login service, many target clusters. Perfect for platform teams and enterprise deployments.
 
   - type: custom
 
@@ -62,32 +62,29 @@ config:
 
 ## Welcome to TKA
 
-Traditional Kubernetes access control is often a headache:
+Traditional Kubernetes access control is broken:
 
-- **Painful to manage** — OIDC integrations, kubeconfig sprawl, endless context switching
-- **Overly centralized & complex** — auth proxies, bastion gateways, and extra moving parts
+- **Painful to manage** → OIDC integrations, kubeconfig sprawl, endless context switching
+- **Overly complex** → auth proxies, bastion gateways, and brittle auth chains
+- **Security gaps** → long-lived tokens, shared credentials, unclear audit trails
 
-We think Kubernetes access should be different:
+TKA solves this with a fundamentally simpler approach:
 
-- **Secure by default** → ephemeral, scoped credentials
-- **Simple to use** → a `tsh login`‑like UX, but for Kubernetes
-- **Network‑gated** → powered by your existing [Tailscale ACLs and Grants](https://tailscale.com/kb/1324/grants)
-- **Kubernetes‑native** → built on ServiceAccounts and RBAC
+- **Secure by default** → ephemeral, scoped credentials that auto-expire
+- **Zero infrastructure** → leverage your existing Tailscale network and ACLs
+- **Kubernetes-native** → built on ServiceAccounts, RBAC, and standard APIs
+- **Developer-friendly** → `tsh login`-like UX that just works
 
-`tka` makes this possible by issuing **short‑lived cluster credentials**, backed by your [Tailscale](https://tailscale.com) identity and Kubernetes’ own RBAC rules.
+TKA issues **short-lived cluster credentials** backed by your [Tailscale](https://tailscale.com) identity and Kubernetes' native RBAC. No proxies, no sprawl, no complexity.
 
-No extra proxies. No kubeconfig sprawl. Just clean, auditable access.
+## Best-in-Class Developer Experience
 
-## Best in class CLI UX
+Stop fighting your Kubernetes access tooling. TKA provides two intuitive workflows designed by SREs for real-world operations:
 
-Ever been debugging across multiple clusters and lost track of your current kube context?
+- **`tka shell`** → ephemeral, isolated sessions (perfect for quick debugging and production safety)
+- **`tka login`** → persistent sessions with full control (ideal for development and administration)
 
-Or needed to stay logged in all day as a cluster admin without juggling tokens?
-
-`tka` gives you two simple workflows:
-
-- **`tka shell`** → ephemeral, auto‑cleaned sessions (perfect for quick debugging)
-- **`tka login`** → longer‑lived sessions with full control (great for admins)
+Both workflows provide instant, secure access without the usual ceremony.
 
 ::: tabs
 
@@ -212,20 +209,17 @@ Or needed to stay logged in all day as a cluster admin without juggling tokens?
 
 :::
 
-::: tip
-Check out the [Overview](./overview/overview.md) page to learn how it works on a high level.
-:::
+TKA is built by SREs who understand production operations. Every workflow is designed for real-world reliability, security, and ease of use.
+
+Found a rough edge? Have an idea for improvement? [Open an issue](https://github.com/spechtlabs/tka/issues/new/choose) — we're always working to make Kubernetes access better.
 
 ## Security Notice
 
-:::warning Experimental Security Model
+:::warning Early Stage Security Model
 
-This project’s security model is still **experimental**.
+TKA's security model is thoughtfully designed but still **evolving**.
 
-I’ve designed it with care, but I’m not a professional security auditor or
-pentester. While it should be reasonably safe for most use cases, it’s not guaranteed to be bullet‑proof.
+While built with security best practices and suitable for many use cases, it hasn't undergone professional security auditing. For mission-critical production environments requiring the highest security assurance, consider professionally audited solutions.
 
-If you need **strong, production‑grade security**, consider using a professionally reviewed solution.
-
-For more details, see the [Security Model documentation](overview/security.md).
+For detailed security information, see the [Security Model documentation](explanation/security.md).
 :::
