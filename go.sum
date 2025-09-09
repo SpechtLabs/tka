@@ -343,6 +343,8 @@ github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9yS
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spechtlabs/go-otel-utils/otelprovider v0.0.13 h1:DyTnvzLrhGowglrmDO8GFzbC/ZnzHRkMlFCk7p/pEmc=
 github.com/spechtlabs/go-otel-utils/otelprovider v0.0.13/go.mod h1:63JphMzIY2vGTZ9OMjntS/XUM2sVwLCydSsjVE+M5QU=
+github.com/spechtlabs/go-otel-utils/otelprovider v0.0.15 h1:LRx9EFzD4bI+kH3NNn6GtqwRrGbJgmyau4IOJcfBTYE=
+github.com/spechtlabs/go-otel-utils/otelprovider v0.0.15/go.mod h1:ACquqruOxYFRL5H7TCxXKXIJTVj+6eqlEJR6WQAEBeE=
 github.com/spechtlabs/go-otel-utils/otelzap v0.0.13 h1:eKrf3Jd4WurABA+iw4TAZJRF2/Ke1cIzsX1wSUOZZT0=
 github.com/spechtlabs/go-otel-utils/otelzap v0.0.13/go.mod h1:Bk/uRNkU1/MsMc2J1NUxF+0lRNDbUUIulioJevLYM74=
 github.com/spf13/afero v1.12.0 h1:UcOPyRBYczmFn6yvphxkn9ZEOY65cpwGKb5mL36mrqs=
