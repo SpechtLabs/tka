@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
@@ -42,11 +43,17 @@ tka serve
 tka serve --cap-name specht-labs.de/cap/custom`,
 		Args:      cobra.ExactArgs(0),
 		ValidArgs: []string{},
-		RunE:      runE,
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := runE(cmd, args); err != nil {
+				otelzap.L().WithError(err).Fatal("Exiting")
+			}
+
+			otelzap.L().Info("Exiting")
+		},
 	}
 )
 
-func runE(cmd *cobra.Command, _ []string) error {
+func runE(cmd *cobra.Command, _ []string) humane.Error {
 	debug := viper.GetBool("debug")
 	if debug {
 		configFileName := viper.GetViper().ConfigFileUsed()
@@ -74,9 +81,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 	k8sOperator, err := koperator.NewK8sOperatorWithOptions(opOpts)
 	if err != nil {
 		cancelFn(err)
-		return fmt.Errorf("%s", err.Display())
+		return err
 	}
 
+	// Create Tailscale server
 	srv := ts.NewServer(viper.GetString("tailscale.hostname"),
 		ts.WithDebug(debug),
 		ts.WithPort(viper.GetInt("tailscale.port")),
@@ -86,6 +94,13 @@ func runE(cmd *cobra.Command, _ []string) error {
 		ts.WithWriteTimeout(viper.GetDuration("server.writeTimeout")),
 		ts.WithIdleTimeout(viper.GetDuration("server.idleTimeout")),
 	)
+
+	// Start the Tailscale connection
+	if err := srv.Start(ctx); err != nil {
+		herr := humane.Wrap(err, "failed to connect to tailscale", "ensure your TS_AUTH_KEY is set", "ensure your TS_AUTH_KEY is valid")
+		cancelFn(herr)
+		return herr
+	}
 
 	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
 	mw := mwtailscale.NewGinAuthMiddlewareFromServer[capability.Rule](srv, capName)
@@ -100,19 +115,27 @@ func runE(cmd *cobra.Command, _ []string) error {
 	)
 	if err != nil {
 		cancelFn(err)
-		return fmt.Errorf("%s", err.Display())
+		return err
 	}
 
 	go func() {
 		if err := tkaServer.Serve(ctx); err != nil {
-			cancelFn(err.Cause())
+			if err.Cause() != nil {
+				cancelFn(err.Cause())
+			} else {
+				cancelFn(err)
+			}
 			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA tailscale")
 		}
 	}()
 
 	go func() {
 		if err := k8sOperator.Start(ctx); err != nil {
-			cancelFn(err.Cause())
+			if err.Cause() != nil {
+				cancelFn(err.Cause())
+			} else {
+				cancelFn(err)
+			}
 			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start k8s operator")
 		}
 	}()
@@ -121,16 +144,30 @@ func runE(cmd *cobra.Command, _ []string) error {
 	<-ctx.Done()
 	// No more logging to ctx from here onwards
 
-	ctx = context.Background()
-	if err := srv.Shutdown(ctx); err != nil {
-		return fmt.Errorf("%s", err.Display())
+	// Graceful shutdown with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	otelzap.L().Info("Shutting down servers...")
+
+	// Shutdown TKA server first (stops accepting new requests)
+	if err := tkaServer.Shutdown(shutdownCtx); err != nil {
+		otelzap.L().WithError(err).Error("Failed to shutdown TKA server gracefully")
+		// Continue with Tailscale shutdown even if TKA shutdown failed
 	}
 
-	// Terminate accordingly
-	if err := ctx.Err(); !errors.Is(err, context.Canceled) {
-		otelzap.L().WithError(err).Fatal("Exiting")
-	} else {
-		otelzap.L().Info("Exiting")
+	// Shutdown Tailscale server
+	if err := srv.Stop(shutdownCtx); err != nil {
+		otelzap.L().WithError(err).Error("Failed to shutdown Tailscale server gracefully")
+		return err
+	}
+
+	otelzap.L().Info("Servers shut down successfully")
+
+	// Check termination cause
+	cause := context.Cause(ctx)
+	if cause != nil && !errors.Is(cause, context.Canceled) {
+		return humane.Wrap(cause, "server terminated due to error")
 	}
 
 	return nil
@@ -140,21 +177,25 @@ func interruptHandler(ctx context.Context, cancelCtx context.CancelCauseFunc) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
+		defer signal.Stop(sigs) // Clean up signal notifications
+
 		select {
 		// Wait for context cancel
 		case <-ctx.Done():
+			return
 
 		// Wait for signal
 		case sig := <-sigs:
 			switch sig {
 			case syscall.SIGTERM:
-				fallthrough
-			case syscall.SIGINT:
-				fallthrough
-			case syscall.SIGQUIT:
-				// On terminate signal, cancel context causing the program to terminate
+				otelzap.L().Debug("Received SIGTERM, initiating graceful shutdown...")
 				cancelCtx(context.Canceled)
-
+			case syscall.SIGINT:
+				otelzap.L().Debug("Received SIGINT (Ctrl+C), initiating graceful shutdown...")
+				cancelCtx(context.Canceled)
+			case syscall.SIGQUIT:
+				otelzap.L().Debug("Received SIGQUIT, initiating graceful shutdown...")
+				cancelCtx(context.Canceled)
 			default:
 				otelzap.L().WarnContext(ctx, "Received unknown signal", zap.String("signal", sig.String()))
 			}

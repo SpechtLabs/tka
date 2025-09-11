@@ -52,7 +52,6 @@ export const navbar = defineNavbarConfig([
             { text: "Architecture", link: "/reference/developer/architecture" },
             { text: "Shell Integration Details", link: "/reference/developer/shell-integration" },
             { text: "Request Flows", link: "/reference/developer/request-flows" },
-            { text: "pkg/lnhttp", link: "/reference/developer/lnhttp-server" },
             { text: "pkg/tailscale", link: "/reference/developer/tailscale-server" },
           ]
         },

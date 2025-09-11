@@ -2,7 +2,6 @@ package tailscale_test
 
 import (
 	"context"
-	"net"
 	"testing"
 	"time"
 
@@ -10,70 +9,89 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// dummyConn is a minimal net.Conn implementation for testing ConnContext.
-type dummyConn struct{}
-
-func (d *dummyConn) Read(b []byte) (n int, err error)   { return 0, nil }
-func (d *dummyConn) Write(b []byte) (n int, err error)  { return len(b), nil }
-func (d *dummyConn) Close() error                       { return nil }
-func (d *dummyConn) LocalAddr() net.Addr                { return &net.IPAddr{} }
-func (d *dummyConn) RemoteAddr() net.Addr               { return &net.IPAddr{} }
-func (d *dummyConn) SetDeadline(t time.Time) error      { return nil }
-func (d *dummyConn) SetReadDeadline(t time.Time) error  { return nil }
-func (d *dummyConn) SetWriteDeadline(t time.Time) error { return nil }
-
-func TestServer_Init(t *testing.T) {
+func TestServer_NewServer(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name       string
-		opts       []tailscale.Option
-		wantAddr   string
-		checkConn  bool
-		checkIdent bool
-		checkPlain bool
+		name     string
+		opts     []tailscale.Option
+		hostname string
 	}{
 		{
-			name:       "with port sets Addr and conn context, identity available",
-			opts:       []tailscale.Option{tailscale.WithPort(8123)},
-			wantAddr:   ":8123",
-			checkConn:  true,
-			checkIdent: true,
-			checkPlain: true,
+			name:     "creates server with custom port",
+			opts:     []tailscale.Option{tailscale.WithPort(8123)},
+			hostname: "test-app",
 		},
 		{
-			name:       "default port sets Addr to :443, still sets conn context and identity",
-			opts:       nil,
-			wantAddr:   ":443",
-			checkConn:  true,
-			checkIdent: true,
-			checkPlain: true,
+			name:     "creates server with default settings",
+			opts:     nil,
+			hostname: "default-app",
+		},
+		{
+			name:     "creates server with debug enabled",
+			opts:     []tailscale.Option{tailscale.WithDebug(true)},
+			hostname: "debug-app",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := tailscale.NewServer("unit-test-host", tc.opts...)
+			s := tailscale.NewServer(tc.hostname, tc.opts...)
 
-			require.NotNil(t, s.Server, "expected embedded server to be initialized")
-			require.Equal(t, tc.wantAddr, s.Addr)
+			// Check that server is initialized
+			require.NotNil(t, s, "expected server to be initialized")
 
-			if tc.checkConn {
-				require.NotNil(t, s.ConnContext, "expected ConnContext to be set")
-				ctx := s.ConnContext(context.Background(), &dummyConn{})
-				require.NotNil(t, ctx.Value(tailscale.CtxConnKey{}), "expected ConnContext to store connection in context")
-			}
+			// Test that Identity function is available
+			require.NotNil(t, s.Identity(), "expected Identity to return a non-nil function")
 
-			if tc.checkIdent {
-				require.NotNil(t, s.Identity(), "expected Identity to return a non-nil function")
-			}
-
-			if tc.checkPlain {
-				// a plain context should not already contain a connection value
-				require.Nil(t, context.Background().Value(tailscale.CtxConnKey{}))
-			}
+			// Test that server can be shutdown without being started
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err := s.Shutdown(shutdownCtx)
+			require.NoError(t, err, "shutdown should succeed even if server not started")
 		})
 	}
+}
+
+func TestServer_CleanAPI(t *testing.T) {
+	t.Parallel()
+
+	t.Run("methods exist and return expected errors before Start", func(t *testing.T) {
+		s := tailscale.NewServer("test-app")
+
+		// ListenTCP should fail before Start() is called
+		_, err := s.ListenTCP(":8080")
+		require.Error(t, err, "ListenTCP should fail before Start")
+		require.Contains(t, err.Error(), "Start() first", "error should mention calling Start() first")
+
+		// Stop should succeed even if not started
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		err = s.Stop(ctx)
+		require.NoError(t, err, "Stop should succeed even if not started")
+	})
+}
+
+func TestServer_DropInReplacement(t *testing.T) {
+	t.Parallel()
+
+	t.Run("server embeds http.Server and can be used as such", func(t *testing.T) {
+		s := tailscale.NewServer("test-app", tailscale.WithPort(8080))
+
+		// Test that it embeds http.Server properly
+		require.NotNil(t, s.Server, "should embed http.Server")
+
+		// Test that we can set http.Server properties directly
+		s.ReadTimeout = 30 * time.Second
+		require.Equal(t, 30*time.Second, s.ReadTimeout)
+
+		// Test that Addr is set correctly
+		require.Equal(t, ":8080", s.Addr)
+
+		// Test that Handler can be set
+		s.Handler = nil // This should work without panic
+		require.Nil(t, s.Handler)
+	})
 }
 
 func TestServer_Shutdown_WithoutRunningServer(t *testing.T) {
