@@ -1,4 +1,4 @@
-package api
+package tka_api
 
 import (
 	"context"

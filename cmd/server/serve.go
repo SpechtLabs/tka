@@ -4,21 +4,19 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"github.com/spechtlabs/tka/pkg/api"
+	api "github.com/spechtlabs/tka/pkg/api/tka_api"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
 	authoperator "github.com/spechtlabs/tka/pkg/auth/operator"
 	mwtailscale "github.com/spechtlabs/tka/pkg/middleware/auth/tailscale"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
+	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 
 	"tailscale.com/tailcfg"
 )
@@ -69,7 +67,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
-	interruptHandler(ctx, cancelFn)
+	utils.InterruptHandler(ctx, cancelFn)
 
 	opOpts := koperator.OperatorOptions{
 		Namespace:     viper.GetString("operator.namespace"),
@@ -171,34 +169,4 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	return nil
-}
-
-func interruptHandler(ctx context.Context, cancelCtx context.CancelCauseFunc) {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	go func() {
-		defer signal.Stop(sigs) // Clean up signal notifications
-
-		select {
-		// Wait for context cancel
-		case <-ctx.Done():
-			return
-
-		// Wait for signal
-		case sig := <-sigs:
-			switch sig {
-			case syscall.SIGTERM:
-				otelzap.L().Debug("Received SIGTERM, initiating graceful shutdown...")
-				cancelCtx(context.Canceled)
-			case syscall.SIGINT:
-				otelzap.L().Debug("Received SIGINT (Ctrl+C), initiating graceful shutdown...")
-				cancelCtx(context.Canceled)
-			case syscall.SIGQUIT:
-				otelzap.L().Debug("Received SIGQUIT, initiating graceful shutdown...")
-				cancelCtx(context.Canceled)
-			default:
-				otelzap.L().WarnContext(ctx, "Received unknown signal", zap.String("signal", sig.String()))
-			}
-		}
-	}()
 }

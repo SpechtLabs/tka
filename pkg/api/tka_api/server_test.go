@@ -1,4 +1,4 @@
-package api_test
+package tka_api_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/api/tka_api"
 	"github.com/spechtlabs/tka/pkg/auth"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
 	mwMock "github.com/spechtlabs/tka/pkg/middleware/mock"
@@ -20,15 +20,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func newTestServer(t *testing.T, auth auth.Service, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
+func newTestServer(t *testing.T, auth auth.Service, rule capability.Rule) (*tka_api.TKAServer, *httptest.Server) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	srv, err := api.NewTKAServer(
+	srv, err := tka_api.NewTKAServer(
 		nil,
 		nil,
-		api.WithAuthService(auth),
-		api.WithAuthMiddleware(&mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}),
+		tka_api.WithAuthService(auth),
+		tka_api.WithAuthMiddleware(&mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}),
 	)
 	require.NoError(t, err)
 
@@ -72,16 +72,16 @@ var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group
 
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	s, err := api.NewTKAServer(nil, nil)
+	s, err := tka_api.NewTKAServer(nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
 	expected := map[string]bool{
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:     false,
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:      false,
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute: false,
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:    false,
+		http.MethodPost + " " + tka_api.ApiRouteV1Alpha1 + tka_api.LoginApiRoute:     false,
+		http.MethodGet + " " + tka_api.ApiRouteV1Alpha1 + tka_api.LoginApiRoute:      false,
+		http.MethodGet + " " + tka_api.ApiRouteV1Alpha1 + tka_api.KubeconfigApiRoute: false,
+		http.MethodPost + " " + tka_api.ApiRouteV1Alpha1 + tka_api.LogoutApiRoute:    false,
 	}
 	for _, r := range s.Engine().Routes() {
 		key := r.Method + " " + r.Path

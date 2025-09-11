@@ -1,4 +1,4 @@
-package api
+package tka_api
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tka/pkg/api"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	"github.com/spechtlabs/tka/pkg/operator"
 	"sigs.k8s.io/yaml"
@@ -44,7 +45,7 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 		}
 
 		// Map NotFound to 401 for this endpoint, otherwise use default mapping
-		writeHumaneError(ct, err, http.StatusUnauthorized)
+		api.WriteHumaneError(ct, err, http.StatusUnauthorized)
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
 		return
 	} else {

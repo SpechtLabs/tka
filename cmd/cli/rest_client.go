@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api"
+	api "github.com/spechtlabs/tka/pkg/api/tka_api"
 	"github.com/spechtlabs/tka/pkg/models"
 )
 

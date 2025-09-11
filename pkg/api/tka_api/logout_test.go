@@ -1,4 +1,4 @@
-package api_test
+package tka_api_test
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/api/tka_api"
 	"github.com/spechtlabs/tka/pkg/auth"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
 	"github.com/spechtlabs/tka/pkg/auth/mock"
@@ -87,7 +87,7 @@ func TestLogoutHandler(t *testing.T) {
 			_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
 			tc.setup(m)
-			resp, body := doReq(t, ts, http.MethodPost, api.ApiRouteV1Alpha1+api.LogoutApiRoute, nil, nil)
+			resp, body := doReq(t, ts, http.MethodPost, tka_api.ApiRouteV1Alpha1+tka_api.LogoutApiRoute, nil, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode)
 			if tc.expectedMessage != "" {
 				requireErrorMessage(t, body, tc.expectedMessage)

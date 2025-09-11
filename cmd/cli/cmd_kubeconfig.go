@@ -12,7 +12,7 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	async_op2 "github.com/spechtlabs/tka/internal/cli/async_operation"
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
-	tkaApi "github.com/spechtlabs/tka/pkg/api"
+	tkaApi "github.com/spechtlabs/tka/pkg/api/tka_api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/tools/clientcmd"

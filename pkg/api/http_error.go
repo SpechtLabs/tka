@@ -9,9 +9,9 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-// writeHumaneError writes a humane.Error as a JSON models.ErrorResponse with a mapped status code.
+// WriteHumaneError writes a humane.Error as a JSON models.ErrorResponse with a mapped status code.
 // notFoundStatus allows handlers to override the HTTP status for NotFound conditions (e.g., 401 vs 404).
-func writeHumaneError(c *gin.Context, err humane.Error, notFoundStatus int) {
+func WriteHumaneError(c *gin.Context, err humane.Error, notFoundStatus int) {
 	if err == nil {
 		c.Status(http.StatusNoContent)
 		return
