@@ -1,11 +1,11 @@
-package tka_api_test
+package api_test
 
 import (
 	"net/http"
 	"testing"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api/tka_api"
+	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
 	"github.com/spechtlabs/tka/pkg/auth/mock"
 	"github.com/stretchr/testify/require"
@@ -65,7 +65,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setup()
-			resp, body := doReq(t, ts, http.MethodGet, tka_api.ApiRouteV1Alpha1+tka_api.KubeconfigApiRoute, tc.headers, nil)
+			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.KubeconfigApiRoute, tc.headers, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode, string(body))
 			if tc.expectedCT != "" {
 				require.Contains(t, resp.Header.Get("Content-Type"), tc.expectedCT)

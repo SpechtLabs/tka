@@ -1,4 +1,4 @@
-package tka_api
+package api
 
 import (
 	"github.com/spechtlabs/tka/pkg/auth"

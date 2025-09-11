@@ -27,7 +27,7 @@ manifests: controller-gen swag
 
 .PHONY: swag
 swag:
-	swag init --dir ./pkg/api/tka_api --generalInfo server.go --output ./pkg/swagger --parseDependency --parseDepth 3
+	swag init --dir ./pkg/api --generalInfo server.go --output ./pkg/swagger --parseDependency --parseDepth 3
 
 .PHONY: test
 test:

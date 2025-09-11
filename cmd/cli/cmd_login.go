@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
-	api "github.com/spechtlabs/tka/pkg/api/tka_api"
+	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

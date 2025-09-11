@@ -1,4 +1,4 @@
-package tka_api
+package api
 
 import (
 	"net/http"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"github.com/spechtlabs/tka/pkg/api"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	"github.com/spechtlabs/tka/pkg/models"
 )
@@ -32,7 +31,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 
 	if signIn, err := t.auth.Status(ctx, userName); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting login status")
-		api.WriteHumaneError(ct, err, http.StatusNotFound)
+		writeHumaneError(ct, err, http.StatusNotFound)
 		return
 	} else {
 		until := signIn.ValidUntil
@@ -49,7 +48,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 
 		if err := t.auth.Logout(ctx, userName); err != nil {
 			otelzap.L().WithError(err).ErrorContext(ctx, "Error logging out user")
-			api.WriteHumaneError(ct, err, http.StatusNotFound)
+			writeHumaneError(ct, err, http.StatusNotFound)
 			return
 		}
 

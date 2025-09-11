@@ -1,4 +1,4 @@
-package tka_api_test
+package api_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api/tka_api"
+	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/auth"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
 	"github.com/spechtlabs/tka/pkg/auth/mock"
@@ -76,7 +76,7 @@ func TestLoginHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setup()
 			_, ts := newTestServer(t, m, tc.rule)
-			resp, body := doReq(t, ts, http.MethodPost, tka_api.ApiRouteV1Alpha1+tka_api.LoginApiRoute, nil, map[string]string{})
+			resp, body := doReq(t, ts, http.MethodPost, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, map[string]string{})
 			require.Equal(t, tc.expectedStatus, resp.StatusCode, string(body))
 			if resp.StatusCode == http.StatusAccepted {
 				var got struct {
@@ -164,7 +164,7 @@ func TestGetLoginHandler(t *testing.T) {
 			_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
 			tc.setup(m)
-			resp, body := doReq(t, ts, http.MethodGet, tka_api.ApiRouteV1Alpha1+tka_api.LoginApiRoute, nil, nil)
+			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode)
 			if tc.expectRetry {
 				require.NotEmpty(t, resp.Header.Get("Retry-After"))
