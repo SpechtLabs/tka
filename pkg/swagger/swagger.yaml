@@ -1,5 +1,27 @@
 basePath: /api/v1alpha1
 definitions:
+  models.ClusterListItem:
+    description: Contains the details of a single cluster
+    properties:
+      api_endpoint:
+        type: string
+      description:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+    type: object
+  models.ClusterListResponse:
+    description: Contains a list of clusters that the user has access to
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.ClusterListItem'
+        type: array
+    type: object
   models.ErrorResponse:
     description: Structured error response with contextual advice
     properties:
@@ -181,6 +203,72 @@ paths:
       summary: Log out authenticated user
       tags:
       - authentication
+  /orchestrator/v1alpha1/clusters:
+    get:
+      consumes:
+      - application/json
+      description: Lists all clusters that the user has access to
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: A list of clusters that the user has access to
+          schema:
+            $ref: '#/definitions/models.ClusterListResponse'
+        "400":
+          description: Bad Request - Tagged nodes not supported or error unmarshaling
+            capability or multiple capability rules
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Forbidden - Request from Funnel or no capability rule found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error - Error with WhoIs, parsing duration,
+            or signing in user
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - TailscaleAuth: []
+      summary: List all clusters that the user has access to
+      tags:
+      - Orchestrator
+    post:
+      consumes:
+      - application/json
+      description: Registers a new cluster with the orchestrator
+      parameters:
+      - description: Cluster to register
+        in: body
+        name: cluster
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClusterListItem'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully registered cluster
+          schema:
+            $ref: '#/definitions/models.ClusterListItem'
+        "400":
+          description: Bad Request - Invalid request body or validation errors
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Forbidden - Request from Funnel or no capability rule found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error - Error processing the request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - TailscaleAuth: []
+      summary: Register a new cluster
+      tags:
+      - Orchestrator
 securityDefinitions:
   TailscaleAuth:
     description: Authentication happens automatically via the Tailscale network. The

@@ -77,6 +77,8 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
+	s.LoadApiRoutes()
+
 	expected := map[string]bool{
 		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:     false,
 		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:      false,

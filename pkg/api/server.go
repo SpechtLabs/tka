@@ -46,10 +46,12 @@ import (
 // @name X-Tailscale-User
 // @description Authentication happens automatically via the Tailscale network. The server performs a WhoIs lookup on the client's IP address to determine identity. This header is for documentation purposes only and is not actually required to be set.
 const (
-	ApiRouteV1Alpha1   = "/api/v1alpha1"
-	LoginApiRoute      = "/login"
-	KubeconfigApiRoute = "/kubeconfig"
-	LogoutApiRoute     = "/logout"
+	ApiRouteV1Alpha1          = "/api/v1alpha1"
+	OrchestratorRouteV1Alpha1 = "/orchestrator/v1alpha1"
+	LoginApiRoute             = "/login"
+	KubeconfigApiRoute        = "/kubeconfig"
+	LogoutApiRoute            = "/logout"
+	ClustersRoute             = "/clusters"
 )
 
 type TKAServer struct {
@@ -125,13 +127,6 @@ func NewTKAServer(_ any, _ any, opts ...Option) (*TKAServer, humane.Error) {
 		tkaServer.authMW.Use(tkaServer.router, tkaServer.tracer)
 	}
 
-	// Set-up routes
-	v1alpha1Grpup := tkaServer.router.Group(ApiRouteV1Alpha1)
-	v1alpha1Grpup.POST(LoginApiRoute, tkaServer.login)
-	v1alpha1Grpup.GET(LoginApiRoute, tkaServer.getLogin)
-	v1alpha1Grpup.GET(KubeconfigApiRoute, tkaServer.getKubeconfig)
-	v1alpha1Grpup.POST(LogoutApiRoute, tkaServer.logout)
-
 	// serve K8s controller metrics on /metrics/controller
 	tkaServer.router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
 
@@ -144,6 +139,20 @@ func NewTKAServer(_ any, _ any, opts ...Option) (*TKAServer, humane.Error) {
 	})
 
 	return tkaServer, nil
+}
+
+func (t *TKAServer) LoadApiRoutes() {
+	v1alpha1Grpup := t.router.Group(ApiRouteV1Alpha1)
+	v1alpha1Grpup.POST(LoginApiRoute, t.login)
+	v1alpha1Grpup.GET(LoginApiRoute, t.getLogin)
+	v1alpha1Grpup.GET(KubeconfigApiRoute, t.getKubeconfig)
+	v1alpha1Grpup.POST(LogoutApiRoute, t.logout)
+}
+
+func (t *TKAServer) LoadOrchestratorRoutes() {
+	v1alpha1Grpup := t.router.Group(OrchestratorRouteV1Alpha1)
+	v1alpha1Grpup.GET(ClustersRoute, t.getClusters)
+	v1alpha1Grpup.POST(ClustersRoute, t.registerCluster)
 }
 
 // Serve starts the TKA server with TLS setup and HTTP functionality, handling Tailnet connection and request serving.
