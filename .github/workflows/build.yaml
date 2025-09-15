@@ -150,19 +150,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload arm64 build artifacts
+      - name: Upload server arm64 build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tailscale-k8s-auth-server-linux-arm64
           path: dist/server_linux_arm64_v8.0/ts-k8s-srv
           if-no-files-found: error
 
-      - name: Upload amd64 build artifacts
+      - name: Upload server amd64 build artifacts
         if: github.event_name == 'tag'
         uses: actions/upload-artifact@v4
         with:
           name: tailscale-k8s-auth-server-linux-amd64
           path: dist/server_linux_amd64_v1/ts-k8s-srv
+          if-no-files-found: error
+
+      - name: Upload orchestrator arm64 build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailscale-k8s-auth-orchestrator-linux-arm64
+          path: dist/orchestrator_linux_arm64_v8.0/ts-k8s-orch
+          if-no-files-found: error
+
+      - name: Upload orchestrator amd64 build artifacts
+        if: github.event_name == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailscale-k8s-auth-orchestrator-linux-amd64
+          path: dist/orchestrator_linux_amd64_v1/ts-k8s-orch
           if-no-files-found: error
 
   docker-build:

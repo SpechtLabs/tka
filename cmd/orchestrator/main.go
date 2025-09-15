@@ -3,42 +3,40 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tka/internal/cli/cmd"
 	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/auth/capability"
-	authoperator "github.com/spechtlabs/tka/pkg/auth/operator"
 	mwtailscale "github.com/spechtlabs/tka/pkg/middleware/auth/tailscale"
-	koperator "github.com/spechtlabs/tka/pkg/operator"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
 	"tailscale.com/tailcfg"
 )
 
-var (
-	serveCmd = &cobra.Command{
-		Use:   "serve [--server|-s <string>] [--port|-p <int>] [--dir|-d <string>] [--cap-name|-n <string>]",
-		Short: "Run the TKA API and Kubernetes operator services",
-		Long: `Start the Tailscale-embedded HTTP API and the Kubernetes operator.
+func main() {
+	orchestrateCmd := &cobra.Command{
+		Use:   "orchestrate [--server|-s <string>] [--port|-p <int>] [--dir|-d <string>] [--cap-name|-n <string>]",
+		Short: "Run the TKA orchestrator",
+		Long: `Start the Tailscale-embedded HTTP API for the Orchestration microservice.
 
 This command:
 
 - Starts a tailscale tsnet server for inbound connections
-- Serves the TKA HTTP API with authentication and capability checks
-- Runs the Kubernetes operator to manage kubeconfigs and user resources
+- Serves the TKA Orchestration HTTP API with authentication and capability checks
 
 Configuration is provided via flags and environment variables (see --help).`,
-		Example: `# Start the server with defaults from config and environment
+		Example: `# Start the orchestrator with defaults from config and environment
 tka serve
 
 # Override the capability name
-tka serve --cap-name specht-labs.de/cap/custom`,
+tka orchestrate --cap-name specht-labs.de/cap/custom`,
 		Args:      cobra.ExactArgs(0),
 		ValidArgs: []string{},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -49,7 +47,16 @@ tka serve --cap-name specht-labs.de/cap/custom`,
 			otelzap.L().Info("Exiting")
 		},
 	}
-)
+
+	cmdRoot := cmd.NewServerRootCmd()
+	cmdRoot.AddCommand(orchestrateCmd)
+
+	err := cmdRoot.Execute()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
 
 func runE(cmd *cobra.Command, _ []string) humane.Error {
 	debug := viper.GetBool("debug")
@@ -68,19 +75,6 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
 	utils.InterruptHandler(ctx, cancelFn)
-
-	opOpts := koperator.OperatorOptions{
-		Namespace:     viper.GetString("operator.namespace"),
-		ClusterName:   viper.GetString("operator.clusterName"),
-		ContextPrefix: viper.GetString("operator.contextPrefix"),
-		UserPrefix:    viper.GetString("operator.userPrefix"),
-	}
-
-	k8sOperator, err := koperator.NewK8sOperatorWithOptions(opOpts)
-	if err != nil {
-		cancelFn(err)
-		return err
-	}
 
 	// Create Tailscale server
 	srv := ts.NewServer(viper.GetString("tailscale.hostname"),
@@ -102,13 +96,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 
 	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
 	mw := mwtailscale.NewGinAuthMiddlewareFromServer[capability.Rule](srv, capName)
-	authSvc := authoperator.New(k8sOperator)
 
 	tkaServer, err := api.NewTKAServer(nil, nil,
 		api.WithDebug(debug),
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
 		api.WithAuthMiddleware(mw),
-		api.WithAuthService(authSvc),
 		api.WithTailnetServer(srv),
 	)
 	if err != nil {
@@ -116,7 +108,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return err
 	}
 
-	tkaServer.LoadApiRoutes()
+	tkaServer.LoadOrchestratorRoutes()
 
 	go func() {
 		if err := tkaServer.Serve(ctx); err != nil {
@@ -126,17 +118,6 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 				cancelFn(err)
 			}
 			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start TKA tailscale")
-		}
-	}()
-
-	go func() {
-		if err := k8sOperator.Start(ctx); err != nil {
-			if err.Cause() != nil {
-				cancelFn(err.Cause())
-			} else {
-				cancelFn(err)
-			}
-			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start k8s operator")
 		}
 	}()
 
