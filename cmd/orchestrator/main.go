@@ -11,13 +11,10 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/cli/cmd"
 	"github.com/spechtlabs/tka/pkg/api"
-	"github.com/spechtlabs/tka/pkg/auth/capability"
-	mwtailscale "github.com/spechtlabs/tka/pkg/middleware/auth/tailscale"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"tailscale.com/tailcfg"
 )
 
 func main() {
@@ -94,21 +91,19 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return herr
 	}
 
-	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
-	mw := mwtailscale.NewGinAuthMiddlewareFromServer[capability.Rule](srv, capName)
-
-	tkaServer, err := api.NewTKAServer(nil, nil,
+	tkaServer, err := api.NewTKAServer(srv, nil,
 		api.WithDebug(debug),
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
-		api.WithAuthMiddleware(mw),
-		api.WithTailnetServer(srv),
 	)
 	if err != nil {
 		cancelFn(err)
 		return err
 	}
 
-	tkaServer.LoadOrchestratorRoutes()
+	if err := tkaServer.LoadOrchestratorRoutes(); err != nil {
+		cancelFn(err)
+		return err
+	}
 
 	go func() {
 		if err := tkaServer.Serve(ctx); err != nil {

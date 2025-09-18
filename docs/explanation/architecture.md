@@ -12,11 +12,14 @@ understand the moving parts and their responsibilities.
 
 ## The Big Picture
 
-At a high level, TKA has three main components:
+At a high level, TKA has four main components:
 
-- **TKA Server** → the entrypoint for users, running inside your tailnet
-- **TKA Operator** → a Kubernetes controller that provisions and cleans up ephemeral credentials
-- **TKA CLI** → the user‑facing tool that makes authentication feel seamless
+<!-- markdownlint-disable MD051 -->
+- **[TKA CLI](#tka-cli)** → the user‑facing tool that makes authentication feel seamless
+- **[TKA API Server](#tka-api-server)** → the entrypoint for users, running inside your tailnet
+- **[TKA Operator](#tka-operator)** → a Kubernetes controller that provisions and cleans up ephemeral credentials
+- **[TKA Orchestrator](#tka-orchestrator)** → cluster discovery
+<!-- markdownlint-enable MD051 -->
 
 Together, they form a loop:
 
@@ -59,28 +62,57 @@ owns the lifecycle of in‑cluster resources.
 
 ## Component Roles
 
-### TKA Server
+> [!NOTE]
+> See [Developer Documentation: Architecture](../reference/developer/architecture.md) for implementation details
+
+### TKA CLI [^dev-cli]
+
+- Provides a simple UX (`tka login`, `tka shell`)
+- Talks to the server, manages kubeconfigs
+- Makes ephemeral access feel like a normal `kubectl` workflow
+
+### TKA API Server [^dev-api-srv]
 
 - Runs inside the tailnet, exposes an HTTP API
 - Authenticates users via Tailscale WhoIs + ACLs
 - Writes `TkaSignin` resources into the cluster
 - Returns kubeconfigs with ephemeral tokens
 
-### TKA Operator
+### TKA Operator [^dev-k8s-oper]
 
 - Watches for `TkaSignin` resources
 - Creates/deletes ServiceAccounts and RoleBindings
 - Generates tokens and cleans up expired sessions
 
-### TKA CLI
+### TKA Orchestrator [^dev-orchestrator]
 
-- Provides a simple UX (`tka login`, `tka shell`)
-- Talks to the server, manages kubeconfigs
-- Makes ephemeral access feel like a normal `kubectl` workflow
+- Provides cluster discovery
+
+[^dev-cli]: [Developer Architecture Reference | System Components | 1. TKA CLI](../reference/developer/architecture.md#1-tka-cli)
+[^dev-api-srv]: [Developer Architecture Reference | System Components | 2. TKA Server](../reference/developer/architecture.md#2-tka-server)
+[^dev-k8s-oper]: [Developer Architecture Reference | System Components | 3. TKA Operator (Controller)](../reference/developer/architecture.md#3-tka-operator-controller)
+[^dev-orchestrator]: [Developer Architecture Reference | System Components | 4. TKA Orchestrator](../reference/developer/architecture.md#4-tka-orchestrator)
 
 ## How It Fits Together
 
-Think of TKA as a **bridge**:
+Think of TKA as a bridge:
+
+```mermaid
+flowchart LR
+  subgraph Left["Tailscale"]
+    Tailscale["*who you are*<br/>device + user identity"]
+  end
+
+  subgraph Middle["TKA"]
+    TKA["*glue logic*<br/>issues short‑lived credentials"]
+  end
+
+  subgraph Right["Kubernetes"]
+    Kubernetes["*what you can do*<br/>RBAC / Policy Enforcement"]
+  end
+
+  Tailscale --> TKA --> Kubernetes
+```
 
 - On one side: Tailscale provides *who you are* (device + user identity).
 - On the other: Kubernetes enforces *what you can do* (RBAC).

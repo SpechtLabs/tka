@@ -15,7 +15,8 @@ type ClusterListItem struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 }
 
-// NewClusterListResponse creates a new ClusterListResponse
+// NewClusterListResponse creates a new ClusterListResponse with the provided cluster items.
+// This constructor supports variadic arguments for convenient list creation.
 func NewClusterListResponse(items ...ClusterListItem) ClusterListResponse {
 	return ClusterListResponse{
 		Items: items,

@@ -162,13 +162,17 @@ type WhoIsInfo struct {
 }
 ```
 
-### WhoIsFunc
+### WhoIsResolver
 
-Function signature for identity resolution:
+Interface for identity resolution:
 
 ```go
-type WhoIsFunc func(ctx context.Context, remoteAddr string) (*WhoIsInfo, error)
+type WhoIsResolver interface {
+    WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error)
+}
 ```
+
+This interface is implemented by the `tailscale.Server` and can be mocked for testing with the `pkg/tailscale/mock` package.
 
 ## API Reference
 
@@ -359,14 +363,6 @@ if err := server.Shutdown(shutdownCtx); err != nil {
     log.Printf("Shutdown error: %v", err)
 }
 ```
-
-#### Identity
-
-```go
-func (s *Server) Identity() WhoIsFunc
-```
-
-Returns a function for resolving client identity information.
 
 #### WhoIs
 
@@ -568,7 +564,7 @@ func authMiddleware(server *tailscale.Server) func(http.Handler) http.Handler {
 ```
 
 > [!TIP]
-> To see a Gin-Authentication Middleware in action, check out the [tka source code on GitHub](https://github.com/SpechtLabs/tka/blob/main/pkg/middleware/auth/tailscale/gin.go)
+> To see a Gin-Authentication Middleware in action, check out the [tka source code on GitHub](https://github.com/SpechtLabs/tka/blob/main/pkg/middleware/auth/gin.go)
 
 ## Security Considerations
 

@@ -9,16 +9,12 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/pkg/api"
-	"github.com/spechtlabs/tka/pkg/auth/capability"
-	authoperator "github.com/spechtlabs/tka/pkg/auth/operator"
-	mwtailscale "github.com/spechtlabs/tka/pkg/middleware/auth/tailscale"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
+	authoperator "github.com/spechtlabs/tka/pkg/service/operator"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	"tailscale.com/tailcfg"
 )
 
 var (
@@ -100,23 +96,20 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return herr
 	}
 
-	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
-	mw := mwtailscale.NewGinAuthMiddlewareFromServer[capability.Rule](srv, capName)
-	authSvc := authoperator.New(k8sOperator)
-
-	tkaServer, err := api.NewTKAServer(nil, nil,
+	tkaServer, err := api.NewTKAServer(srv, nil,
 		api.WithDebug(debug),
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
-		api.WithAuthMiddleware(mw),
-		api.WithAuthService(authSvc),
-		api.WithTailnetServer(srv),
 	)
 	if err != nil {
 		cancelFn(err)
 		return err
 	}
 
-	tkaServer.LoadApiRoutes()
+	authSvc := authoperator.New(k8sOperator)
+	if err := tkaServer.LoadApiRoutes(authSvc); err != nil {
+		cancelFn(err)
+		return err
+	}
 
 	go func() {
 		if err := tkaServer.Serve(ctx); err != nil {

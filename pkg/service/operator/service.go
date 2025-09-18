@@ -5,16 +5,28 @@ import (
 	"time"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/auth"
 	"github.com/spechtlabs/tka/pkg/operator"
+	"github.com/spechtlabs/tka/pkg/service"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-// Service implements auth.Service by delegating to operator.KubeOperator.
+// Service implements service.Service by delegating to a Kubernetes operator.
+// This is the production implementation that manages TKASignIn custom resources
+// in a Kubernetes cluster to handle user authentication and credential provisioning.
+//
+// The service:
+// Creates TKASignIn CRDs for new user sign-ins
+// Monitors CRD status to track provisioning progress
+// Generates kubeconfigs from provisioned credentials
+// Handles credential cleanup on logout
+//
+// Thread Safety: This implementation is safe for concurrent use.
 type Service struct {
 	operator *operator.KubeOperator
 }
 
+// New creates a new operator-based service implementation.
+// This is the primary constructor for production deployments.
 func New(op *operator.KubeOperator) *Service {
 	return &Service{operator: op}
 }
@@ -28,12 +40,12 @@ func (s *Service) SignIn(ctx context.Context, username string, role string, peri
 	return s.operator.SignInUser(ctx, username, role, period)
 }
 
-func (s *Service) Status(ctx context.Context, username string) (*auth.SignInInfo, humane.Error) {
+func (s *Service) Status(ctx context.Context, username string) (*service.SignInInfo, humane.Error) {
 	signIn, err := s.operator.GetSignInUser(ctx, username)
 	if err != nil {
 		return nil, err
 	}
-	return &auth.SignInInfo{
+	return &service.SignInInfo{
 		Username:       signIn.Spec.Username,
 		Role:           signIn.Spec.Role,
 		ValidityPeriod: signIn.Spec.ValidityPeriod,

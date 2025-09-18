@@ -16,6 +16,8 @@ type UserLoginResponse struct {
 	Until string `json:"until"`
 }
 
+// NewUserLoginResponse creates a new UserLoginResponse with the provided details.
+// This constructor ensures consistent response formatting across all authentication endpoints.
 func NewUserLoginResponse(username, role, until string) UserLoginResponse {
 	return UserLoginResponse{
 		Username: username,

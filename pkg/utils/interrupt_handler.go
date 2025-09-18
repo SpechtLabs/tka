@@ -1,3 +1,6 @@
+// Package utils provides common utility functions and helpers for the TKA service.
+// This package contains shared functionality for signal handling, observability,
+// and other cross-cutting concerns that are used throughout the application.
 package utils
 
 import (

@@ -10,18 +10,6 @@ import (
 // CtxConnKey is a context key used to store a net.Conn in an HTTP request's context.
 // This allows handlers to access the underlying network connection for advanced
 // inspection or connection-specific operations.
-//
-// Exported for tests and integration points that need to retrieve the connection.
-//
-// Example usage:
-//
-//	func handler(w http.ResponseWriter, r *http.Request) {
-//		if conn := r.Context().Value(tailscale.CtxConnKey{}); conn != nil {
-//			if netConn, ok := conn.(net.Conn); ok {
-//				fmt.Printf("Remote addr: %s", netConn.RemoteAddr())
-//			}
-//		}
-//	}
 type CtxConnKey struct{}
 
 // IsFunnelRequest checks if an HTTP request is coming over Tailscale Funnel.
@@ -33,17 +21,6 @@ type CtxConnKey struct{}
 //
 // Returns true if the request came through Tailscale Funnel (public internet),
 // false if it came directly through the tailnet.
-//
-// Example usage:
-//
-//	func authHandler(w http.ResponseWriter, r *http.Request) {
-//		if tailscale.IsFunnelRequest(r) {
-//			http.Error(w, "Access denied: Funnel requests not allowed",
-//				http.StatusForbidden)
-//			return
-//		}
-//		// Handle authenticated tailnet request
-//	}
 //
 // Security note: Always check for Funnel requests in authentication-sensitive
 // handlers, as Funnel traffic bypasses Tailscale's device authentication.

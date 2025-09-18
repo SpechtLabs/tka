@@ -6,8 +6,9 @@ import (
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/api"
-	"github.com/spechtlabs/tka/pkg/auth/capability"
-	"github.com/spechtlabs/tka/pkg/auth/mock"
+	"github.com/spechtlabs/tka/pkg/service"
+	"github.com/spechtlabs/tka/pkg/service/capability"
+	"github.com/spechtlabs/tka/pkg/service/mock"
 	"github.com/stretchr/testify/require"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -20,7 +21,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		setup           func()
+		setup           func(m *mock.MockAuthService) service.Service
 		headers         map[string]string
 		expectedStatus  int
 		expectRetry     bool
@@ -29,14 +30,20 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			name:           "success JSON",
-			setup:          func() { m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return cfg, nil } },
+			name: "success JSON",
+			setup: func(m *mock.MockAuthService) service.Service {
+				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return cfg, nil }
+				return m
+			},
 			expectedStatus: http.StatusOK,
 			expectedCT:     "application/json",
 		},
 		{
-			name:           "success YAML",
-			setup:          func() { m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return cfg, nil } },
+			name: "success YAML",
+			setup: func(m *mock.MockAuthService) service.Service {
+				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return cfg, nil }
+				return m
+			},
 			headers:        map[string]string{"Accept": "application/yaml"},
 			expectedStatus: http.StatusOK,
 			expectedCT:     "application/yaml",
@@ -44,8 +51,9 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		},
 		{
 			name: "not found -> 401",
-			setup: func() {
+			setup: func(m *mock.MockAuthService) service.Service {
 				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return nil, noSigninError }
+				return m
 			},
 			expectedStatus:  http.StatusUnauthorized,
 			expectRetry:     true,
@@ -53,8 +61,9 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		},
 		{
 			name: "generic error -> 500",
-			setup: func() {
+			setup: func(m *mock.MockAuthService) service.Service {
 				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return nil, humane.New("boom") }
+				return m
 			},
 			expectedStatus:  http.StatusInternalServerError,
 			expectRetry:     true,
@@ -64,7 +73,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.setup()
+			tc.setup(m.(*mock.MockAuthService))
 			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.KubeconfigApiRoute, tc.headers, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode, string(body))
 			if tc.expectedCT != "" {

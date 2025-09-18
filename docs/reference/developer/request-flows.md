@@ -72,7 +72,7 @@ sequenceDiagram
 sequenceDiagram
     participant cli as tka cli (cmd/cli)
     participant api as API (pkg/api)
-    participant auth as gin tailscale auth middleware<br/> (pkg/middleware/auth/tailscale)
+    participant auth as gin tailscale auth middleware<br/> (pkg/middleware/auth)
     participant ts as Tailscale API
 
     cli->>api: POST /api/v1alpha1/login
@@ -84,7 +84,7 @@ sequenceDiagram
     end
 
     auth->>auth: get WhoIs resolver
-    Note right of auth: WhoIs resolver is defined as WhoIsFunc in <br/> pkg/middleware/auth/tailscale
+    Note right of auth: WhoIs resolver is defined as tailscale.WhoIsResolver in <br/> pkg/tailscale
 
     alt request is from a tagged node
         auth-->>cli: HTTP 403 - Requests can only originate from users

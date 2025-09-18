@@ -11,26 +11,29 @@ import (
 	"github.com/gin-gonic/gin"
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/api"
-	"github.com/spechtlabs/tka/pkg/auth"
-	"github.com/spechtlabs/tka/pkg/auth/capability"
-	mwMock "github.com/spechtlabs/tka/pkg/middleware/mock"
+	mwMock "github.com/spechtlabs/tka/pkg/middleware/auth/mock"
 	"github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service"
+	"github.com/spechtlabs/tka/pkg/service/capability"
+	"github.com/spechtlabs/tka/pkg/service/mock"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func newTestServer(t *testing.T, auth auth.Service, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
+func newTestServer(t *testing.T, auth service.Service, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
+	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}
 
-	srv, err := api.NewTKAServer(
-		nil,
-		nil,
-		api.WithAuthService(auth),
-		api.WithAuthMiddleware(&mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}),
+	srv, err := api.NewTKAServer(nil, nil,
+		api.WithAuthMiddleware(authMwMock),
 	)
 	require.NoError(t, err)
+
+	if err := srv.LoadApiRoutes(auth); err != nil {
+		t.Fatalf("failed to load api routes: %v", err)
+	}
 
 	ts := httptest.NewServer(srv.Engine())
 	t.Cleanup(ts.Close)
@@ -72,26 +75,91 @@ var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group
 
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	s, err := api.NewTKAServer(nil, nil)
+	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
+	s, err := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
 	require.NoError(t, err)
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
-	s.LoadApiRoutes()
+	authSvc := mock.NewMockAuthService()
 
-	expected := map[string]bool{
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:     false,
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:      false,
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute: false,
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:    false,
+	require.Error(t, s.LoadApiRoutes(nil))
+	require.NoError(t, s.LoadApiRoutes(authSvc))
+
+	// Maps the key to if the route is expected
+	expected := map[string]struct {
+		Expected bool
+		Seen     bool
+	}{
+		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:          {Expected: true, Seen: false},
+		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:           {Expected: true, Seen: false},
+		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute:      {Expected: true, Seen: false},
+		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:         {Expected: true, Seen: false},
+		http.MethodGet + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute:  {Expected: false, Seen: false},
+		http.MethodPost + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute: {Expected: false, Seen: false},
 	}
+
 	for _, r := range s.Engine().Routes() {
 		key := r.Method + " " + r.Path
 		if _, ok := expected[key]; ok {
-			expected[key] = true
+			status := expected[key]
+			status.Seen = true
+			expected[key] = status
 		}
 	}
-	for k, seen := range expected {
-		require.True(t, seen, "missing route %s", k)
+
+	for route, status := range expected {
+		if status.Expected && !status.Seen {
+			t.Errorf("missing route %s", route)
+		}
+		if !status.Expected && status.Seen {
+			t.Errorf("unexpected route %s", route)
+		}
+	}
+}
+
+func TestNewTKAServer_OrchestratorRoutesRegistered(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
+
+	s, err := api.NewTKAServer(nil, nil,
+		api.WithAuthMiddleware(authMwMock),
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, s)
+	require.NotNil(t, s.Engine())
+
+	require.NoError(t, s.LoadOrchestratorRoutes())
+
+	// Maps the key to if the route is expected
+	expected := map[string]struct {
+		Expected bool
+		Seen     bool
+	}{
+		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:          {Expected: false, Seen: false},
+		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:           {Expected: false, Seen: false},
+		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute:      {Expected: false, Seen: false},
+		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:         {Expected: false, Seen: false},
+		http.MethodGet + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute:  {Expected: true, Seen: false},
+		http.MethodPost + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute: {Expected: true, Seen: false},
+	}
+
+	for _, r := range s.Engine().Routes() {
+		key := r.Method + " " + r.Path
+		if _, ok := expected[key]; ok {
+			status := expected[key]
+			status.Seen = true
+			expected[key] = status
+		}
+	}
+
+	for route, status := range expected {
+		if status.Expected && !status.Seen {
+			t.Errorf("missing route %s", route)
+		}
+		if !status.Expected && status.Seen {
+			t.Errorf("unexpected route %s", route)
+		}
 	}
 }

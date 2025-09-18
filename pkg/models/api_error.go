@@ -1,3 +1,6 @@
+// Package models defines data structures and types used throughout the TKA service.
+// This package contains API request/response models, error types, and other
+// shared data structures that are used by both the HTTP layer and business logic.
 package models
 
 import (
@@ -25,11 +28,14 @@ type ErrorResponse struct {
 	StatusCode int `json:"-"`
 }
 
+// NewErrorResponse creates a new ErrorResponse by wrapping an optional cause error.
+// This is a convenience constructor for creating structured error responses in HTTP handlers.
 func NewErrorResponse(message string, cause error) *ErrorResponse {
 	return FromHumaneError(humane.Wrap(cause, message))
 }
 
-// FromHumaneError converts a humane.Error to an ErrorResponse for serialization
+// FromHumaneError converts a humane.Error to an ErrorResponse for JSON serialization.
+// This is the primary way to convert business logic errors into HTTP API responses.
 func FromHumaneError(err humane.Error) *ErrorResponse {
 	if err == nil {
 		return nil

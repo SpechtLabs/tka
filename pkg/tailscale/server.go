@@ -375,17 +375,13 @@ func (s *Server) ListenAndServe() error {
 	return nil
 }
 
-// Identity returns a WhoIsFunc backed by this server's tailscale local client.
-func (s *Server) Identity() WhoIsFunc {
-	return s.WhoIs
-}
-
 // WhoIs resolves identity information for a remote address using the tailscale local client.
-func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, error) {
+func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error) {
 	who, err := s.lc.WhoIs(ctx, remoteAddr)
 	if err != nil {
-		return nil, err
+		return nil, humane.Wrap(err, "failed to get WhoIs", "check (debug) logs for more details")
 	}
+
 	info := &WhoIsInfo{
 		LoginName: who.UserProfile.LoginName,
 		CapMap:    who.CapMap,

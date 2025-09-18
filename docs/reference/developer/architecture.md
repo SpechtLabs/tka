@@ -10,23 +10,84 @@ It describes the components, APIs, resources, and control flows in detail.
 
 ## System Components
 
-### 1. TKA Server
+### Package Architecture
+
+TKA follows a clean architecture with well-defined layers:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ CLI Layer (cmd/cli)                                         │
+│ ├── HTTP client requests                                    │
+│ └── Shell integration                                       │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ HTTP API Layer (pkg/api)                                    │
+│ ├── Gin router and handlers                                 │
+│ ├── Request/response models (pkg/models)                    │
+│ └── Authentication middleware (pkg/middleware/auth)         │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ Business Logic Layer (pkg/service)                          │
+│ ├── Service interface                                       │
+│ ├── Operator implementation (pkg/service/operator)          │
+│ └── Mock implementation (pkg/service/mock)                  │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ Infrastructure Layer                                        │
+│ ├── Kubernetes operator (pkg/operator)                      │
+│ ├── Tailscale networking (pkg/tailscale)                    │
+│ └── Utility functions (pkg/utils)                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1. TKA CLI
+
+**Responsibilities**:
+
+- Provide user‑facing commands (`login`, `logout`, `shell`, etc.)
+- Construct API requests to TKA Server
+- Manage kubeconfig files
+- Integrate with shell environments
+- Display session information
+
+**Command Tree**:
+
+```text
+tka
+├── login          # Authenticate and get kubeconfig
+├── logout         # Revoke access and cleanup
+├── shell          # Start subshell with temp access
+├── kubeconfig     # Fetch current kubeconfig
+├── reauthenticate # Refresh credentials
+├── get            # Status and information commands
+│   ├── login      # Show current login status
+│   └── kubeconfig # Alias for kubeconfig command
+└── integration    # Generate shell integration code
+```
+
+> [!TIP]
+> Check out the full [CLI Reference](../cli.md) that is auto generated using the Cobra documentation of each command
+
+### 2. TKA Server
 
 **Responsibilities**:
 
 - Expose REST API over `tsnet` (tailnet‑only)
 - Authenticate users via a dedicated Gin middleware that integrates with Tailscale `WhoIs`. The middleware extracts the username and capability from the request context before passing control to the handlers. (See [Request Flows: Tailscale Auth Middleware])
 - Validate ACL capabilities (role + validity period)
-- Write `TkaSignin` CRDs into the Kubernetes cluster
+- Delegate business logic to service layer (`pkg/service`)
+- Write `TkaSignin` CRDs into the Kubernetes cluster via operator service
 - Return kubeconfigs with ephemeral ServiceAccount tokens
 
 [Request Flows: Tailscale Auth Middleware]: ./request-flows.md#tailscale-auth-middleware
 
 **Implementation**:
 
-- **Networking**: [`tsnet`](./tailscale-server.md)
-- **HTTP**: Gin router + [middleware][Request Flows: Tailscale Auth Middleware]
-- **Kubernetes API**: `client-go`
+- **Networking**: [`pkg/tailscale`](./tailscale-server.md) - Tailscale-only HTTP server
+- **HTTP**: Gin router + authentication middleware (`pkg/middleware/auth`)
+- **Business Logic**: Service layer (`pkg/service`) with operator implementation
+- **Data Models**: Structured API models (`pkg/models`)
+- **Kubernetes API**: `client-go` via operator service
 - **Observability**: OpenTelemetry (traces, metrics, logs)
 
 **Deployment**:
@@ -36,11 +97,51 @@ It describes the components, APIs, resources, and control flows in detail.
 
 **API Endpoints**:
 
-- `POST /api/v1alpha1/login` → authenticate user, create `TkaSignin`
-- `GET /api/v1alpha1/kubeconfig` → return kubeconfig for active session
-- `POST /api/v1alpha1/logout` → revoke session
+**Authentication API (`/api/v1alpha1`)**:
 
-### 2. TKA Operator (Controller)
+- `POST /login` → authenticate user, create `TkaSignin`
+- `GET /login` → check current authentication status
+- `GET /kubeconfig` → return kubeconfig for active session
+- `POST /logout` → revoke session
+
+**Orchestrator API (`/orchestrator/v1alpha1`)**:
+
+- `GET /clusters` → list available clusters for user
+- `POST /clusters` → register new cluster (future)
+
+### 3. Middleware Layer (`pkg/middleware`)
+
+**Responsibilities**:
+
+- Handle cross-cutting concerns for HTTP requests
+- Provide authentication and authorization
+- Extract user identity from Tailscale network
+- Validate capability rules from Tailscale ACL
+
+**Implementation**:
+
+- **Base Interface**: `middleware.Middleware` - Generic middleware contract
+- **Auth Middleware**: `middleware/auth.ginAuthMiddleware` - Tailscale authentication
+- **Context Helpers**: `middleware/auth.GetUsername()`, `GetCapability()` - Access user data
+- **Mock Support**: `middleware/auth/mock.AuthMiddleware` - Testing middleware
+
+### 4. Service Layer (`pkg/service`)
+
+**Responsibilities**:
+
+- Abstract business logic from HTTP handlers
+- Provide stable interface for different implementations
+- Handle credential lifecycle management
+- Validate business rules and constraints
+
+**Implementation**:
+
+- **Interface**: `service.Service` - Core business operations
+- **Production**: `service/operator.Service` - Kubernetes operator integration
+- **Testing**: `service/mock.MockAuthService` - Configurable mock for tests
+- **Models**: `service.SignInInfo` - Router-agnostic authentication status
+
+### 5. TKA Operator (Controller)
 
 **Responsibilities**:
 
@@ -56,6 +157,7 @@ It describes the components, APIs, resources, and control flows in detail.
 - **Custom Resource**: `TkaSignin`
 - **RBAC**: ServiceAccount + RoleBinding management
 - **Metrics**: exposed at `/metrics/controller`
+- **Integration**: Used by `service/operator.Service`
 
 **Reconciliation Flow**:
 
@@ -84,33 +186,16 @@ stateDiagram-v2
     Check --> Delete: Expired
 ```
 
-### 3. TKA CLI
+### 6. TKA Orchestrator
 
 **Responsibilities**:
 
-- Provide user‑facing commands (`login`, `logout`, `shell`, etc.)
-- Construct API requests to TKA Server
-- Manage kubeconfig files
-- Integrate with shell environments
-- Display session information
+- Provide cluster discoverability to TKA
+- List all clusters available to a user
 
-**Command Tree**:
+**Implementation**:
 
-```text
-tka
-├── login          # Authenticate and get kubeconfig
-├── logout         # Revoke access and cleanup
-├── shell          # Start subshell with temp access
-├── kubeconfig     # Fetch current kubeconfig
-├── reauthenticate # Refresh credentials
-├── get            # Status and information commands
-│   ├── login      # Show current login status
-│   └── kubeconfig # Alias for kubeconfig command
-└── integration    # Generate shell integration code
-```
-
-> [!TIP]
-> Check out the full [CLI Reference](../cli.md) that is auto generated using the Cobra documentation of each command
+- TBD
 
 ## Resource Model
 

@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"github.com/spechtlabs/tka/pkg/auth/capability"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	"github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/capability"
 	"go.uber.org/zap"
 )
 

@@ -41,9 +41,6 @@ func TestServer_NewServer(t *testing.T) {
 			// Check that server is initialized
 			require.NotNil(t, s, "expected server to be initialized")
 
-			// Test that Identity function is available
-			require.NotNil(t, s.Identity(), "expected Identity to return a non-nil function")
-
 			// Test that server can be shutdown without being started
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()

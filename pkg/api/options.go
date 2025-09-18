@@ -1,22 +1,34 @@
 package api
 
 import (
-	"github.com/spechtlabs/tka/pkg/auth"
-	mw "github.com/spechtlabs/tka/pkg/middleware/auth"
-	ts "github.com/spechtlabs/tka/pkg/tailscale"
+	mw "github.com/spechtlabs/tka/pkg/middleware"
 )
 
-// Option defines a function type used to modify the configuration of a TKAServer during its initialization.
+// Option defines a functional option pattern for configuring TKAServer instances.
+// Options are applied during NewTKAServer() construction to customize server behavior.
+// This pattern allows for flexible, readable server configuration without complex constructors.
+//
+// Example usage:
+//
+//	server, err := NewTKAServer(tailscaleServer, nil,
+//	  WithDebug(true),
+//	  WithRetryAfterSeconds(10),
+//	  WithAuthMiddleware(mockAuth),
+//	)
 type Option func(*TKAServer)
 
-// WithDebug enables or disables debug mode for the TKAServer.
+// WithDebug configures debug mode for the TKAServer.
+// When enabled, the server runs in Gin's debug mode with verbose logging.
+// When disabled, the server runs in release mode for better performance.
 func WithDebug(enable bool) Option {
 	return func(tka *TKAServer) {
 		tka.debug = enable
 	}
 }
 
-// WithRetryAfterSeconds configures the default Retry-After value used by 202 responses.
+// WithRetryAfterSeconds configures the Retry-After header value for asynchronous operations.
+// This affects HTTP 202 (Accepted) responses when credentials are being provisioned.
+// The value tells clients how long to wait before polling for completion.
 func WithRetryAfterSeconds(seconds int) Option {
 	return func(tka *TKAServer) {
 		if seconds > 0 {
@@ -25,23 +37,11 @@ func WithRetryAfterSeconds(seconds int) Option {
 	}
 }
 
-// WithAuthService injects a custom AuthService implementation for the API handlers.
-func WithAuthService(svc auth.Service) Option {
+// WithAuthMiddleware replaces the default Tailscale authentication middleware.
+// This is primarily used for testing with mock authentication or for custom
+// authentication implementations.
+func WithAuthMiddleware(m mw.Middleware) Option {
 	return func(tka *TKAServer) {
-		tka.auth = svc
-	}
-}
-
-// WithAuthMiddleware injects a custom AuthMiddleware implementation for the API router.
-func WithAuthMiddleware(mw mw.Middleware) Option {
-	return func(tka *TKAServer) {
-		tka.authMW = mw
-	}
-}
-
-// WithTailnetServer injects the tailscale-backed server used to serve the HTTP API.
-func WithTailnetServer(s *ts.Server) Option {
-	return func(tka *TKAServer) {
-		tka.tsServer = s
+		tka.authMiddleware = m
 	}
 }

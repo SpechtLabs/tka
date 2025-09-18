@@ -3,6 +3,7 @@ package tailscale
 import (
 	"context"
 
+	"github.com/sierrasoftworks/humane-errors-go"
 	"tailscale.com/tailcfg"
 )
 
@@ -22,13 +23,13 @@ type WhoIsInfo struct {
 	IsTagged bool
 }
 
-// WhoIsFunc is a function that resolves identity information for a remote address.
+// WhoIsResolver is a function that resolves identity information for a remote address.
 // Implementations typically use Tailscale's local client to perform WhoIs lookups
 // on the provided remote address.
 //
 // Example usage:
 //
-//	info, err := whoIsFunc(ctx, request.RemoteAddr)
+//	info, err := whoIsResolver.WhoIs(ctx, request.RemoteAddr)
 //	if err != nil {
 //		// Handle authentication failure
 //		return fmt.Errorf("identity lookup failed: %w", err)
@@ -38,10 +39,6 @@ type WhoIsInfo struct {
 //		// Handle service account differently
 //		return handleServiceAccount(info)
 //	}
-//
-//	// Check for required capability
-//	if caps, ok := info.CapMap["example.com/cap/admin"]; ok {
-//		// User has admin capabilities
-//		return handleAdminRequest(info, caps)
-//	}
-type WhoIsFunc func(ctx context.Context, remoteAddr string) (*WhoIsInfo, error)
+type WhoIsResolver interface {
+	WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error)
+}
