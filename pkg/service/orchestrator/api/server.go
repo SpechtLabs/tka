@@ -105,11 +105,6 @@ func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Err
 	// Setup Gin router
 	tkaServer.router = utils.NewO11yGin("tka_server", tkaServer.debug)
 
-	// Install auth middleware
-	if tkaServer.authMiddleware != nil {
-		tkaServer.authMiddleware.Use(tkaServer.router, tkaServer.tracer)
-	}
-
 	tkaServer.loadStaticRoutes()
 	return tkaServer, nil
 }
@@ -146,6 +141,12 @@ func (t *TKAServer) loadStaticRoutes() {
 //	}
 func (t *TKAServer) LoadOrchestratorRoutes() humane.Error {
 	v1alpha1Grpup := t.router.Group(OrchestratorRouteV1Alpha1)
+
+	// Install auth middleware only on the orchestrator route group
+	if t.authMiddleware != nil {
+		t.authMiddleware.UseGroup(v1alpha1Grpup, t.tracer)
+	}
+
 	v1alpha1Grpup.GET(ClustersRoute, t.getClusters)
 	v1alpha1Grpup.POST(ClustersRoute, t.registerCluster)
 	return nil

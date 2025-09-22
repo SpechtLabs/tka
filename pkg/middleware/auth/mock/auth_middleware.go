@@ -32,3 +32,17 @@ func (m *AuthMiddleware) Use(e *gin.Engine, _ trace.Tracer) {
 		}
 	})
 }
+
+// UseGroup installs the mock authentication middleware into the provided Gin router group.
+// This method implements the middleware.Middleware interface for testing.
+//
+// The mock middleware simulates successful authentication for testing scenarios
+// where predictable user context is needed without network dependencies.
+func (m *AuthMiddleware) UseGroup(rg *gin.RouterGroup, _ trace.Tracer) {
+	rg.Use(func(c *gin.Context) {
+		mwauth.SetUsername(c, m.Username)
+		if !m.OmitRule {
+			mwauth.SetCapability(c, m.Rule)
+		}
+	})
+}

@@ -11,4 +11,5 @@ import (
 // Middleware abstracts auth integration for the API, enabling tests to inject a mock.
 type Middleware interface {
 	Use(e *gin.Engine, tracer trace.Tracer)
+	UseGroup(rg *gin.RouterGroup, tracer trace.Tracer)
 }

@@ -71,6 +71,14 @@ func (m *ginAuthMiddleware[capRule]) Use(e *gin.Engine, tracer trace.Tracer) {
 	e.Use(m.handler(tracer))
 }
 
+// UseGroup installs the authentication middleware into the provided Gin router group.
+// This method implements the middleware.Middleware interface.
+// The middleware will only be applied to routes within this specific group,
+// allowing unauthenticated routes (like health checks) to exist alongside authenticated APIs.
+func (m *ginAuthMiddleware[capRule]) UseGroup(rg *gin.RouterGroup, tracer trace.Tracer) {
+	rg.Use(m.handler(tracer))
+}
+
 func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFunc {
 	return func(ct *gin.Context) {
 		req := ct.Request

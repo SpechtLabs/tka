@@ -125,11 +125,6 @@ func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Err
 	// Setup Gin router
 	tkaServer.router = utils.NewO11yGin("tka_server", tkaServer.debug)
 
-	// Install auth middleware
-	if tkaServer.authMiddleware != nil {
-		tkaServer.authMiddleware.Use(tkaServer.router, tkaServer.tracer)
-	}
-
 	tkaServer.loadStaticRoutes()
 	return tkaServer, nil
 }
@@ -175,6 +170,12 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	t.client = svc
 
 	v1alpha1Grpup := t.router.Group(ApiRouteV1Alpha1)
+
+	// Install auth middleware only on the API route group
+	if t.authMiddleware != nil {
+		t.authMiddleware.UseGroup(v1alpha1Grpup, t.tracer)
+	}
+
 	v1alpha1Grpup.POST(LoginApiRoute, t.login)
 	v1alpha1Grpup.GET(LoginApiRoute, t.getLogin)
 	v1alpha1Grpup.GET(KubeconfigApiRoute, t.getKubeconfig)
