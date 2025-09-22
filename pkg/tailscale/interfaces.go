@@ -18,9 +18,13 @@ type WhoIsInfo struct {
 	// Keys are capability names, values are the granted capabilities.
 	CapMap tailcfg.PeerCapMap
 
-	// IsTagged indicates whether the source connection is from a tagged device.
-	// Tagged devices represent service accounts rather than human users.
-	IsTagged bool
+	Tags []string
+}
+
+// IsTagged indicates whether the source connection is from a tagged device.
+// Tagged devices represent service accounts rather than human users.
+func (w *WhoIsInfo) IsTagged() bool {
+	return len(w.Tags) > 0
 }
 
 // WhoIsResolver is a function that resolves identity information for a remote address.
@@ -41,4 +45,9 @@ type WhoIsInfo struct {
 //	}
 type WhoIsResolver interface {
 	WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error)
+}
+
+// TailscaleCapability is an interface that represents a capability that can be granted to a user.
+type TailscaleCapability interface {
+	Priority() int
 }

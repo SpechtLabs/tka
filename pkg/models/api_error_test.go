@@ -30,10 +30,12 @@ func TestNewErrorResponse(t *testing.T) {
 			},
 		},
 		{
-			name:     "nil_cause",
-			message:  "validation failed",
-			cause:    nil,
-			expected: nil,
+			name:    "nil_cause",
+			message: "validation failed",
+			cause:   nil,
+			expected: &ErrorResponse{
+				Message: "validation failed",
+			},
 		},
 		{
 			name:    "empty_message",
@@ -50,9 +52,68 @@ func TestNewErrorResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Helper()
-
 			got := NewErrorResponse(tt.message, tt.cause)
+			assertErrorResponseEqual(t, got, tt.expected)
+		})
+	}
+}
+
+func TestNewErrorResponseWithMultipleCauses(t *testing.T) {
+	t.Helper()
+
+	tests := []struct {
+		name     string
+		message  string
+		cause    []error
+		expected *ErrorResponse
+	}{
+		{
+			name:    "multiple_causes",
+			message: "service unavailable",
+			cause:   []error{errors.New("operation failed"), errors.New("database connection lost")},
+			expected: &ErrorResponse{
+				Message: "service unavailable",
+				Cause: &ErrorResponse{
+					Message: "operation failed",
+					Cause: &ErrorResponse{
+						Message: "database connection lost",
+					},
+				},
+			},
+		},
+		{
+			name:    "multiple_causes_with_nil",
+			message: "service unavailable",
+			cause:   []error{errors.New("operation failed"), errors.New("database connection lost"), nil},
+			expected: &ErrorResponse{
+				Message: "service unavailable",
+				Cause: &ErrorResponse{
+					Message: "operation failed",
+					Cause: &ErrorResponse{
+						Message: "database connection lost",
+					},
+				},
+			},
+		},
+		{
+			name:    "multiple_causes_with_nil",
+			message: "service unavailable",
+			cause:   []error{nil, errors.New("operation failed"), errors.New("database connection lost")},
+			expected: &ErrorResponse{
+				Message: "service unavailable",
+				Cause: &ErrorResponse{
+					Message: "operation failed",
+					Cause: &ErrorResponse{
+						Message: "database connection lost",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewErrorResponse(tt.message, tt.cause...)
 			assertErrorResponseEqual(t, got, tt.expected)
 		})
 	}
@@ -238,8 +299,6 @@ func TestErrorResponse_JSON_RoundTrip(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Helper()
-
 			// Test marshaling
 			gotJSON, err := json.Marshal(tt.input)
 			if err != nil {
@@ -279,6 +338,16 @@ func TestErrorResponse_JSON_Unmarshal_InvalidJSON(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name:        "invalid_json_2",
+			input:       `{"message": "ok",`,
+			expectError: true,
+		},
+		{
+			name:        "invalid_json_3",
+			input:       `not-json-at-all`,
+			expectError: true,
+		},
+		{
 			name:        "valid_json",
 			input:       `{"message": "test"}`,
 			expectError: false,
@@ -292,8 +361,6 @@ func TestErrorResponse_JSON_Unmarshal_InvalidJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Helper()
-
 			var got ErrorResponse
 			err := json.Unmarshal([]byte(tt.input), &got)
 
@@ -349,13 +416,15 @@ func assertErrorResponseEqual(t *testing.T, got, expected *ErrorResponse) {
 
 	if expected == nil {
 		if got != nil {
-			t.Errorf("expected nil, got %+v", got)
+			json, _ := json.Marshal(got)
+			t.Errorf("expected 'nil', got '%s'", json)
 		}
 		return
 	}
 
+	expectedJson, _ := json.Marshal(expected)
 	if got == nil {
-		t.Errorf("expected %+v, got nil", expected)
+		t.Errorf("expected '%s', got 'nil'", expectedJson)
 		return
 	}
 

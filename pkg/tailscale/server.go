@@ -385,7 +385,7 @@ func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, huma
 	info := &WhoIsInfo{
 		LoginName: who.UserProfile.LoginName,
 		CapMap:    who.CapMap,
-		IsTagged:  who.Node.View().IsTagged(),
+		Tags:      who.Node.Tags,
 	}
 	return info, nil
 }

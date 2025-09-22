@@ -29,9 +29,32 @@ type ErrorResponse struct {
 }
 
 // NewErrorResponse creates a new ErrorResponse by wrapping an optional cause error.
-// This is a convenience constructor for creating structured error responses in HTTP handlers.
-func NewErrorResponse(message string, cause error) *ErrorResponse {
-	return FromHumaneError(humane.Wrap(cause, message))
+// If multiple causes are provided, they are wrapped in order such that
+// the first cause is caused by the second, and so on.
+func NewErrorResponse(message string, cause ...error) *ErrorResponse {
+	// Filter out nils so we never try to wrap them
+	nonNilCauses := make([]error, 0, len(cause))
+	for _, c := range cause {
+		if c != nil {
+			nonNilCauses = append(nonNilCauses, c)
+		}
+	}
+
+	// If no real causes left, just return the message alone
+	if len(nonNilCauses) == 0 {
+		return FromHumaneError(humane.New(message))
+	}
+
+	// Build from the last cause (deepest)
+	herr := humane.New(nonNilCauses[len(nonNilCauses)-1].Error())
+
+	// Wrap each earlier one around it
+	for i := len(nonNilCauses) - 2; i >= 0; i-- {
+		herr = humane.Wrap(herr, nonNilCauses[i].Error())
+	}
+
+	// Finally, wrap with the external message
+	return FromHumaneError(humane.Wrap(herr, message))
 }
 
 // FromHumaneError converts a humane.Error to an ErrorResponse for JSON serialization.
@@ -110,9 +133,5 @@ func (e *ErrorResponse) UnmarshalJSON(data []byte) error {
 		Alias: (*Alias)(e),
 	}
 
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(data, &aux)
 }

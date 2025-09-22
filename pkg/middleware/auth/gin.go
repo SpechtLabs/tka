@@ -5,12 +5,15 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	// misc
 	"github.com/gin-gonic/gin"
 	"github.com/sierrasoftworks/humane-errors-go"
+	"go.uber.org/zap"
 	"tailscale.com/tailcfg"
 
 	// o11y
@@ -18,6 +21,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	// tka
+	mw "github.com/spechtlabs/tka/pkg/middleware"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spechtlabs/tka/pkg/tailscale"
 )
@@ -32,20 +36,30 @@ import (
 //  3. Rejects tagged nodes (service accounts)
 //  4. Extracts and validates capability rules from Tailscale ACLs
 //  5. Stores username and capability in Gin context for handlers
-type ginAuthMiddleware[capRule any] struct {
-	capName  tailcfg.PeerCapability
-	resolver tailscale.WhoIsResolver
+type ginAuthMiddleware[capRule tailscale.TailscaleCapability] struct {
+	capName     tailcfg.PeerCapability
+	resolver    tailscale.WhoIsResolver
+	allowTagged bool
+	allowFunnel bool
 }
 
 // NewGinAuthMiddleware creates a new Tailscale authentication middleware for Gin.
 // The middleware extracts capability rules from Tailscale ACL for each request,
 // makes username and rule available via GetUsername() and GetCapability(),
 // and rejects unauthorized users with appropriate HTTP status codes.
-func NewGinAuthMiddleware[capRule any](resolver tailscale.WhoIsResolver, capName tailcfg.PeerCapability) *ginAuthMiddleware[capRule] {
-	return &ginAuthMiddleware[capRule]{
-		capName:  capName,
-		resolver: resolver,
+func NewGinAuthMiddleware[capRule tailscale.TailscaleCapability](resolver tailscale.WhoIsResolver, capName tailcfg.PeerCapability, opts ...Option[capRule]) mw.Middleware {
+	mw := &ginAuthMiddleware[capRule]{
+		capName:     capName,
+		resolver:    resolver,
+		allowTagged: false,
+		allowFunnel: false,
 	}
+
+	for _, opt := range opts {
+		opt(mw)
+	}
+
+	return mw
 }
 
 // Use installs the authentication middleware into the provided Gin engine.
@@ -67,9 +81,9 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 		// This URL is visited by the user who is being authenticated. If they are
 		// visiting the URL over Funnel, that means they are not part of the
 		// tailnet that they are trying to be authenticated for.
-		if tailscale.IsFunnelRequest(ct.Request) {
+		if tailscale.IsFunnelRequest(ct.Request) && !m.allowFunnel {
 			otelzap.L().ErrorContext(ctx, "Unauthorized request from Funnel")
-			ct.JSON(http.StatusForbidden, models.NewErrorResponse("Unauthorized request from Funnel", nil))
+			ct.JSON(http.StatusForbidden, models.NewErrorResponse("Unauthorized request from Funnel"))
 			ct.Abort()
 			return
 		}
@@ -84,9 +98,9 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 
 		// not sure if this is the right thing to do...
 		userName, _, _ := strings.Cut(who.LoginName, "@")
-		if who.IsTagged {
+		if who.IsTagged() && !m.allowTagged {
 			otelzap.L().ErrorContext(ctx, "tagged nodes not (yet) supported")
-			ct.JSON(http.StatusBadRequest, models.NewErrorResponse("tagged nodes not (yet) supported", nil))
+			ct.JSON(http.StatusBadRequest, models.NewErrorResponse("tagged nodes not (yet) supported"))
 			ct.Abort()
 			return
 		}
@@ -101,17 +115,27 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 
 		if len(rules) == 0 {
 			otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.")
-			ct.JSON(http.StatusForbidden, models.NewErrorResponse("User not authorized", nil))
+			ct.JSON(http.StatusForbidden, models.NewErrorResponse("User not authorized"))
 			ct.Abort()
 			return
 		}
 
-		if len(rules) > 1 {
-			// TODO(cedi): unsure what to do when having more than one cap...
-			otelzap.L().ErrorContext(ctx, "More than one capability rule found")
-			ct.JSON(http.StatusBadRequest, models.FromHumaneError(humane.New("More than one capability rule found", "Please ensure that you only have one capability rule for your user.", "If you have more than one, please contact the administrator of this system.")))
-			ct.Abort()
-			return
+		// If there are multiple rules, we need to sort them by priority.
+		sort.Slice(rules, func(i, j int) bool {
+			return rules[i].Priority() > rules[j].Priority()
+		})
+
+		// If multiple rules have the same priority, the rule evaluation can no longer be deterministic. Therefore we must reject the request.
+		for i := 0; i < len(rules)-1; i++ {
+			if rules[i].Priority() == rules[i+1].Priority() {
+				err := humane.New("Multiple capability rules with the same priority found",
+					"Please ensure that no two capability rules have the same priority as this will lead to an undefined behavior.",
+				)
+				otelzap.L().WithError(err).ErrorContext(ctx, err.Error(), zap.String("rules", fmt.Sprintf("%v", rules)))
+				ct.JSON(http.StatusBadRequest, models.FromHumaneError(err))
+				ct.Abort()
+				return
+			}
 		}
 
 		SetUsername(ct, userName)
