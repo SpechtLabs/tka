@@ -206,33 +206,4 @@ func (t *TKAServer) Shutdown(ctx context.Context) humane.Error {
 // Engine returns the underlying gin.Engine for advanced integration scenarios.
 // This method is primarily intended for testing and advanced embedding use cases
 // where direct access to the Gin router is required.
-//
-// Returns:
-//   - *gin.Engine: The underlying Gin router instance
-//
-// Use cases:
-//   - Adding custom middleware in tests
-//   - Embedding the server in larger applications
-//   - Advanced route inspection and modification
-//
-// Example:
-//
-//	engine := server.Engine()
-//	engine.Use(customTestMiddleware())
 func (t *TKAServer) Engine() *gin.Engine { return t.router }
-
-// Use attaches middleware to the underlying Gin router.
-// This method allows external packages and tests to add custom middleware
-// to the server's request processing pipeline.
-//
-// Parameters:
-//   - mw: One or more Gin middleware handler functions
-//
-// The middleware will be applied to all routes registered after this call.
-// For route-specific middleware, access the router via Engine() method.
-//
-// Example:
-//
-//	server.Use(gin.Logger())
-//	server.Use(customAuthMiddleware())
-func (t *TKAServer) Use(mw ...gin.HandlerFunc) { t.router.Use(mw...) }
