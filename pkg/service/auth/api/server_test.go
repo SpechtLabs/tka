@@ -76,8 +76,8 @@ var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-	s, err := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
-	require.NoError(t, err)
+	s, herr := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
+	require.NoError(t, herr)
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
@@ -97,6 +97,8 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:    {Expected: true, Seen: false},
 		http.MethodGet + " /orchestrator/v1alpha1/clusters":                  {Expected: false, Seen: false},
 		http.MethodPost + " /orchestrator/v1alpha1/clusters":                 {Expected: false, Seen: false},
+		http.MethodGet + " /metrics/controller":                              {Expected: true, Seen: false},
+		http.MethodGet + " /swagger":                                         {Expected: true, Seen: false},
 	}
 
 	for _, r := range s.Engine().Routes() {
@@ -116,4 +118,22 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 			t.Errorf("unexpected route %s", route)
 		}
 	}
+}
+
+func TestNewTKAServer_SwaggerRedirect(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
+	s, herr := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
+	require.NoError(t, herr)
+	require.NotNil(t, s)
+	require.NotNil(t, s.Engine())
+
+	// Create a test server for making HTTP requests
+	ts := httptest.NewServer(s.Engine())
+	defer ts.Close()
+
+	resp, _ := doReq(t, ts, http.MethodGet, "/swagger", nil, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusMovedPermanently, resp.Request.Response.StatusCode)
+	require.Equal(t, "/swagger/index.html", resp.Request.Response.Header.Get("Location"))
 }

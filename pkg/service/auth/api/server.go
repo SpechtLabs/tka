@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/http"
 
 	// gin
 	"github.com/gin-gonic/gin"
@@ -138,7 +139,7 @@ func (t *TKAServer) loadStaticRoutes() {
 	t.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Optionally, add a redirect from /swagger to /swagger/index.html
 	t.router.GET("/swagger", func(c *gin.Context) {
-		c.Redirect(301, "/swagger/index.html")
+		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
 	})
 }
 
