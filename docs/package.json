@@ -28,25 +28,25 @@
   },
   "homepage": "https://github.com/spechtlabs/tka#readme",
   "devDependencies": {
-    "@vuepress/bundler-vite": "^2.0.0-rc.23",
+    "@vuepress/bundler-vite": "^2.0.0-rc.24",
     "@vuepress/plugin-register-components": "2.0.0-rc.112",
     "http-server": "^14.1.1",
-    "sass-embedded": "^1.92.1",
+    "sass-embedded": "^1.93.0",
     "typescript": "^5.9.2",
     "vue": "^3.5.21",
     "vuepress": "2.0.0-rc.24",
-    "vuepress-theme-plume": "1.0.0-rc.162"
+    "vuepress-theme-plume": "1.0.0-rc.164"
   },
   "dependencies": {
     "@vue/component-compiler-utils": "^3.3.0",
     "lru-cache": "^11.2.1",
     "markdown-it-emoji": "^3.0.0",
-    "mermaid": "^11.11.0",
-    "swagger-ui-dist": "^5.28.1",
+    "mermaid": "^11.12.0",
+    "swagger-ui-dist": "^5.29.0",
     "vue-template-compiler": "^2.7.16"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.50.1",
+    "@rollup/rollup-linux-x64-gnu": "^4.52.0",
     "sass-embedded-linux-x64": "latest"
   },
   "scripts": {
