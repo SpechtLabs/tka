@@ -312,7 +312,11 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error {
 	// Get listener from tsnet
 	address := s.Addr
 	if address == "" {
-		address = ":http"
+		if s.port == 443 {
+			address = ":https"
+		} else {
+			address = ":http"
+		}
 	}
 
 	listener, err := s.ts.Listen("tcp", address)
