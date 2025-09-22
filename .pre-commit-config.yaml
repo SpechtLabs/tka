@@ -6,7 +6,7 @@ repos:
         entry: make generate
         language: system
         pass_filenames: false
-        files: ^pkg/api/.*\.go$
+        files: ^pkg/service/.*/api/.*\.go$
         stages: [pre-commit]
       - id: golangci-lint
         name: golangci-lint

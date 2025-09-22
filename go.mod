@@ -1,6 +1,6 @@
 module github.com/spechtlabs/tka
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/charmbracelet/bubbles v0.21.0
@@ -35,7 +35,7 @@ require (
 	k8s.io/client-go v0.34.0
 	sigs.k8s.io/controller-runtime v0.22.1
 	sigs.k8s.io/yaml v1.6.0
-	tailscale.com v1.86.5
+	tailscale.com v1.88.2
 )
 
 require (
@@ -85,7 +85,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/gaissmai/bart v0.18.0 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-json-experiment/json v0.0.0-20250223041408-d3c622f1b874 // indirect
+	github.com/go-json-experiment/json v0.0.0-20250813024750-ebf49471dced // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -161,7 +161,7 @@ require (
 	github.com/tailscale/wireguard-go v0.0.0-20250716170648-1d0488a3d7da // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	github.com/vishvananda/netns v0.0.4 // indirect
+	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
