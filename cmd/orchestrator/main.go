@@ -10,9 +10,9 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/cli/cmd"
+	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/api"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
-	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -8,11 +8,11 @@ import (
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/api"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
 	authoperator "github.com/spechtlabs/tka/pkg/service/operator"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
-	"github.com/spechtlabs/tka/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

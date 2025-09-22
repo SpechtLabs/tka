@@ -30,6 +30,11 @@ swag:
 	swag init --dir ./pkg/api --generalInfo server.go --output ./pkg/swagger --parseDependency --parseDepth 3
 
 .PHONY: test
-test:
+test: lint
 	go test -race ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out
+
+.PHONY: lint
+lint:
+	go vet ./...
+	golangci-lint run ./...

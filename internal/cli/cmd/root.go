@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
-	"github.com/spechtlabs/tka/pkg/utils"
+	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
