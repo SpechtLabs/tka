@@ -1,3 +1,5 @@
+//go:build unix
+
 package main
 
 import (
@@ -5,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -18,6 +19,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func init() {
+	cmdRoot.AddCommand(cmdShell)
+}
 
 var cmdShell = &cobra.Command{
 	Use:   "shell",
@@ -100,25 +105,17 @@ func cleanup(quiet bool, kubeCfgPath string) {
 
 // runShellWithContext runs a subshell with the given kubeconfig, handling context cancellation
 func runShellWithContext(ctx context.Context, kubeconfig string) error {
-	// 1. Check if we're on Windows
-	if runtime.GOOS == "windows" {
-		return humane.New("shell is not supported on Windows",
-			"If you want to use `tka shell` for spawning ephemeral subshells on Windows, consider using WSL",
-			"If you want to use tka on PowerShell, use `tka login` instead.",
-		)
-	}
-
-	// 2. Set up context for signal handling
+	// 1. Set up context for signal handling
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// 3. Get default shell
+	// 2. Get default shell
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/bash"
 	}
 
-	// 4. Create the subshell
+	// 3. Create the subshell
 	cmd := exec.CommandContext(ctx, shell)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -128,10 +125,10 @@ func runShellWithContext(ctx context.Context, kubeconfig string) error {
 		"PS1=(tka) "+os.Getenv("PS1"),
 	)
 
-	// 5. Forward signals to the child shell (for terminal control)
+	// 4. Forward signals to the child shell (for terminal control)
 	setupShellSignalHandler(ctx, cancel, cmd)
 
-	// 6. Run the subshell
+	// 5. Run the subshell
 	return cmd.Run()
 }
 

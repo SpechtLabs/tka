@@ -10,9 +10,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func main() {
-	cmdRoot := cmd.NewCliRootCmd()
+var (
+	cmdRoot = cmd.NewCliRootCmd()
+)
 
+func main() {
 	cmdGet := &cobra.Command{
 		Use:   "get <command>",
 		Short: "Retrieve read-only resources from TKA.",
@@ -64,9 +66,6 @@ tka generate kubeconfig`,
 	// Kubeconfig
 	cmdRoot.AddCommand(cmdKubeconfig)
 	cmdGet.AddCommand(cmdKubeconfig)
-
-	// Shell
-	cmdRoot.AddCommand(cmdShell)
 
 	// Sign out
 	cmdRoot.AddCommand(cmdSignout)
