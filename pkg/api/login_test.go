@@ -8,28 +8,28 @@ import (
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/api"
-	"github.com/spechtlabs/tka/pkg/service"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
+	"github.com/spechtlabs/tka/pkg/client/k8s/mock"
 	"github.com/spechtlabs/tka/pkg/service/capability"
-	"github.com/spechtlabs/tka/pkg/service/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoginHandler(t *testing.T) {
-	m := mock.NewMockAuthService()
+	m := mock.NewMockTkaClient()
 	period := "15m"
 	rule := capability.Rule{Role: "cluster-admin", Period: period}
 
 	tests := []struct {
 		name            string
 		rule            capability.Rule
-		setup           func(m *mock.MockAuthService) service.Service
+		setup           func(m *mock.MockTkaClient) k8s.TkaClient
 		expectedStatus  int
 		expectedMessage string
 	}{
 		{
 			name: "happy path",
 			rule: rule,
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
 				m.SignInFn = func(u, r string, d time.Duration) humane.Error {
 					require.Equal(t, "alice", u)
 					require.Equal(t, "cluster-admin", r)
@@ -44,20 +44,20 @@ func TestLoginHandler(t *testing.T) {
 		{
 			name:           "no cap rule",
 			rule:           capability.Rule{},
-			setup:          func(m *mock.MockAuthService) service.Service { return m },
+			setup:          func(m *mock.MockTkaClient) k8s.TkaClient { return m },
 			expectedStatus: http.StatusForbidden,
 		},
 		{
 			name:            "invalid period",
 			rule:            capability.Rule{Role: "dev", Period: "garbage"},
-			setup:           func(m *mock.MockAuthService) service.Service { return m },
+			setup:           func(m *mock.MockTkaClient) k8s.TkaClient { return m },
 			expectedStatus:  http.StatusInternalServerError,
 			expectedMessage: "Error parsing duration",
 		},
 		{
 			name: "signin not found maps to 404",
 			rule: rule,
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
 				m.SignInFn = func(string, string, time.Duration) humane.Error { return missingError }
 				return m
 			},
@@ -67,7 +67,7 @@ func TestLoginHandler(t *testing.T) {
 		{
 			name: "signin generic error maps to 500",
 			rule: rule,
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
 				m.SignInFn = func(string, string, time.Duration) humane.Error { return humane.New("boom") }
 				return m
 			},
@@ -78,7 +78,7 @@ func TestLoginHandler(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.setup(m.(*mock.MockAuthService))
+			tc.setup(m.(*mock.MockTkaClient))
 			_, ts := newTestServer(t, m, tc.rule)
 			resp, body := doReq(t, ts, http.MethodPost, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, map[string]string{})
 			require.Equal(t, tc.expectedStatus, resp.StatusCode, string(body))
@@ -100,16 +100,16 @@ func TestLoginHandler(t *testing.T) {
 func TestGetLoginHandler(t *testing.T) {
 	tests := []struct {
 		name            string
-		setup           func(m *mock.MockAuthService) service.Service
+		setup           func(m *mock.MockTkaClient) k8s.TkaClient
 		expectedStatus  int
 		expectRetry     bool
 		expectedMessage string
 	}{
 		{
 			name: "provisioned true -> 200",
-			setup: func(m *mock.MockAuthService) service.Service {
-				m.StatusFn = func(string) (*service.SignInInfo, humane.Error) {
-					return &service.SignInInfo{Username: "alice", Role: "dev", ValidUntil: time.Now().Add(10 * time.Minute).Format(time.RFC3339), Provisioned: true}, nil
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
+				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) {
+					return &k8s.SignInInfo{Username: "alice", Role: "dev", ValidUntil: time.Now().Add(10 * time.Minute).Format(time.RFC3339), Provisioned: true}, nil
 				}
 
 				return m
@@ -118,9 +118,9 @@ func TestGetLoginHandler(t *testing.T) {
 		},
 		{
 			name: "not provisioned -> 202 with Retry-After",
-			setup: func(m *mock.MockAuthService) service.Service {
-				m.StatusFn = func(string) (*service.SignInInfo, humane.Error) {
-					return &service.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10m", Provisioned: false}, nil
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
+				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) {
+					return &k8s.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10m", Provisioned: false}, nil
 				}
 
 				return m
@@ -130,8 +130,8 @@ func TestGetLoginHandler(t *testing.T) {
 		},
 		{
 			name: "not found -> 401",
-			setup: func(m *mock.MockAuthService) service.Service {
-				m.StatusFn = func(string) (*service.SignInInfo, humane.Error) { return nil, noSigninError }
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
+				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) { return nil, noSigninError }
 
 				return m
 			},
@@ -140,8 +140,8 @@ func TestGetLoginHandler(t *testing.T) {
 		},
 		{
 			name: "generic error -> 500",
-			setup: func(m *mock.MockAuthService) service.Service {
-				m.StatusFn = func(string) (*service.SignInInfo, humane.Error) { return nil, humane.New("kaput") }
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
+				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) { return nil, humane.New("kaput") }
 
 				return m
 			},
@@ -150,9 +150,9 @@ func TestGetLoginHandler(t *testing.T) {
 		},
 		{
 			name: "invalid duration -> 500",
-			setup: func(m *mock.MockAuthService) service.Service {
-				m.StatusFn = func(string) (*service.SignInInfo, humane.Error) {
-					return &service.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10t", Provisioned: false}, nil
+			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
+				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) {
+					return &k8s.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10t", Provisioned: false}, nil
 				}
 
 				return m
@@ -164,10 +164,10 @@ func TestGetLoginHandler(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m := mock.NewMockAuthService()
+			m := mock.NewMockTkaClient()
 			_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
-			tc.setup(m.(*mock.MockAuthService))
+			tc.setup(m.(*mock.MockTkaClient))
 			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode)
 			if tc.expectRetry {

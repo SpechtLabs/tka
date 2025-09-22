@@ -1,3 +1,7 @@
+// Package operator provides Kubernetes operator functionality for the TKA service.
+// This package implements the Kubernetes controller that manages TKASignIn custom
+// resources and provisions user credentials within the cluster. It handles the
+// lifecycle of authentication credentials and integrates with the Kubernetes API.
 package operator
 
 import (
@@ -6,11 +10,13 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/api/v1alpha1"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tka/internal/utils"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -22,43 +28,10 @@ var scheme = runtime.NewScheme()
 type KubeOperator struct {
 	mgr    ctrl.Manager
 	tracer trace.Tracer
-	opts   OperatorOptions
+	client k8s.TkaClient
 }
 
-func NewOperator(mgr ctrl.Manager, opts OperatorOptions) *KubeOperator {
-	op := &KubeOperator{
-		mgr:    mgr,
-		tracer: otel.Tracer("tka_controller"),
-		opts:   opts,
-	}
-
-	err := ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.TkaSignin{}).
-		Named("TkaSignin").
-		Complete(op)
-	if err != nil {
-		otelzap.L().WithError(err).Error("failed to create controller")
-	}
-
-	return op
-}
-
-func NewK8sOperator() (*KubeOperator, humane.Error) {
-	return NewK8sOperatorWithOptions(defaultOperatorOptions())
-}
-
-func NewK8sOperatorWithOptions(opts OperatorOptions) (*KubeOperator, humane.Error) {
-	// Register the schemes
-	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
-	}
-
-	if err := v1alpha1.AddToScheme(scheme); err != nil {
-		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme")
-	}
-
-	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
-
+func newControllerManagedBy() (ctrl.Manager, humane.Error) {
 	// GetConfigOrDie creates a *rest.Config for talking to a Kubernetes API tailscale.
 	// If --kubeconfig.go is set, will use the kubeconfig.go file at that location.  Otherwise will assume running
 	// in cluster and use the cluster provided kubeconfig.go.
@@ -98,18 +71,56 @@ func NewK8sOperatorWithOptions(opts OperatorOptions) (*KubeOperator, humane.Erro
 		},
 	})
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to start manager")
+		return nil, humane.Wrap(err, "failed to create manager")
 	}
 
-	o := NewOperator(mgr, opts)
+	return mgr, nil
+}
 
-	if ok, err := o.isK8sVerAtLeast(1, 24); err != nil {
+func newKubeOperator(mgr ctrl.Manager, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
+	op := &KubeOperator{
+		mgr:    mgr,
+		tracer: otel.Tracer("tka_controller"),
+		client: k8s.NewTkaClient(mgr.GetClient(), otel.Tracer("tka_controller"), mgr.GetConfig(), clientOpts),
+	}
+
+	if err := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.TkaSignin{}).Named("TkaSignin").Complete(op); err != nil {
+		return nil, humane.Wrap(err, "failed to register controller manager")
+	}
+
+	return op, nil
+}
+
+func NewK8sOperator(clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
+	// Register the schemes
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
+	}
+
+	if err := v1alpha1.AddToScheme(scheme); err != nil {
+		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme")
+	}
+
+	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
+
+	mgr, err := newControllerManagedBy()
+	if err != nil {
+		return nil, err
+	}
+
+	if ok, err := utils.IsK8sVerAtLeast(mgr.GetConfig(), 1, 24); err != nil {
 		return nil, err
 	} else if !ok {
 		return nil, humane.New("k8s version must be at least 1.24")
 	}
 
-	return o, nil
+	op, err := newKubeOperator(mgr, clientOpts)
+	if err != nil {
+		otelzap.L().WithError(err).Error("failed to create kube operator")
+		return nil, err
+	}
+
+	return op, nil
 }
 
 func (t *KubeOperator) Start(ctx context.Context) humane.Error {
@@ -119,4 +130,8 @@ func (t *KubeOperator) Start(ctx context.Context) humane.Error {
 	}
 
 	return nil
+}
+
+func (t *KubeOperator) GetClient() k8s.TkaClient {
+	return t.client
 }

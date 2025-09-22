@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/api/v1alpha1"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -50,32 +50,28 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	validDuration, err := t.processSignIn(ctx, signIn)
-	if err != nil {
-		otelzap.L().WithError(err.Cause()).Error(err.Error(), zap.String("username", signIn.Spec.Username))
-		return reconcile.Result{}, fmt.Errorf("%s", err.Display())
-	}
-
-	return reconcile.Result{RequeueAfter: validDuration}, nil
-}
-
-func (t *KubeOperator) processSignIn(ctx context.Context, signIn *v1alpha1.TkaSignin) (time.Duration, humane.Error) {
-	op, duration := getAction(signIn)
+	op, validDuration := getAction(signIn)
 	switch op {
 	case SignInOperationProvision:
 		if err := t.signInUser(ctx, signIn); err != nil {
-			return duration, humane.Wrap(err, "failed to sign in user")
+			otelzap.L().WithError(err).Error("Failed to sign in user", zap.String("username", signIn.Spec.Username))
+			return reconcile.Result{}, fmt.Errorf("%s", err.Display())
 		}
 
 	case SignInOperationDeprovision:
-		if err := t.LogOutUser(ctx, signIn.Spec.Username); err != nil {
-			return duration, humane.Wrap(err, "failed to log out user")
+		if err := t.signOutUser(ctx, signIn); err != nil {
+			otelzap.L().WithError(err).Error("Failed to sign out user", zap.String("username", signIn.Spec.Username))
+			return reconcile.Result{}, fmt.Errorf("%s", err.Display())
 		}
+
 	case SignInOperationNOP:
 		otelzap.L().Debug("signin operation nop", zap.String("username", signIn.Spec.Username))
+
+	default:
+		otelzap.L().Warn("unknown signin operation", zap.String("username", signIn.Spec.Username))
 	}
 
-	return duration, nil
+	return reconcile.Result{RequeueAfter: validDuration}, nil
 }
 
 func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
@@ -103,7 +99,7 @@ func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
 
 	// If user extended the login
 	var signedInAtStr string
-	if signedIn, ok := signIn.Annotations[LastAttemptedSignIn]; ok {
+	if signedIn, ok := signIn.Annotations[k8s.LastAttemptedSignIn]; ok {
 		signedInAtStr = signedIn
 	} else {
 		signedInAtStr = signIn.Status.SignedInAt

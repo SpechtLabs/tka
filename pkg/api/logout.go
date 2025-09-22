@@ -29,7 +29,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.logout")
 	defer span.End()
 
-	if signIn, err := t.auth.Status(ctx, userName); err != nil {
+	if signIn, err := t.client.GetStatus(ctx, userName); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting login status")
 		writeHumaneError(ct, err, http.StatusNotFound)
 		return
@@ -46,7 +46,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 			until = time.Now().Add(validity).Format(time.RFC3339)
 		}
 
-		if err := t.auth.Logout(ctx, userName); err != nil {
+		if err := t.client.DeleteSignIn(ctx, userName); err != nil {
 			otelzap.L().WithError(err).ErrorContext(ctx, "Error logging out user")
 			writeHumaneError(ct, err, http.StatusNotFound)
 			return

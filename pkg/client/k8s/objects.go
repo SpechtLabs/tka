@@ -1,4 +1,4 @@
-package operator
+package k8s
 
 import (
 	"fmt"
@@ -13,15 +13,15 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-func formatSigninObjectName(userName string) string {
+func FormatSigninObjectName(userName string) string {
 	return fmt.Sprintf("%s%s", DefaultUserEntryPrefix, userName)
 }
 
-func newSignin(userName, role string, validPeriod time.Duration, namespace string) *v1alpha1.TkaSignin {
+func NewSignin(userName, role string, validPeriod time.Duration, namespace string) *v1alpha1.TkaSignin {
 	now := time.Now()
 	return &v1alpha1.TkaSignin{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      formatSigninObjectName(userName),
+			Name:      FormatSigninObjectName(userName),
 			Namespace: namespace,
 			Annotations: map[string]string{
 				LastAttemptedSignIn: now.Format(time.RFC3339),
@@ -41,16 +41,16 @@ func newSignin(userName, role string, validPeriod time.Duration, namespace strin
 	}
 }
 
-func newServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
+func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      formatSigninObjectName(signIn.Spec.Username),
+			Name:      FormatSigninObjectName(signIn.Spec.Username),
 			Namespace: signIn.Namespace,
 		},
 	}
 }
 
-func newKubeconfig(contextName string, restCfg *rest.Config, token string, clusterName string, userEntry string) *api.Config {
+func NewKubeconfig(contextName string, restCfg *rest.Config, token string, clusterName string, userEntry string) *api.Config {
 	return &api.Config{
 		Kind:           "Config",
 		APIVersion:     "v1",
@@ -76,7 +76,7 @@ func newKubeconfig(contextName string, restCfg *rest.Config, token string, clust
 	}
 }
 
-func newTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
+func NewTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
 	return &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
 			ExpirationSeconds: &expirationSeconds,
@@ -85,7 +85,7 @@ func newTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
 	}
 }
 
-func newRoleRef(signIn *v1alpha1.TkaSignin) rbacv1.RoleRef {
+func NewRoleRef(signIn *v1alpha1.TkaSignin) rbacv1.RoleRef {
 	return rbacv1.RoleRef{
 		APIGroup: "rbac.authorization.k8s.io",
 		Kind:     "ClusterRole",
@@ -93,21 +93,21 @@ func newRoleRef(signIn *v1alpha1.TkaSignin) rbacv1.RoleRef {
 	}
 }
 
-func getClusterRoleBindingName(signIn *v1alpha1.TkaSignin) string {
-	username := formatSigninObjectName(signIn.Spec.Username)
+func GetClusterRoleBindingName(signIn *v1alpha1.TkaSignin) string {
+	username := FormatSigninObjectName(signIn.Spec.Username)
 	return fmt.Sprintf("%s-binding", username)
 }
 
-func newClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBinding {
+func NewClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getClusterRoleBindingName(signIn),
+			Name:      GetClusterRoleBindingName(signIn),
 			Namespace: signIn.Namespace,
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      formatSigninObjectName(signIn.Spec.Username),
+				Name:      FormatSigninObjectName(signIn.Spec.Username),
 				Namespace: signIn.Namespace,
 			},
 		},

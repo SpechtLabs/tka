@@ -6,9 +6,9 @@ import (
 
 	// gin
 	"github.com/gin-gonic/gin"
+	client "github.com/spechtlabs/tka/pkg/client/k8s"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	authMw "github.com/spechtlabs/tka/pkg/middleware/auth"
-	auth "github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
@@ -85,7 +85,7 @@ type TKAServer struct {
 	tracer trace.Tracer
 
 	// Auth service
-	auth           auth.Service
+	client         client.TkaClient
 	authMiddleware mw.Middleware
 
 	// API behavior
@@ -132,7 +132,7 @@ func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Err
 		debug:             false,
 		router:            nil,
 		tracer:            otel.Tracer("tka"),
-		auth:              nil,
+		client:            nil,
 		authMiddleware:    defaultAuthMiddleware,
 		retryAfterSeconds: 1,
 		tsServer:          srv,
@@ -217,11 +217,11 @@ func (t *TKAServer) loadStaticRoutes() {
 //	if err := server.LoadApiRoutes(authService); err != nil {
 //	  return err
 //	}
-func (t *TKAServer) LoadApiRoutes(svc auth.Service) humane.Error {
+func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	if svc == nil {
-		return humane.New("auth service not configured", "Provide a auth.Service via api.WithAuthService option")
+		return humane.New("auth service not configured", "Provide a k8s.TkaClient via api.WithAuthService option")
 	}
-	t.auth = svc
+	t.client = svc
 
 	v1alpha1Grpup := t.router.Group(ApiRouteV1Alpha1)
 	v1alpha1Grpup.POST(LoginApiRoute, t.login)

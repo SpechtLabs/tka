@@ -11,17 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
+	"github.com/spechtlabs/tka/pkg/client/k8s/mock"
 	mwMock "github.com/spechtlabs/tka/pkg/middleware/auth/mock"
 	"github.com/spechtlabs/tka/pkg/models"
-	"github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/capability"
-	"github.com/spechtlabs/tka/pkg/service/mock"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func newTestServer(t *testing.T, auth service.Service, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
+func newTestServer(t *testing.T, auth k8s.TkaClient, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}
@@ -81,7 +81,7 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
-	authSvc := mock.NewMockAuthService()
+	authSvc := mock.NewMockTkaClient()
 
 	require.Error(t, s.LoadApiRoutes(nil))
 	require.NoError(t, s.LoadApiRoutes(authSvc))

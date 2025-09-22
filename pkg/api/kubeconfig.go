@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
-	"github.com/spechtlabs/tka/pkg/operator"
 	"sigs.k8s.io/yaml"
 )
 
@@ -32,12 +32,12 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.getKubeconfig")
 	defer span.End()
 
-	if kubecfg, err := t.auth.Kubeconfig(ctx, userName); err != nil || kubecfg == nil {
+	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil {
 		// Include Retry-After for other async/provisioning flows as a hint
 		ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 
 		// If the operator indicates credentials are not ready yet, return 202
-		if err == operator.NotReadyYetError {
+		if err == k8s.NotReadyYetError {
 			ct.Status(http.StatusAccepted)
 			otelzap.L().InfoContext(ctx, "Kubeconfig not ready yet")
 			return

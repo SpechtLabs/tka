@@ -1,4 +1,4 @@
-package operator
+package k8s
 
 const (
 	LastAttemptedSignIn = "tka.specht-labs.de/last-attempted-sign-in"

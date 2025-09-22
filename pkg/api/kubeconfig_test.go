@@ -6,22 +6,22 @@ import (
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/api"
-	"github.com/spechtlabs/tka/pkg/service"
+	client "github.com/spechtlabs/tka/pkg/client/k8s"
+	"github.com/spechtlabs/tka/pkg/client/k8s/mock"
 	"github.com/spechtlabs/tka/pkg/service/capability"
-	"github.com/spechtlabs/tka/pkg/service/mock"
 	"github.com/stretchr/testify/require"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func TestGetKubeconfigHandler(t *testing.T) {
-	m := mock.NewMockAuthService()
+	m := mock.NewMockTkaClient()
 	_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
 	cfg := &clientcmdapi.Config{Kind: "Config", APIVersion: "v1", CurrentContext: "x"}
 
 	tests := []struct {
 		name            string
-		setup           func(m *mock.MockAuthService) service.Service
+		setup           func(m *mock.MockTkaClient) client.TkaClient
 		headers         map[string]string
 		expectedStatus  int
 		expectRetry     bool
@@ -31,7 +31,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 	}{
 		{
 			name: "success JSON",
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) client.TkaClient {
 				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return cfg, nil }
 				return m
 			},
@@ -40,7 +40,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		},
 		{
 			name: "success YAML",
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) client.TkaClient {
 				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return cfg, nil }
 				return m
 			},
@@ -51,7 +51,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		},
 		{
 			name: "not found -> 401",
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) client.TkaClient {
 				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return nil, noSigninError }
 				return m
 			},
@@ -61,7 +61,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		},
 		{
 			name: "generic error -> 500",
-			setup: func(m *mock.MockAuthService) service.Service {
+			setup: func(m *mock.MockTkaClient) client.TkaClient {
 				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return nil, humane.New("boom") }
 				return m
 			},
@@ -73,7 +73,7 @@ func TestGetKubeconfigHandler(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.setup(m.(*mock.MockAuthService))
+			tc.setup(m.(*mock.MockTkaClient))
 			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.KubeconfigApiRoute, tc.headers, nil)
 			require.Equal(t, tc.expectedStatus, resp.StatusCode, string(body))
 			if tc.expectedCT != "" {

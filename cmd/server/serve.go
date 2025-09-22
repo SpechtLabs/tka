@@ -10,8 +10,8 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
-	authoperator "github.com/spechtlabs/tka/pkg/service/operator"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -65,14 +65,14 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
 	utils.InterruptHandler(ctx, cancelFn)
 
-	opOpts := koperator.OperatorOptions{
+	clientOpts := k8s.ClientOptions{
 		Namespace:     viper.GetString("operator.namespace"),
 		ClusterName:   viper.GetString("operator.clusterName"),
 		ContextPrefix: viper.GetString("operator.contextPrefix"),
 		UserPrefix:    viper.GetString("operator.userPrefix"),
 	}
 
-	k8sOperator, err := koperator.NewK8sOperatorWithOptions(opOpts)
+	k8sOperator, err := koperator.NewK8sOperator(clientOpts)
 	if err != nil {
 		cancelFn(err)
 		return err
@@ -105,8 +105,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return err
 	}
 
-	authSvc := authoperator.New(k8sOperator)
-	if err := tkaServer.LoadApiRoutes(authSvc); err != nil {
+	if err := tkaServer.LoadApiRoutes(k8sOperator.GetClient()); err != nil {
 		cancelFn(err)
 		return err
 	}

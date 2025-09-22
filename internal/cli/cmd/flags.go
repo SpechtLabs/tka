@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
-	"github.com/spechtlabs/tka/pkg/operator"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,10 +17,10 @@ var (
 func addCommonFlags(cmd *cobra.Command) {
 	viper.SetDefault("otel.endpoint", "")
 	viper.SetDefault("otel.insecure", true)
-	viper.SetDefault("operator.namespace", operator.DefaultNamespace)
-	viper.SetDefault("operator.clusterName", operator.DefaultClusterName)
-	viper.SetDefault("operator.contextPrefix", operator.DefaultContextPrefix)
-	viper.SetDefault("operator.userPrefix", operator.DefaultUserEntryPrefix)
+	viper.SetDefault("operator.namespace", k8s.DefaultNamespace)
+	viper.SetDefault("operator.clusterName", k8s.DefaultClusterName)
+	viper.SetDefault("operator.contextPrefix", k8s.DefaultContextPrefix)
+	viper.SetDefault("operator.userPrefix", k8s.DefaultUserEntryPrefix)
 	viper.SetDefault("api.retryAfterSeconds", 1)
 
 	cmd.PersistentFlags().StringVarP(&configFileName, "config", "c", "", "Name of the config file")

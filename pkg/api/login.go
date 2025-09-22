@@ -49,7 +49,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	if err := t.auth.SignIn(ctx, userName, role, period); err != nil {
+	if err := t.client.NewSignIn(ctx, userName, role, period); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
 		writeHumaneError(ct, err, http.StatusNotFound)
 		return
@@ -86,7 +86,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.getLogin")
 	defer span.End()
 
-	if signIn, err := t.auth.Status(ctx, userName); err != nil {
+	if signIn, err := t.client.GetStatus(ctx, userName); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting login status")
 		// map k8s NotFound to 401 for this endpoint
 		writeHumaneError(ct, err, http.StatusUnauthorized)

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/service"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -26,45 +26,45 @@ import (
 //	    return nil
 //	  },
 //	}
-type MockAuthService struct {
+type MockTkaClient struct {
 	// SignInFn defines custom behavior for SignIn method calls
 	SignInFn func(username, role string, period time.Duration) humane.Error
 	// StatusFn defines custom behavior for Status method calls
-	StatusFn func(username string) (*service.SignInInfo, humane.Error)
+	StatusFn func(username string) (*k8s.SignInInfo, humane.Error)
 	// KubeconfigFn defines custom behavior for Kubeconfig method calls
 	KubeconfigFn func(username string) (*api.Config, humane.Error)
 	// LogoutFn defines custom behavior for Logout method calls
 	LogoutFn func(username string) humane.Error
 }
 
-// NewMockAuthService creates a new mock service with default (success) behavior.
+// MockTkaClient creates a new mock service with default (success) behavior.
 // All methods will return successful responses unless custom functions are configured.
-func NewMockAuthService() service.Service {
-	return &MockAuthService{}
+func NewMockTkaClient() k8s.TkaClient {
+	return &MockTkaClient{}
 }
 
-func (m *MockAuthService) SignIn(_ context.Context, username string, role string, period time.Duration) humane.Error {
+func (m *MockTkaClient) NewSignIn(_ context.Context, username string, role string, period time.Duration) humane.Error {
 	if m.SignInFn != nil {
 		return m.SignInFn(username, role, period)
 	}
 	return nil
 }
 
-func (m *MockAuthService) Status(_ context.Context, username string) (*service.SignInInfo, humane.Error) {
+func (m *MockTkaClient) GetStatus(_ context.Context, username string) (*k8s.SignInInfo, humane.Error) {
 	if m.StatusFn != nil {
 		return m.StatusFn(username)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthService) Kubeconfig(_ context.Context, username string) (*api.Config, humane.Error) {
+func (m *MockTkaClient) GetKubeconfig(_ context.Context, username string) (*api.Config, humane.Error) {
 	if m.KubeconfigFn != nil {
 		return m.KubeconfigFn(username)
 	}
 	return nil, nil
 }
 
-func (m *MockAuthService) Logout(_ context.Context, username string) humane.Error {
+func (m *MockTkaClient) DeleteSignIn(_ context.Context, username string) humane.Error {
 	if m.LogoutFn != nil {
 		return m.LogoutFn(username)
 	}

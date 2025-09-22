@@ -8,19 +8,15 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
+	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// MinSigninValidity is the minimum validity period for a token in Kubernetes. This minimum period is enforced by the Kubernetes API.
-const MinSigninValidity = 10 * time.Minute
 
 func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
 	// 1. Create Service Account
@@ -44,7 +40,7 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return humane.Wrap(err, "Failed to load sign-in request")
 	}
 
-	if signedInAt, ok := signIn.Annotations[LastAttemptedSignIn]; ok {
+	if signedInAt, ok := signIn.Annotations[k8s.LastAttemptedSignIn]; ok {
 		signIn.Status.SignedInAt = signedInAt
 	} else {
 		signIn.Status.SignedInAt = time.Now().Format(time.RFC3339)
@@ -76,12 +72,32 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 	return nil
 }
 
+func (t *KubeOperator) signOutUser(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
+	if err := t.deleteClusterRoleBinding(ctx, signIn); err != nil {
+		return humane.Wrap(err, "failed to delete cluster role binding")
+	}
+
+	if err := t.deleteServiceAccount(ctx, signIn); err != nil {
+		return humane.Wrap(err, "failed to delete service account")
+	}
+
+	if err := t.client.DeleteSignIn(ctx, signIn.Spec.Username); err != nil {
+		return humane.Wrap(err, "failed to delete user")
+	}
+
+	otelzap.L().InfoContext(ctx, "Successfully signed out user",
+		zap.String("user", signIn.Spec.Username),
+	)
+
+	return nil
+}
+
 // createOrUpdateServiceAccount creates a new service account or updates an existing one with the given parameters
 func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn *v1alpha1.TkaSignin) (*corev1.ServiceAccount, humane.Error) {
 	c := t.mgr.GetClient()
 	scheme := t.mgr.GetScheme()
 
-	serviceAccount := newServiceAccount(signIn)
+	serviceAccount := k8s.NewServiceAccount(signIn)
 
 	// Set Redirect instance as the owner and api
 	if err := ctrl.SetControllerReference(signIn, serviceAccount, scheme); err != nil {
@@ -95,7 +111,7 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 
 		// If the service account already exists, we'll just update it
 		saName := types.NamespacedName{
-			Name:      formatSigninObjectName(signIn.Spec.Username),
+			Name:      k8s.FormatSigninObjectName(signIn.Spec.Username),
 			Namespace: signIn.Namespace,
 		}
 		if err := c.Get(ctx, saName, serviceAccount); err != nil {
@@ -110,53 +126,12 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 	return serviceAccount, nil
 }
 
-// generateToken creates a token for the service account in Kubernetes versions >= 1.30 do no longer
-// automatically include a token for new ServiceAccounts, thus we have to manually create one,
-// so we can use it when assembling the kubeconfig for the user
-func (t *KubeOperator) generateToken(ctx context.Context, signIn *v1alpha1.TkaSignin) (string, humane.Error) {
-	// Check if Kubernetes version is at least 1.30
-	isSupported, herr := t.isK8sVerAtLeast(1, 30)
-	if herr != nil {
-		return "", herr
-	}
-
-	if !isSupported {
-		// Token generation not supported in this Kubernetes version
-		return "", nil
-	}
-
-	// For Kubernetes >= 1.30, we need to create a token request
-	clientset, err := kubernetes.NewForConfig(t.mgr.GetConfig())
-	if err != nil {
-		return "", humane.Wrap(err, "Failed to create Kubernetes clientset")
-	}
-
-	// Create a token request with expiration time
-	validUntil, err := time.Parse(time.RFC3339, signIn.Status.ValidUntil)
-	if err != nil {
-		return "", humane.Wrap(err, "Failed to parse validUntil")
-	}
-
-	expirationSeconds := int64(time.Until(validUntil).Seconds())
-	if expirationSeconds < int64(MinSigninValidity.Seconds()) {
-		expirationSeconds = int64(MinSigninValidity.Seconds())
-	}
-	tokenRequest := newTokenRequest(expirationSeconds)
-
-	tokenResponse, err := clientset.CoreV1().ServiceAccounts(signIn.Namespace).CreateToken(ctx, formatSigninObjectName(signIn.Spec.Username), tokenRequest, metav1.CreateOptions{})
-	if err != nil {
-		return "", humane.Wrap(err, "Failed to create token for service account")
-	}
-
-	return tokenResponse.Status.Token, nil
-}
-
 // createOrUpdateClusterRoleBinding creates or updates a ClusterRoleBinding for the specified user and role
 func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
 	c := t.mgr.GetClient()
 	scheme := t.mgr.GetScheme()
 
-	clusterRoleBinding := newClusterRoleBinding(signIn)
+	clusterRoleBinding := k8s.NewClusterRoleBinding(signIn)
 
 	// Set Redirect instance as the owner and api
 	if err := ctrl.SetControllerReference(signIn, clusterRoleBinding, scheme); err != nil {
@@ -171,18 +146,58 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 		// If the cluster role binding already exists, we'll just update it
 		existingCRB := &rbacv1.ClusterRoleBinding{}
 		crbName := types.NamespacedName{
-			Name: getClusterRoleBindingName(signIn),
+			Name: k8s.GetClusterRoleBindingName(signIn),
 		}
 		if err := c.Get(ctx, crbName, existingCRB); err != nil {
 			return humane.Wrap(err, fmt.Sprintf("Failed to get existing cluster role binding for user %s", signIn.Spec.Username))
 		}
 
 		// Update the validUntil annotation and role reference
-		existingCRB.RoleRef = newRoleRef(signIn)
+		existingCRB.RoleRef = k8s.NewRoleRef(signIn)
 
 		if err := c.Update(ctx, existingCRB); err != nil {
 			return humane.Wrap(err, fmt.Sprintf("Failed to update cluster role binding for user %s", signIn.Spec.Username))
 		}
+	}
+
+	return nil
+}
+
+func (t *KubeOperator) deleteClusterRoleBinding(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
+	c := t.mgr.GetClient()
+
+	var crb rbacv1.ClusterRoleBinding
+
+	crbName := types.NamespacedName{Name: k8s.GetClusterRoleBindingName(signIn), Namespace: signIn.Namespace}
+	if err := c.Get(ctx, crbName, &crb); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return humane.New("Cluster role binding not found", "Please make sure the cluster role binding exists and remove it manually")
+		}
+		return humane.Wrap(err, "Failed to load cluster role binding")
+	}
+
+	if err := c.Delete(ctx, &crb); err != nil {
+		return humane.Wrap(err, "Failed to remove cluster role binding")
+	}
+
+	return nil
+}
+
+func (t *KubeOperator) deleteServiceAccount(ctx context.Context, signIn *v1alpha1.TkaSignin) humane.Error {
+	c := t.mgr.GetClient()
+
+	var sa corev1.ServiceAccount
+
+	saName := types.NamespacedName{Name: k8s.FormatSigninObjectName(signIn.Spec.Username), Namespace: signIn.Namespace}
+	if err := c.Get(ctx, saName, &sa); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return humane.New("Service account not found", "Please make sure the service account exists and remove it manually")
+		}
+		return humane.Wrap(err, "Failed to load service account")
+	}
+
+	if err := c.Delete(ctx, &sa); err != nil {
+		return humane.Wrap(err, "Failed to remove service account")
 	}
 
 	return nil
