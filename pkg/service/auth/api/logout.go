@@ -7,7 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
-	"github.com/spechtlabs/tka/pkg/models"
+	globalModels "github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 )
 
 // logout handles user logout from TKA service
@@ -40,7 +41,7 @@ func (t *TKAServer) logout(ct *gin.Context) {
 			validity, err := time.ParseDuration(signIn.ValidityPeriod)
 			if err != nil {
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
-				ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
+				ct.JSON(http.StatusInternalServerError, globalModels.NewErrorResponse("Error parsing duration", err))
 				return
 			}
 			until = time.Now().Add(validity).Format(time.RFC3339)

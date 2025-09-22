@@ -10,11 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"github.com/spechtlabs/tka/pkg/client/k8s/mock"
 	mwMock "github.com/spechtlabs/tka/pkg/middleware/auth/mock"
 	"github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/auth/api"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -91,58 +91,12 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 		Expected bool
 		Seen     bool
 	}{
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:          {Expected: true, Seen: false},
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:           {Expected: true, Seen: false},
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute:      {Expected: true, Seen: false},
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:         {Expected: true, Seen: false},
-		http.MethodGet + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute:  {Expected: false, Seen: false},
-		http.MethodPost + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute: {Expected: false, Seen: false},
-	}
-
-	for _, r := range s.Engine().Routes() {
-		key := r.Method + " " + r.Path
-		if _, ok := expected[key]; ok {
-			status := expected[key]
-			status.Seen = true
-			expected[key] = status
-		}
-	}
-
-	for route, status := range expected {
-		if status.Expected && !status.Seen {
-			t.Errorf("missing route %s", route)
-		}
-		if !status.Expected && status.Seen {
-			t.Errorf("unexpected route %s", route)
-		}
-	}
-}
-
-func TestNewTKAServer_OrchestratorRoutesRegistered(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-
-	s, err := api.NewTKAServer(nil, nil,
-		api.WithAuthMiddleware(authMwMock),
-	)
-
-	require.NoError(t, err)
-	require.NotNil(t, s)
-	require.NotNil(t, s.Engine())
-
-	require.NoError(t, s.LoadOrchestratorRoutes())
-
-	// Maps the key to if the route is expected
-	expected := map[string]struct {
-		Expected bool
-		Seen     bool
-	}{
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:          {Expected: false, Seen: false},
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:           {Expected: false, Seen: false},
-		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute:      {Expected: false, Seen: false},
-		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:         {Expected: false, Seen: false},
-		http.MethodGet + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute:  {Expected: true, Seen: false},
-		http.MethodPost + " " + api.OrchestratorRouteV1Alpha1 + api.ClustersRoute: {Expected: true, Seen: false},
+		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:     {Expected: true, Seen: false},
+		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:      {Expected: true, Seen: false},
+		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute: {Expected: true, Seen: false},
+		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:    {Expected: true, Seen: false},
+		http.MethodGet + " /orchestrator/v1alpha1/clusters":                  {Expected: false, Seen: false},
+		http.MethodPost + " /orchestrator/v1alpha1/clusters":                 {Expected: false, Seen: false},
 	}
 
 	for _, r := range s.Engine().Routes() {

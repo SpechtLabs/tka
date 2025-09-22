@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 )
 
 func PrintLoginInformation(respBody *models.UserLoginResponse) {

@@ -8,6 +8,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
+	_ "github.com/spechtlabs/tka/pkg/models"
 	"sigs.k8s.io/yaml"
 )
 

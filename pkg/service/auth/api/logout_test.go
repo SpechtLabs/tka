@@ -6,9 +6,9 @@ import (
 	"time"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"github.com/spechtlabs/tka/pkg/client/k8s/mock"
+	"github.com/spechtlabs/tka/pkg/service/auth/api"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/stretchr/testify/require"
 )

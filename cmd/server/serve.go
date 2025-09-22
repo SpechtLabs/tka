@@ -9,12 +9,14 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/utils"
-	"github.com/spechtlabs/tka/pkg/api"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
+	"github.com/spechtlabs/tka/pkg/service/auth/api"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -72,7 +74,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		UserPrefix:    viper.GetString("operator.userPrefix"),
 	}
 
-	k8sOperator, err := koperator.NewK8sOperator(clientOpts)
+	k8sOperator, err := koperator.NewK8sOperator(getConfig(), clientOpts)
 	if err != nil {
 		cancelFn(err)
 		return err
@@ -91,7 +93,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 
 	// Start the Tailscale connection
 	if err := srv.Start(ctx); err != nil {
-		herr := humane.Wrap(err, "failed to connect to tailscale", "ensure your TS_AUTH_KEY is set", "ensure your TS_AUTH_KEY is valid")
+		herr := humane.Wrap(err, "failed to connect to tailscale", "ensure your TS_AUTH_KEY is set and valid")
 		cancelFn(herr)
 		return herr
 	}
@@ -163,4 +165,18 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	return nil
+}
+
+func getConfig() *rest.Config {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		herr := humane.Wrap(err, "Failed to get Kubernetes config",
+			"If --kubeconfig.go is set, will use the kubeconfig.go file at that location. Otherwise will assume running in cluster and use the cluster provided kubeconfig.go.",
+			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
+		)
+
+		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config")
+	}
+
+	return config
 }

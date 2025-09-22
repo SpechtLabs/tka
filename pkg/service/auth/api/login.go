@@ -8,7 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
-	"github.com/spechtlabs/tka/pkg/models"
+	globalModels "github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"go.uber.org/zap"
 )
@@ -36,7 +37,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 
 	if capRule == nil {
 		otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.")
-		ct.JSON(http.StatusForbidden, models.NewErrorResponse("No grant found for user", nil))
+		ct.JSON(http.StatusForbidden, globalModels.NewErrorResponse("No grant found for user", nil))
 		return
 	}
 
@@ -45,7 +46,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 	period, err := time.ParseDuration(capRule.Period)
 	if err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
-		ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
+		ct.JSON(http.StatusInternalServerError, globalModels.NewErrorResponse("Error parsing duration", err))
 		return
 	}
 
@@ -102,7 +103,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 			validity, err := time.ParseDuration(signIn.ValidityPeriod)
 			if err != nil {
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
-				ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error parsing duration", err))
+				ct.JSON(http.StatusInternalServerError, globalModels.NewErrorResponse("Error parsing duration", err))
 				return
 			}
 			until = time.Now().Add(validity).Format(time.RFC3339)

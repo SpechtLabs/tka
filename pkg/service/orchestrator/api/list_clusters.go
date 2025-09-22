@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
-	"github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/orchestrator/models"
 )
 
 // getClusters returns all clusters that the user has access to

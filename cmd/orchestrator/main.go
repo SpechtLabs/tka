@@ -11,7 +11,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/cli/cmd"
 	"github.com/spechtlabs/tka/internal/utils"
-	"github.com/spechtlabs/tka/pkg/api"
+	"github.com/spechtlabs/tka/pkg/service/orchestrator/api"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

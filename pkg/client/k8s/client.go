@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -28,8 +30,13 @@ type tkaClient struct {
 	config *rest.Config
 }
 
-func NewTkaClient(client client.Client, tracer trace.Tracer, config *rest.Config, opts ClientOptions) TkaClient {
-	return &tkaClient{client: client, tracer: tracer, config: config, opts: opts}
+func NewTkaClient(client client.Client, config *rest.Config, opts ClientOptions) TkaClient {
+	return &tkaClient{
+		client: client,
+		config: config,
+		tracer: otel.Tracer("tka_k8s_client"),
+		opts:   opts,
+	}
 }
 
 // NewSignIn creates necessary Kubernetes resources to grant a user temporary access with a specific role
@@ -169,7 +176,7 @@ func (t *tkaClient) GetStatus(ctx context.Context, username string) (*SignInInfo
 // so we can use it when assembling the kubeconfig for the user
 func (t *tkaClient) generateToken(ctx context.Context, signIn *v1alpha1.TkaSignin) (string, humane.Error) {
 	// Check if Kubernetes version is at least 1.30
-	isSupported, herr := utils.IsK8sVerAtLeast(t.config, 1, 30)
+	isSupported, herr := utils.IsK8sVerAtLeast(1, 30)
 	if herr != nil {
 		return "", herr
 	}
@@ -179,8 +186,13 @@ func (t *tkaClient) generateToken(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return "", nil
 	}
 
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return "", humane.Wrap(err, "Failed to get Kubernetes config")
+	}
+
 	// For Kubernetes >= 1.30, we need to create a token request
-	clientset, err := kubernetes.NewForConfig(t.config)
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return "", humane.Wrap(err, "Failed to create Kubernetes clientset")
 	}

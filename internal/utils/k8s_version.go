@@ -5,11 +5,16 @@ import (
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // isK8sVerAtLeast checks if the cluster's Kubernetes version is at least the specified major.minor version
-func IsK8sVerAtLeast(config *rest.Config, majorVersion, minorVersion int) (bool, humane.Error) {
+func IsK8sVerAtLeast(majorVersion, minorVersion int) (bool, humane.Error) {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return false, humane.Wrap(err, "Failed to get Kubernetes config")
+	}
+
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return false, humane.Wrap(err, "Failed to create discovery client")

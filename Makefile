@@ -27,7 +27,7 @@ manifests: controller-gen swag
 
 .PHONY: swag
 swag:
-	swag init --dir ./pkg/api --generalInfo server.go --output ./pkg/swagger --parseDependency --parseDepth 3
+	swag init --dir ./pkg/service/ --generalInfo docs.go --output ./pkg/swagger --parseDependency --parseDepth 3
 
 .PHONY: test
 test: lint
@@ -38,3 +38,10 @@ test: lint
 lint:
 	go vet ./...
 	golangci-lint run ./...
+
+.PHONY: pre-commit
+pre-commit:
+	pre-commit run --all-files
+
+.PHONY: all
+all: generate manifests pre-commit test

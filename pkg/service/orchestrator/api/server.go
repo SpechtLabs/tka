@@ -2,10 +2,10 @@ package api
 
 import (
 	"context"
-	"time"
 
 	// gin
 	"github.com/gin-gonic/gin"
+	"github.com/spechtlabs/tka/internal/utils"
 	client "github.com/spechtlabs/tka/pkg/client/k8s"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	authMw "github.com/spechtlabs/tka/pkg/middleware/auth"
@@ -19,15 +19,9 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 
 	// Logging
-	ginzap "github.com/gin-contrib/zap"
-	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	// o11y
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	ginprometheus "github.com/zsais/go-gin-prometheus"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -36,46 +30,11 @@ import (
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 )
 
-// @title Tailscale Kubernetes Auth API
-// @version 1.0
-// @description API for authenticating and authorizing Kubernetes access via Tailscale identity.
-// @contact.name Specht Labs
-// @contact.url specht-labs.de
-// @contact.email tka@specht-labs.de
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-// @BasePath /api/v1alpha1
-// @securityDefinitions.apikey TailscaleAuth
-// @in header
-// @name X-Tailscale-User
-// @description Authentication happens automatically via the Tailscale network. The server performs a WhoIs lookup on the client's IP address to determine identity. This header is for documentation purposes only and is not actually required to be set.
 const (
-	ApiRouteV1Alpha1          = "/api/v1alpha1"
 	OrchestratorRouteV1Alpha1 = "/orchestrator/v1alpha1"
-	LoginApiRoute             = "/login"
-	KubeconfigApiRoute        = "/kubeconfig"
-	LogoutApiRoute            = "/logout"
 	ClustersRoute             = "/clusters"
 )
 
-// TKAServer represents the main HTTP server for Tailscale Kubernetes Auth.
-// It provides a complete HTTP API for user authentication, credential management,
-// and cluster operations over a Tailscale network.
-//
-// The server consists of the following components:
-// - Gin HTTP router with OpenTelemetry observability middlewares (ginzap, otelgin, prometheus)
-//   - Otel Tracing
-//   - Prometheus metrics
-//   - Ginzap logging
-//
-// - Gin authentication middleware using the tailscale.WhoIsResolver
-// - Service layer for business logic
-// - Swagger documentation endpoint
-//
-// 1. Create server with NewTKAServer() constructor
-// 2. Load routes with LoadApiRoutes() and/or LoadOrchestratorRoutes()
-// 3. Start server with Serve()
-// 4. Gracefully shutdown with Shutdown()
 type TKAServer struct {
 	// Options
 	debug bool
@@ -143,41 +102,13 @@ func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Err
 		opt(tkaServer)
 	}
 
-	if tkaServer.debug {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
 	// Setup Gin router
-	tkaServer.router = gin.New()
-	tkaServer.router.Use(otelgin.Middleware("tka_server"))
-	// Setup ginzap to log everything correctly to zap
-	tkaServer.router.Use(ginzap.GinzapWithConfig(otelzap.L(), &ginzap.Config{
-		UTC:        true,
-		TimeFormat: time.RFC3339,
-		Context: func(c *gin.Context) []zapcore.Field {
-			var fields []zapcore.Field
-			// log request ID
-			if requestID := c.Writer.Header().Get("X-Request-Id"); requestID != "" {
-				fields = append(fields, zap.String("request_id", requestID))
-			}
-
-			// log trace and span ID
-			if trace.SpanFromContext(c.Request.Context()).SpanContext().IsValid() {
-				fields = append(fields, zap.String("trace_id", trace.SpanFromContext(c.Request.Context()).SpanContext().TraceID().String()))
-				fields = append(fields, zap.String("span_id", trace.SpanFromContext(c.Request.Context()).SpanContext().SpanID().String()))
-			}
-			return fields
-		},
-	}))
-
-	// Set-up Prometheus to expose prometheus metrics
-	p := ginprometheus.NewPrometheus("tka_server")
-	p.Use(tkaServer.router)
+	tkaServer.router = utils.NewO11yGin("tka_server", tkaServer.debug)
 
 	// Install auth middleware
-	tkaServer.authMiddleware.Use(tkaServer.router, tkaServer.tracer)
+	if tkaServer.authMiddleware != nil {
+		tkaServer.authMiddleware.Use(tkaServer.router, tkaServer.tracer)
+	}
 
 	tkaServer.loadStaticRoutes()
 	return tkaServer, nil
@@ -194,42 +125,6 @@ func (t *TKAServer) loadStaticRoutes() {
 	t.router.GET("/swagger", func(c *gin.Context) {
 		c.Redirect(301, "/swagger/index.html")
 	})
-}
-
-// LoadApiRoutes registers the authentication API endpoints with the server.
-// This method must be called before Serve() to enable user authentication functionality.
-//
-// Parameters:
-//   - svc: Service implementation for handling authentication business logic
-//
-// Returns:
-//   - humane.Error: Error if service is nil or route registration fails
-//
-// Registered endpoints:
-//   - POST /api/v1alpha1/login - Authenticate user and provision credentials
-//   - GET /api/v1alpha1/login - Check current authentication status
-//   - GET /api/v1alpha1/kubeconfig - Retrieve kubeconfig for authenticated user
-//   - POST /api/v1alpha1/logout - Revoke user credentials
-//
-// Example:
-//
-//	authService := service.NewOperatorService(operatorOpts)
-//	if err := server.LoadApiRoutes(authService); err != nil {
-//	  return err
-//	}
-func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
-	if svc == nil {
-		return humane.New("auth service not configured", "Provide a k8s.TkaClient via api.WithAuthService option")
-	}
-	t.client = svc
-
-	v1alpha1Grpup := t.router.Group(ApiRouteV1Alpha1)
-	v1alpha1Grpup.POST(LoginApiRoute, t.login)
-	v1alpha1Grpup.GET(LoginApiRoute, t.getLogin)
-	v1alpha1Grpup.GET(KubeconfigApiRoute, t.getKubeconfig)
-	v1alpha1Grpup.POST(LogoutApiRoute, t.logout)
-
-	return nil
 }
 
 // LoadOrchestratorRoutes registers the cluster orchestration API endpoints with the server.

@@ -5,7 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
-	"github.com/spechtlabs/tka/pkg/models"
+	globalModels "github.com/spechtlabs/tka/pkg/models"
+	"github.com/spechtlabs/tka/pkg/service/orchestrator/models"
 )
 
 // registerCluster registers a new cluster
@@ -30,7 +31,7 @@ func (t *TKAServer) registerCluster(ct *gin.Context) {
 
 	var cluster models.ClusterListItem
 	if err := ct.ShouldBindJSON(&cluster); err != nil {
-		ct.JSON(http.StatusBadRequest, models.ErrorResponse{
+		ct.JSON(http.StatusBadRequest, globalModels.ErrorResponse{
 			Message: "Invalid request body: " + err.Error(),
 		})
 		return
