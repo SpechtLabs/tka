@@ -7,16 +7,18 @@ on:
       - main
     tags:
       - "*"
-    paths:
-      - ./**/*
-      - .github/workflows/build.yaml
+    paths-ignore:
+      - docs/
+      - .github/workflows/docs-website.yaml
+      - .github/workflows/validations.yaml
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
       - main
-    paths:
-      - ./**/*
-      - .github/workflows/build.yaml
+    paths-ignore:
+      - docs/
+      - .github/workflows/docs-website.yaml
+      - .github/workflows/validations.yaml
 
 permissions:
   contents: write
