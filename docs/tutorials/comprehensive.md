@@ -164,7 +164,8 @@ For more detailed setup with explanations and alternatives:
            "specht-labs.de/cap/tka": [
              {
                "role": "cluster-admin",
-               "period": "8h"
+               "period": "8h",
+               "priority": 200
              }
            ]
          }
@@ -178,7 +179,8 @@ For more detailed setup with explanations and alternatives:
            "specht-labs.de/cap/tka": [
              {
                "role": "view",
-               "period": "4h"
+               "period": "4h",
+               "priority": 100
              }
            ]
          }

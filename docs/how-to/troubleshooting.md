@@ -32,42 +32,36 @@ curl -k https://tka.your-tailnet.ts.net/metrics
 
 **Problem**: Authentication fails with 400 error mentioning capabilities.
 
-**Cause**: Multiple capability rules or malformed capability in ACL.
+**Possible Causes**:
 
-**Solution**:
+1. **Multiple rules with same priority**: "Multiple capability rules with the same priority found"
+2. **Malformed capability JSON**: Invalid JSON syntax in ACL grants
+3. **Multiple rules without priority differentiation**
 
-- Ensure only one capability rule per user/group
-- Validate ACL JSON syntax
-- Check capability name matches server configuration
+**Solutions**:
 
-```jsonc
-// Bad: Multiple rules for same user
-{
-  "grants": [
-    {
-      "src": ["alice@example.com"],
-      "dst": ["tag:tka"],
-      "app": { "specht-labs.de/cap/tka": [{"role": "admin", "period": "8h"}] }
-    },
-    {
-      "src": ["alice@example.com"],
-      "dst": ["tag:tka"],
-      "app": { "specht-labs.de/cap/tka": [{"role": "dev", "period": "4h"}] }
-    }
-  ]
-}
+1. **Priority Conflicts**: Ensure each rule has a unique priority value
 
-// Good: Single rule per user
-{
-  "grants": [
-    {
-      "src": ["alice@example.com"],
-      "dst": ["tag:tka"],
-      "app": { "specht-labs.de/cap/tka": [{"role": "admin", "period": "8h"}] }
-    }
-  ]
-}
-```
+   ```jsonc
+   // BAD: Same priority values
+   {
+     "grants": [
+       {"src": ["alice"], "app": {"tka": [{"role": "admin", "priority": 100}]}},
+       {"src": ["group:admins"], "app": {"tka": [{"role": "edit", "priority": 100}]}}
+     ]
+   }
+
+   // GOOD: Different priority values
+   {
+     "grants": [
+       {"src": ["alice"], "app": {"tka": [{"role": "admin", "priority": 200}]}},
+       {"src": ["group:admins"], "app": {"tka": [{"role": "edit", "priority": 100}]}}
+     ]
+   }
+   ```
+
+2. **Validate ACL JSON syntax** in Tailscale admin console
+3. **Check capability name** matches server configuration (`--cap-name`)
 
 ### 401 Unauthorized on Kubeconfig
 

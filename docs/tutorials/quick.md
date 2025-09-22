@@ -51,7 +51,8 @@ For the fastest setup, follow these condensed steps:
            "specht-labs.de/cap/tka": [
              {
                "role": "cluster-admin",
-               "period": "4h"
+               "period": "4h",
+               "priority": 100
              }
            ]
          }
