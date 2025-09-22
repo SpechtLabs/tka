@@ -79,13 +79,18 @@ jobs:
           cache-dependency-path: "**/*.sum"
 
       - name: Run tests
-        run: go test -race -cover -coverprofile=coverage.txt ./...
+        run: go test -race -cover -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage
-          path: "**/coverage.txt"
+          path: "**/coverage.out"
 
   code_coverage:
     name: "Code coverage report"
@@ -102,7 +107,7 @@ jobs:
         with:
           root-package: "github.com/${{ github.repository }}"
           coverage-artifact-name: "code-coverage"
-          coverage-file-name: "coverage.txt"
+          coverage-file-name: "coverage.out"
 
   prepare:
     name: Prepare build steps
