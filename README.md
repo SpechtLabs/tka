@@ -26,14 +26,24 @@ TKA (Tailscale Kubernetes Auth) is a zero-trust authentication system that issue
 
 ```bash
 # Install TKA CLI
-curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-linux-amd64 -o ts-k8s-auth
+chmod +x ts-k8s-auth && sudo mv ts-k8s-auth /usr/local/bin/
+
+# Deploy TKA server with Helm
+helm repo add spechtlabs https://charts.specht-labs.de
+helm install tka spechtlabs/tka -n tka-system --create-namespace \
+  --set tka.tailscale.tailnet=your-tailnet.ts.net \
+  --set secrets.tailscale.authKey=tskey-auth-your-key-here
+
+# Install shell integration for tka wrapper functions
+eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
 
 # Start an ephemeral session (perfect for debugging)
 tka shell
 (tka) $ kubectl get pods
 (tka) $ exit  # Access automatically revoked
 
-# Or login for persistent access
+# Or login for persistent access (KUBECONFIG auto-managed)
 tka login
 $ kubectl get namespaces
 $ tka logout

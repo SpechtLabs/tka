@@ -180,7 +180,7 @@ tailscale ping tka.your-tailnet.ts.net
 1. **Invalid Auth Key**:
 
    ```bash
-   # Check auth key validity
+   # For local debugging only (production should use Helm)
    export TS_AUTHKEY=tskey-auth-your-new-key
    tka-server serve
    ```
@@ -191,7 +191,7 @@ tailscale ping tka.your-tailnet.ts.net
    # Check what's using the port
    sudo lsof -i :443
 
-   # Use different port
+   # For local debugging - use different port
    tka-server serve --port 8443
    ```
 
@@ -201,7 +201,7 @@ tailscale ping tka.your-tailnet.ts.net
    # Ensure binary is executable
    chmod +x tka-server
 
-   # Check if port requires privileges
+   # For local debugging - check if port requires privileges
    # Port 443 needs root or CAP_NET_BIND_SERVICE
    sudo tka-server serve --port 443
    ```
@@ -222,7 +222,7 @@ ping login.tailscale.com
 # Check for corporate firewall issues
 # Tailscale needs outbound HTTPS (443) and UDP (41641)
 
-# Use different state directory
+# For local debugging - use different state directory
 tka-server serve --dir /tmp/tka-state
 ```
 
@@ -338,7 +338,7 @@ ping tka.your-tailnet.ts.net
 # Enable HTTPS in Tailscale admin console
 # Go to DNS settings and enable HTTPS certificates
 
-# Use HTTP for non-443 ports
+# For local debugging - use HTTP for non-443 ports
 tka-server serve --port 8080  # Uses HTTP automatically
 
 # Or force HTTPS scheme
@@ -371,23 +371,22 @@ tailscale ping tka.your-tailnet.ts.net
 **Solution**:
 
 ```bash
-# Set resource limits in Kubernetes
-kubectl patch deployment tka-server -n tka-system -p '
-{
-  "spec": {
-    "template": {
-      "spec": {
-        "containers": [{
-          "name": "tka-server",
-          "resources": {
-            "limits": {"memory": "512Mi"},
-            "requests": {"memory": "256Mi"}
-          }
-        }]
-      }
-    }
-  }
-}'
+# Update resource limits using Helm values
+cat > resources-values.yaml << EOF
+resources:
+  limits:
+    memory: "512Mi"
+  requests:
+    memory: "256Mi"
+EOF
+
+# Upgrade Helm release with new resource limits
+helm upgrade tka spechtlabs/tka -n tka-system -f resources-values.yaml
+
+# Or use --set for quick changes
+helm upgrade tka spechtlabs/tka -n tka-system \
+  --set resources.limits.memory=512Mi \
+  --set resources.requests.memory=256Mi
 ```
 
 ## Debug Mode

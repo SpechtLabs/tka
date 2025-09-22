@@ -374,7 +374,11 @@ Ensure your TKA server uses the same capability name:
 ### Via Command Line
 
 ```bash
+# For local development/testing
 tka-server serve --cap-name specht-labs.de/cap/tka
+
+# For production deployment, set in Helm values:
+# tka.tailscale.capName: "specht-labs.de/cap/tka"
 ```
 
 ### Via Configuration File

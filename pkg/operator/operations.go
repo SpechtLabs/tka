@@ -69,6 +69,11 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		zap.String("validity", signIn.Spec.ValidityPeriod),
 		zap.String("role", signIn.Spec.Role),
 	)
+
+	// Update Prometheus metrics for user sign-in
+	userSignInsTotal.WithLabelValues(signIn.Spec.Role, signIn.Spec.Username).Inc()
+	activeUserSessions.WithLabelValues(signIn.Spec.Role).Inc()
+
 	return nil
 }
 
@@ -87,7 +92,11 @@ func (t *KubeOperator) signOutUser(ctx context.Context, signIn *v1alpha1.TkaSign
 
 	otelzap.L().InfoContext(ctx, "Successfully signed out user",
 		zap.String("user", signIn.Spec.Username),
+		zap.String("role", signIn.Spec.Role),
 	)
+
+	// Update Prometheus metrics for user sign-out
+	activeUserSessions.WithLabelValues(signIn.Spec.Role).Dec()
 
 	return nil
 }

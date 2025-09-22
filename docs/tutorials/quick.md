@@ -15,22 +15,35 @@ For the fastest setup, follow these condensed steps:
 
 :::: steps
 
-1. ### Get TKA Binaries
+1. ### Get TKA CLI
 
    ```bash
-   # Download latest release
-   curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/tka-linux-amd64.tar.gz | tar -xz
+   # Download latest CLI release
+   curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-linux-amd64 -o ts-k8s-auth
 
    # Make executable and add to PATH
-   chmod +x tka tka-server
-   sudo mv tka tka-server /usr/local/bin/
+   chmod +x ts-k8s-auth
+   sudo mv ts-k8s-auth /usr/local/bin/
    ```
 
-2. ### Install Kubernetes Resources
+2. ### Install TKA Server with Helm
 
    ```bash
-   # Install CRDs and RBAC
-   kubectl apply -f https://github.com/spechtlabs/tka/releases/latest/download/tka-k8s.yaml
+   # Add Helm repository
+   helm repo add spechtlabs https://charts.specht-labs.de
+   helm repo update
+
+   # Create namespace
+   kubectl create namespace tka-system
+
+   # Create Tailscale secret
+   kubectl create secret generic tka-tailscale \
+     --from-literal=TS_AUTHKEY=tskey-auth-your-key-here \
+     -n tka-system
+
+   # Install TKA with minimal configuration
+   helm install tka spechtlabs/tka -n tka-system \
+     --set tka.tailscale.tailnet=your-tailnet.ts.net
    ```
 
 3. ### Configure Tailscale ACLs
@@ -61,33 +74,35 @@ For the fastest setup, follow these condensed steps:
    }
    ```
 
-4. ### Start TKA Server
+4. ### Configure CLI
 
    ```bash
-   # Set configuration
-   export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
-   export TS_AUTHKEY=tskey-auth-your-key-here
+   # Create config directory and file
+   mkdir -p ~/.config/tka
+   cat > ~/.config/tka/config.yaml << EOF
+   tailscale:
+     hostname: tka
+     tailnet: your-tailnet.ts.net
+   EOF
 
-   # Start server
-   tka-server serve --server tka --port 443
+   # Install shell integration for the tka login wrapper
+   eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
    ```
 
 5. ### Test Authentication
 
-   In a new terminal:
-
    ```bash
-   # Configure CLI
-   export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
+   # Wait for TKA to be ready
+   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=tka -n tka-system
 
-   # Authenticate and test
-   tka login
+   # Use shell integration for seamless experience
+   tka shell
    kubectl get pods -A
-   tka logout
+   exit
    ```
 
 ::::
 
-**Success!** If you can run `kubectl get pods -A` after `tka login`, you're done!
+**Success!** If you can run `kubectl get pods -A` after `tka shell`, you're done!
 
 <!-- @include: troubleshooting_and_next_steps.md -->

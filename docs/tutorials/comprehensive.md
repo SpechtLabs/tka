@@ -42,19 +42,20 @@ For more detailed setup with explanations and alternatives:
    kubectl get nodes
    ```
 
-2. ### Step 2: Install TKA
+2. ### Step 2: Install TKA CLI
 
    #### Option A: Download Release (Recommended)
 
    ```bash
-   # Download for your platform
-   curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/tka-$(uname)-$(uname -m).tar.gz | tar -xz
+   # Download CLI for your platform
+   curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-$(uname)-$(uname -m) -o ts-k8s-auth
 
-   # Make executable
-   chmod +x tka tka-server
+   # Make executable and install
+   chmod +x ts-k8s-auth
+   sudo mv ts-k8s-auth /usr/local/bin/
 
-   # Install globally (optional)
-   sudo mv tka tka-server /usr/local/bin/
+   # Test installation
+   ts-k8s-auth version
    ```
 
    #### Option B: Build from Source
@@ -62,86 +63,104 @@ For more detailed setup with explanations and alternatives:
    ```bash
    # Clone repository
    git clone https://github.com/SpechtLabs/tka
-   cd tka/src
+   cd tka
 
-   # Build binaries
-   go build -o bin/tka-server ./cmd/server
-   go build -o bin/tka ./cmd/cli
+   # Build CLI
+   go build -o bin/ts-k8s-auth ./cmd/cli
 
    # Test build
-   ./bin/tka version
-   ./bin/tka-server --help
+   ./bin/ts-k8s-auth version
    ```
 
-3. ### Step 3: Install Kubernetes Resources
+3. ### Step 3: Install TKA Server with Helm
 
-   TKA requires Custom Resource Definitions and RBAC:
+   #### Add Helm Repository
 
    ```bash
-   # Install from release
-   kubectl apply -f https://github.com/spechtlabs/tka/releases/latest/download/tka-k8s.yaml
+   # Add the SpechtLabs Helm repository
+   helm repo add spechtlabs https://charts.specht-labs.de
+   helm repo update
 
-   # Or from source
-   cd tka/src
-   make generate
-   kubectl apply -k config
+   # Verify repository
+   helm search repo spechtlabs/tka
    ```
 
-   Verify installation:
+   #### Create Namespace
 
    ```bash
-   # Check CRDs
-   kubectl get crd tkasignins.tka.specht-labs.de
-
-   # Check namespace and RBAC
-   kubectl get all -n tka-system
+   # Create namespace for TKA
+   kubectl create namespace tka-system
    ```
 
-4. ### Step 4: Configure TKA
-
-   #### Using Environment Variables (Simple)
+   #### Verify Helm Chart
 
    ```bash
-   export TKA_TAILSCALE_HOSTNAME=tka
-   export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
-   export TKA_TAILSCALE_PORT=443
+   # Check CRDs included in chart
+   helm template tka spechtlabs/tka | grep -A 5 "kind: CustomResourceDefinition"
+
+   # View all resources that will be created
+   helm template tka spechtlabs/tka | kubectl apply --dry-run=client -f -
    ```
 
-   #### Using Configuration File (Flexible)
+4. ### Step 4: Configure TKA Server
 
-   Create `~/.config/tka/config.yaml`:
+   #### Create Helm Values File
+
+   Create a values file for your TKA deployment:
 
    ```yaml
-   tailscale:
-     hostname: tka
-     port: 443
-     tailnet: your-tailnet.ts.net
-     stateDir: /var/lib/tka/tsnet-state
+   # values.yaml
+   tka:
+     tailscale:
+       hostname: tka
+       port: 443
+       tailnet: your-tailnet.ts.net
+       capName: specht-labs.de/cap/tka
 
-   server:
-     readTimeout: 10s
-     readHeaderTimeout: 5s
-     writeTimeout: 20s
-     idleTimeout: 120s
+     server:
+       readTimeout: 10s
+       readHeaderTimeout: 5s
+       writeTimeout: 20s
+       idleTimeout: 120s
 
-   operator:
-     namespace: tka-system
-     clusterName: tka-cluster
-     contextPrefix: tka-context-
-     userPrefix: tka-user-
+     operator:
+       namespace: tka-system
+       clusterName: tka-cluster
+       contextPrefix: tka-context-
+       userPrefix: tka-user-
 
-   api:
-     retryAfterSeconds: 1
+     api:
+       retryAfterSeconds: 1
+
+   # Resource configuration
+   resources:
+     requests:
+       memory: "256Mi"
+       cpu: "100m"
+     limits:
+       memory: "512Mi"
+       cpu: "500m"
+
+   # Enable persistence for Tailscale state
+   persistence:
+     enabled: true
+     size: "1Gi"
+
+   # Secret configuration
+   secrets:
+     tailscale:
+       create: true
+       authKey: ""  # Set this or create secret manually
    ```
 
-   #### Configuration Search Order
+   #### Create Tailscale Secret
 
-   TKA uses this precedence:
-
-   1. Command flags (highest priority)
-   2. Environment variables (`TKA_` prefix)
-   3. Config files (current dir, `$HOME`, `$HOME/.config/tka/`, `/etc/tka`)
-   4. Default values (lowest priority)
+   ```bash
+   # Create secret with your Tailscale auth key
+   kubectl create secret generic tka-tailscale \
+     --from-literal=TS_AUTHKEY=tskey-auth-your-key-here \
+     -n tka-system
+   ```
 
 5. ### Step 5: Configure Tailscale ACLs
 
@@ -198,26 +217,36 @@ For more detailed setup with explanations and alternatives:
    - **`role`**: Must be a valid Kubernetes ClusterRole
    - **`period`**: How long tokens remain valid
 
-6. ### Step 6: Run the TKA Server
+6. ### Step 6: Deploy TKA Server
 
-   #### For Development (Local Process)
+   #### Install with Helm
 
    ```bash
-   # Get auth key from Tailscale admin console
-   export TS_AUTHKEY=tskey-auth-XXXXXXXXXXXXXXXX
+   # Deploy TKA using your values file
+   helm install tka spechtlabs/tka \
+     --namespace tka-system \
+     --values values.yaml
 
-   # Start server
-   tka-server serve --server tka --port 443
-
-   # Or with config file
-   tka-server serve --config ~/.config/tka/config.yaml
+   # Or use inline values for quick setup
+   helm install tka spechtlabs/tka \
+     --namespace tka-system \
+     --set tka.tailscale.tailnet=your-tailnet.ts.net
    ```
 
-   #### For Production (Kubernetes Deployment)
+   #### Verify Deployment
 
-   See the [Production Deployment Guide](../how-to/deploy-production.md) for production-ready deployments.
+   ```bash
+   # Check deployment status
+   kubectl get pods -n tka-system -l app.kubernetes.io/name=tka
 
-   Expected output:
+   # Wait for TKA to be ready
+   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=tka -n tka-system
+
+   # Check logs
+   kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
+   ```
+
+   Expected log output:
 
    ```text
    INFO[0000] Starting TKA server...
@@ -226,17 +255,41 @@ For more detailed setup with explanations and alternatives:
    INFO[0003] Kubernetes operator started
    ```
 
+   #### For Production Deployments
+
+   See the [Production Deployment Guide](../how-to/deploy-production.md) for production-ready configurations with monitoring, security hardening, and high availability considerations.
+
 7. ### Step 7: Configure the CLI
 
-   The CLI needs to know how to reach your TKA server:
+   Create a CLI configuration file and install shell integration:
 
    ```bash
-   # Via environment variables
+   # Create config directory
+   mkdir -p ~/.config/tka
+
+   # Create configuration file
+   cat > ~/.config/tka/config.yaml << EOF
+   tailscale:
+     hostname: tka  # matches Helm chart default
+     tailnet: your-tailnet.ts.net
+     port: 443
+   EOF
+
+   # Install shell integration for the tka wrapper functions
+   eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
+   ```
+
+   #### Alternative: Environment Variables
+
+   You can also configure via environment variables (but still need shell integration):
+
+   ```bash
    export TKA_TAILSCALE_HOSTNAME=tka
    export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
    export TKA_TAILSCALE_PORT=443
 
-   # Or create ~/.config/tka/config.yaml with the client settings
+   # Still install shell integration for tka wrapper functions
+   eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
    ```
 
    #### URL Construction
@@ -252,7 +305,6 @@ For more detailed setup with explanations and alternatives:
    #### Basic Authentication Flow
 
    ```bash
-   # Authenticate
    tka login
    # ✓ sign-in successful!
    #     ╭───────────────────────────────────────╮

@@ -37,6 +37,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 
 	if capRule == nil {
 		otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.")
+		loginAttempts.WithLabelValues(userName, "unknown", "forbidden").Inc()
 		ct.JSON(http.StatusForbidden, globalModels.NewErrorResponse("No grant found for user", nil))
 		return
 	}
@@ -52,6 +53,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 
 	if err := t.client.NewSignIn(ctx, userName, role, period); err != nil {
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error signing in user")
+		loginAttempts.WithLabelValues(userName, role, "error").Inc()
 		writeHumaneError(ct, err, http.StatusNotFound)
 		return
 	}
@@ -64,6 +66,9 @@ func (t *TKAServer) login(ct *gin.Context) {
 		zap.String("period", period.String()),
 		zap.String("until", now.Add(period).Format(time.RFC3339)),
 	)
+
+	// Track successful login metrics
+	loginAttempts.WithLabelValues(userName, role, "success").Inc()
 
 	ct.JSON(http.StatusAccepted, models.NewUserLoginResponse(userName, role, now.Add(period).Format(time.RFC3339)))
 }

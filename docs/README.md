@@ -73,7 +73,7 @@ TKA solves this with a fundamentally simpler approach:
 - **Secure by default** → ephemeral, scoped credentials that auto-expire
 - **Zero infrastructure** → leverage your existing Tailscale network and ACLs
 - **Kubernetes-native** → built on ServiceAccounts, RBAC, and standard APIs
-- **Developer-friendly** → `tsh login`-like UX that just works
+- **Easy deployment** → One-command Helm chart deployment with production-ready defaults
 
 TKA issues **short-lived cluster credentials** backed by your [Tailscale](https://tailscale.com) identity and Kubernetes' native RBAC. No proxies, no sprawl, no complexity.
 
