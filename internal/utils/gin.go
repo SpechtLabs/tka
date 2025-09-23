@@ -22,6 +22,7 @@ func NewO11yGin(routerName string, debug bool) *gin.Engine {
 
 	// Setup Gin router
 	router := gin.New()
+	router.Use(gin.Recovery())
 	router.Use(otelgin.Middleware(routerName))
 	// Setup ginzap to log everything correctly to zap
 	router.Use(ginzap.GinzapWithConfig(otelzap.L(), &ginzap.Config{
@@ -45,7 +46,7 @@ func NewO11yGin(routerName string, debug bool) *gin.Engine {
 
 	// Set-up Prometheus to expose prometheus metrics
 	p := ginprometheus.NewPrometheus(routerName)
-	p.Use(router)
+	router.Use(p.HandlerFunc())
 
 	return router
 }

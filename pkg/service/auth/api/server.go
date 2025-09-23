@@ -22,10 +22,8 @@ import (
 	// Logging
 
 	// o11y
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	// tka
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
@@ -131,9 +129,6 @@ func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Err
 }
 
 func (t *TKAServer) loadStaticRoutes() {
-	// serve K8s controller metrics on /metrics/controller
-	t.router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
-
 	// Add Swagger documentation endpoint
 	// This will serve the Swagger UI at /swagger/index.html
 	t.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

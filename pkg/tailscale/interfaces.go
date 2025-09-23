@@ -51,3 +51,8 @@ type WhoIsResolver interface {
 type TailscaleCapability interface {
 	Priority() int
 }
+
+type TailscaleServer interface {
+	IsConnected() bool
+	BackendState() string
+}

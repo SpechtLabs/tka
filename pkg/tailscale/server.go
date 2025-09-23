@@ -356,11 +356,13 @@ func (s *Server) connectTailnet(ctx context.Context) humane.Error {
 	}
 
 	portSuffix := ""
+	protocol := "https"
 	if s.port != 443 {
 		portSuffix = fmt.Sprintf(":%d", s.port)
+		protocol = "http"
 	}
 
-	s.serverURL = fmt.Sprintf("https://%s%s", strings.TrimSuffix(s.st.Self.DNSName, "."), portSuffix)
+	s.serverURL = fmt.Sprintf("%s://%s%s", protocol, strings.TrimSuffix(s.st.Self.DNSName, "."), portSuffix)
 
 	if s.lc, err = s.ts.LocalClient(); err != nil {
 		return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
@@ -392,4 +394,24 @@ func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, huma
 		Tags:      who.Node.Tags,
 	}
 	return info, nil
+}
+
+func (s *Server) IsConnected() bool {
+	if s.st == nil {
+		return false
+	}
+
+	return s.st.BackendState == "Running"
+}
+
+// BackendState is an ipn.State string value
+//
+//	"NoState", "NeedsLogin", "NeedsMachineAuth", "Stopped",
+//	"Starting", "Running".
+func (s *Server) BackendState() string {
+	if s.st == nil {
+		return "NoState"
+	}
+
+	return s.st.BackendState
 }

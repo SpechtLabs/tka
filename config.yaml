@@ -1,6 +1,6 @@
 tailscale:
   hostname: tka
-  port: 8123
+  port: 443
   tailnet: sphinx-map.ts.net
   stateDir: /tmp/tka-ts-state
 
@@ -23,3 +23,6 @@ operator:
 
 api:
   retryAfterSeconds: 1
+
+health:
+  port: 8080
