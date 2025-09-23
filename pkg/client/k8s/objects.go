@@ -76,6 +76,34 @@ func NewKubeconfig(contextName string, restCfg *rest.Config, token string, clust
 	}
 }
 
+// NewKubeconfigWithExternalCluster creates a kubeconfig with external cluster information.
+// This is preferred when generating kubeconfigs for external clients from within a cluster.
+func NewKubeconfigWithExternalCluster(contextName, token, clusterName, userEntry, serverURL string, caData []byte, insecure bool) *api.Config {
+	return &api.Config{
+		Kind:           "Config",
+		APIVersion:     "v1",
+		CurrentContext: contextName,
+		Clusters: map[string]*api.Cluster{
+			clusterName: {
+				Server:                   serverURL,
+				CertificateAuthorityData: caData,
+				InsecureSkipTLSVerify:    insecure,
+			},
+		},
+		AuthInfos: map[string]*api.AuthInfo{
+			userEntry: {
+				Token: token,
+			},
+		},
+		Contexts: map[string]*api.Context{
+			contextName: {
+				Cluster:  clusterName,
+				AuthInfo: userEntry,
+			},
+		},
+	}
+}
+
 func NewTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
 	return &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
