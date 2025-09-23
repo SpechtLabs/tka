@@ -38,7 +38,7 @@ $ tka --theme dark login
 # light theme
 TKA_THEME=light tka kubeconfig
 
-# no theme (usefull in non-interactive contexts)
+# no theme (useful in non-interactive contexts)
 $ tka --theme notty login
 
 ```
@@ -50,6 +50,7 @@ $ tka --theme notty login
 
 | **Command** | **Description** |
 |:------------|:----------------|
+| **`cluster-info`** | View cluster information |
 | **`completion`** | Generate the autocompletion script for the specified shell |
 | **`config`** | Get or set configuration values |
 | **`generate`** | Generate resources in TKA. |
@@ -63,6 +64,38 @@ $ tka --theme notty login
 | **`version`** | Shows version information |
 
 ### Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+## Usage `cluster-info`
+
+```bash
+tka get cluster-info
+```
+
+### Description
+
+View cluster information.
+This command returns the cluster information that TKA exposes to understand the cluster you're connecting to.
+
+### Examples
+
+```bash
+# View cluster information
+tka get cluster-info
+
+```
+
+### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -260,11 +293,44 @@ tka get login
 
 | **Command** | **Description** |
 |:------------|:----------------|
+| **`cluster-info`** | View cluster information |
 | **`config`** | Get configuration values |
 | **`kubeconfig`** | Fetch your temporary kubeconfig |
 | **`login`** | Show current login information and provisioning status. |
 
 ### Global Flags
+
+| **Flag** | **Type** | **Usage** |
+|:---------|:--------:|:----------|
+| `-c, --config` | `string` | Name of the config file |
+| `    --debug` | `bool` | enable debug logging |
+| `-l, --long` | `bool` | Show long output (where available) |
+| `-e, --no-eval` | `bool` | Do not evaluate the command |
+| `-p, --port` | `int` | Port of the gRPC API of the Server (*default: 443*) |
+| `-q, --quiet` | `bool` | Show no output (where available) |
+| `-s, --server` | `string` | The Server Name on the Tailscale Network (*default: "tka"*) |
+| `-t, --theme` | `string` | theme to use for the CLI (*default: "tokyo-night"*) |
+
+### Usage `cluster-info`
+
+```bash
+tka get cluster-info [flags]
+```
+
+#### Description
+
+View cluster information.
+This command returns the cluster information that TKA exposes to understand the cluster you're connecting to.
+
+#### Examples
+
+```bash
+# View cluster information
+tka get cluster-info
+
+```
+
+#### Global Flags
 
 | **Flag** | **Type** | **Usage** |
 |:---------|:--------:|:----------|
@@ -654,7 +720,7 @@ tka shell
 ## Shell Command
 
 The **shell** command authenticates you using your Tailscale identity and
-retrieves a short‑lived Kubernetes access token. It then spawns an interactive
+retrieves a short-lived Kubernetes access token. It then spawns an interactive
 subshell (using your login shell, e.g. `bash` or `zsh`") with the
 `KUBECONFIG` environment variable set to a temporary kubeconfig file.
 
@@ -667,7 +733,7 @@ This provides a clean and secure workflow:
 
 This is useful for administrators and developers who need ephemeral access to
 a cluster without persisting credentials on disk or leaking them into their
-long‑lived shell environment.
+long-lived shell environment.
 
 ### Examples
 
