@@ -10,6 +10,7 @@ import (
 	client "github.com/spechtlabs/tka/pkg/client/k8s"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	authMw "github.com/spechtlabs/tka/pkg/middleware/auth"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
@@ -31,10 +32,11 @@ import (
 )
 
 const (
-	ApiRouteV1Alpha1   = "/api/v1alpha1"
-	LoginApiRoute      = "/login"
-	KubeconfigApiRoute = "/kubeconfig"
-	LogoutApiRoute     = "/logout"
+	ApiRouteV1Alpha1    = "/api/v1alpha1"
+	LoginApiRoute       = "/login"
+	KubeconfigApiRoute  = "/kubeconfig"
+	LogoutApiRoute      = "/logout"
+	ClusterInfoApiRoute = "/cluster-info"
 )
 
 // TKAServer represents the main HTTP server for Tailscale Kubernetes Auth.
@@ -60,6 +62,7 @@ type TKAServer struct {
 	router           *gin.Engine
 	tracer           trace.Tracer
 	sharedPrometheus *ginprometheus.Prometheus
+	clusterInfo      *models.TkaClusterInfo
 
 	// Auth service
 	client         client.TkaClient
@@ -111,6 +114,7 @@ func NewTKAServer(srv *ts.Server, opts ...Option) *TKAServer {
 		retryAfterSeconds: 1,
 		tsServer:          srv,
 		sharedPrometheus:  nil,
+		clusterInfo:       nil,
 	}
 
 	// Apply Options
@@ -176,6 +180,7 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	v1alpha1Grpup.GET(LoginApiRoute, t.getLogin)
 	v1alpha1Grpup.GET(KubeconfigApiRoute, t.getKubeconfig)
 	v1alpha1Grpup.POST(LogoutApiRoute, t.logout)
+	v1alpha1Grpup.GET(ClusterInfoApiRoute, t.getClusterInfo)
 
 	return nil
 }

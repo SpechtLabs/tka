@@ -88,6 +88,10 @@ func normalStyle(theme Theme) lipgloss.Style {
 	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.Text })
 }
 
+func italicStyle(theme Theme) lipgloss.Style {
+	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.Text }).Italic(true)
+}
+
 func secondaryStyle(theme Theme) lipgloss.Style {
 	return styleFromTheme(func() ansi.StylePrimitive { return styleMap[theme].CodeBlock.Chroma.KeywordType })
 }

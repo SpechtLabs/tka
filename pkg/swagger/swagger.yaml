@@ -38,6 +38,40 @@ definitions:
           example: Failed to authenticate user
         type: string
     type: object
+  models.TkaClusterInfo:
+    description: Contains cluster information including API endpoint, CA data, TLS
+      settings, and identifying labels
+    properties:
+      ca_data:
+        description: |-
+          CAData contains the base64-encoded Certificate Authority (CA) data for the Kubernetes cluster.
+          This is used to verify the TLS certificate presented by the API server.
+          The data should be the PEM-encoded CA certificate, encoded as base64.
+          If empty and InsecureSkipTLSVerify is false, the system's root CA bundle will be used.
+        type: string
+      insecure_skip_tls_verify:
+        description: |-
+          InsecureSkipTLSVerify controls whether TLS certificate verification should be skipped when connecting to the cluster.
+          When true, the client will accept any certificate presented by the server and any hostname matching errors.
+          This should only be set to true for development/testing environments with self-signed certificates.
+          Production clusters should use valid certificates and keep this false for security.
+        type: boolean
+      labels:
+        additionalProperties:
+          type: string
+        description: |-
+          Labels is a set of key-value pairs that can be used to identify and categorize the cluster.
+          These labels help users distinguish between different clusters and can be used for
+          automation, monitoring, or organizational purposes.
+          Common examples: environment (dev/staging/prod), region, project, team ownership, etc.
+        type: object
+      server_url:
+        description: |-
+          ServerURL is the public Kubernetes API server URL or IP address that users should connect to.
+          This should be the externally accessible endpoint of the cluster's API server.
+          Example: "https://api.cluster.example.com:6443" or "https://192.168.1.100:6443"
+        type: string
+    type: object
   models.UserLoginResponse:
     description: Contains authenticated user information and session details
     properties:
@@ -70,6 +104,26 @@ info:
   title: Tailscale Kubernetes Auth API
   version: "1.0"
 paths:
+  /api/v1alpha1/cluster-info:
+    get:
+      description: Returns cluster connection details including API endpoint, CA data,
+        TLS settings, and labels for authenticated users to configure their kubeconfig
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully returned cluster information
+          schema:
+            $ref: '#/definitions/models.TkaClusterInfo'
+        "500":
+          description: Internal Server Error - Error processing the request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - TailscaleAuth: []
+      summary: Get cluster connection information
+      tags:
+      - authentication
   /api/v1alpha1/kubeconfig:
     get:
       description: Generates and returns a kubeconfig file for the authenticated Tailscale

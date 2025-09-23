@@ -24,6 +24,37 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1alpha1/cluster-info": {
+            "get": {
+                "security": [
+                    {
+                        "TailscaleAuth": []
+                    }
+                ],
+                "description": "Returns cluster connection details including API endpoint, CA data, TLS settings, and labels for authenticated users to configure their kubeconfig",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Get cluster connection information",
+                "responses": {
+                    "200": {
+                        "description": "Successfully returned cluster information",
+                        "schema": {
+                            "$ref": "#/definitions/models.TkaClusterInfo"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Error processing the request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1alpha1/kubeconfig": {
             "get": {
                 "security": [
@@ -365,6 +396,31 @@ const docTemplate = `{
                 },
                 "message": {
                     "description": "Primary error message\nexample: Failed to authenticate user",
+                    "type": "string"
+                }
+            }
+        },
+        "models.TkaClusterInfo": {
+            "description": "Contains cluster information including API endpoint, CA data, TLS settings, and identifying labels",
+            "type": "object",
+            "properties": {
+                "ca_data": {
+                    "description": "CAData contains the base64-encoded Certificate Authority (CA) data for the Kubernetes cluster.\nThis is used to verify the TLS certificate presented by the API server.\nThe data should be the PEM-encoded CA certificate, encoded as base64.\nIf empty and InsecureSkipTLSVerify is false, the system's root CA bundle will be used.",
+                    "type": "string"
+                },
+                "insecure_skip_tls_verify": {
+                    "description": "InsecureSkipTLSVerify controls whether TLS certificate verification should be skipped when connecting to the cluster.\nWhen true, the client will accept any certificate presented by the server and any hostname matching errors.\nThis should only be set to true for development/testing environments with self-signed certificates.\nProduction clusters should use valid certificates and keep this false for security.",
+                    "type": "boolean"
+                },
+                "labels": {
+                    "description": "Labels is a set of key-value pairs that can be used to identify and categorize the cluster.\nThese labels help users distinguish between different clusters and can be used for\nautomation, monitoring, or organizational purposes.\nCommon examples: environment (dev/staging/prod), region, project, team ownership, etc.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "server_url": {
+                    "description": "ServerURL is the public Kubernetes API server URL or IP address that users should connect to.\nThis should be the externally accessible endpoint of the cluster's API server.\nExample: \"https://api.cluster.example.com:6443\" or \"https://192.168.1.100:6443\"",
                     "type": "string"
                 }
             }

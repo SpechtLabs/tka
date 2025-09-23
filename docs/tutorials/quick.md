@@ -36,14 +36,21 @@ For the fastest setup, follow these condensed steps:
    # Create namespace
    kubectl create namespace tka-system
 
+   # Get cluster information needed for TKA
+   CLUSTER_ENDPOINT=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+   CLUSTER_CA_DATA=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}')
+
    # Create Tailscale secret
    kubectl create secret generic tka-tailscale \
      --from-literal=TS_AUTHKEY=tskey-auth-your-key-here \
      -n tka-system
 
-   # Install TKA with minimal configuration
+   # Install TKA with cluster configuration
    helm install tka spechtlabs/tka -n tka-system \
-     --set tka.tailscale.tailnet=your-tailnet.ts.net
+     --set tka.tailscale.tailnet=your-tailnet.ts.net \
+     --set tka.clusterInfo.apiEndpoint="$CLUSTER_ENDPOINT" \
+     --set tka.clusterInfo.caData="$CLUSTER_CA_DATA" \
+     --set tka.clusterInfo.labels.environment=quickstart
    ```
 
 3. ### Configure Tailscale ACLs

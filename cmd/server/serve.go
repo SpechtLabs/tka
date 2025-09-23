@@ -17,13 +17,12 @@ import (
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
 	"github.com/spechtlabs/tka/pkg/service/auth/api"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.uber.org/zap"
-	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
@@ -34,11 +33,20 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
+
+	serveCmd.PersistentFlags().String("api-endpoint", "", "API endpoint for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.apiEndpoint", "")
+	serveCmd.PersistentFlags().String("ca-data", "", "CA data for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.caData", "")
+	serveCmd.PersistentFlags().Bool("insecure-skip-tls-verify", false, "Skip TLS verification for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.insecureSkipTLSVerify", false)
+	serveCmd.PersistentFlags().StringToString("labels", nil, "Labels for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.labels", map[string]string{})
 }
 
 var (
 	serveCmd = &cobra.Command{
-		Use:   "serve [--server|-s <string>] [--port|-p <int>] [--dir|-d <string>] [--cap-name|-n <string>] [--health-port <int>]",
+		Use:   "serve [--server|-s <string>] [--port|-p <int>] [--dir|-d <string>] [--cap-name|-n <string>] [--health-port <int>] [--api-endpoint <string>] [--ca-data <string>] [--insecure-skip-tls-verify] [--labels <key=value>]",
 		Short: "Run the TKA API and Kubernetes operator services",
 		Long: `Start the Tailscale-embedded HTTP API and the Kubernetes operator.
 
@@ -56,8 +64,11 @@ tka serve
 # Override the capability name and health port
 tka serve --cap-name specht-labs.de/cap/custom --health-port 9090
 
-# Start with custom local metrics port
-tka serve --health-port 3000`,
+# Start with custom cluster information
+tka serve --api-endpoint https://api.cluster.example.com:6443 --labels environment=prod,region=us-west-2
+
+# Start with insecure TLS for development
+tka serve --api-endpoint https://localhost:6443 --insecure-skip-tls-verify --labels environment=dev`,
 		Args:      cobra.ExactArgs(0),
 		ValidArgs: []string{},
 		Run: func(cmd *cobra.Command, args []string) {
@@ -97,7 +108,18 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		UserPrefix:    viper.GetString("operator.userPrefix"),
 	}
 
-	k8sOperator, err := koperator.NewK8sOperator(getConfig(), clientOpts)
+	clusterInfo := &models.TkaClusterInfo{
+		ServerURL:             viper.GetString("clusterInfo.apiEndpoint"),
+		CAData:                viper.GetString("clusterInfo.caData"),
+		InsecureSkipTLSVerify: viper.GetBool("clusterInfo.insecureSkipTLSVerify"),
+		Labels:                viper.GetStringMapString("clusterInfo.labels"),
+	}
+
+	if clusterInfo.ServerURL == "" {
+		return humane.New("clusterInfo.apiEndpoint is required", "Please provide the API endpoint for the Kubernetes cluster in the config file or via the --api-endpoint flag")
+	}
+
+	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts)
 	if err != nil {
 		cancelFn(err)
 		return err
@@ -127,6 +149,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	tkaServer := api.NewTKAServer(srv,
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
 		api.WithPrometheusMiddleware(sharedPrometheus),
+		api.WithClusterInfo(clusterInfo),
 	)
 
 	if err := tkaServer.LoadApiRoutes(k8sOperator.GetClient()); err != nil {
@@ -255,18 +278,4 @@ func newHealthServer(tsServer ts.TailscaleServer, prom *ginprometheus.Prometheus
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-}
-
-func getConfig() *rest.Config {
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		herr := humane.Wrap(err, "Failed to get Kubernetes config",
-			"If --kubeconfig.go is set, will use the kubeconfig.go file at that location. Otherwise will assume running in cluster and use the cluster provided kubeconfig.go.",
-			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
-		)
-
-		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config")
-	}
-
-	return config
 }

@@ -104,6 +104,23 @@ For more detailed setup with explanations and alternatives:
 
 4. ### Step 4: Configure TKA Server
 
+   #### Gather Cluster Information
+
+   First, collect the necessary cluster connection details:
+
+   ```bash
+   # Get your cluster's API endpoint
+   kubectl cluster-info
+   # Example output: "Kubernetes control plane is running at https://127.0.0.1:6443"
+
+   # For kind clusters, the endpoint might be different for external access
+   # Get the actual external endpoint:
+   kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+
+   # Get the CA certificate data (base64-encoded)
+   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
+   ```
+
    #### Create Helm Values File
 
    Create a values file for your TKA deployment:
@@ -128,6 +145,16 @@ For more detailed setup with explanations and alternatives:
        clusterName: tka-cluster
        contextPrefix: tka-context-
        userPrefix: tka-user-
+
+     # Cluster information that will be exposed to authenticated users
+     clusterInfo:
+       apiEndpoint: "https://127.0.0.1:6443"  # Replace with your cluster's endpoint
+       caData: ""  # Add your base64-encoded CA data here, or set insecureSkipTLSVerify: true for testing
+       insecureSkipTLSVerify: true  # Set to false and provide caData for production
+       labels:
+         environment: development
+         cluster: kind-tka-demo
+         type: demo
 
      api:
        retryAfterSeconds: 1

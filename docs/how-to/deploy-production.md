@@ -36,6 +36,22 @@ Production TKA deployments typically use:
 
 2. ## Production Configuration
 
+   ### Gather Cluster Information
+
+   Before creating the values file, you'll need to gather the cluster connection details:
+
+   ```bash
+   # Get your cluster's API endpoint
+   kubectl cluster-info
+   # Look for: "Kubernetes control plane is running at https://..."
+
+   # Get the CA certificate data (base64-encoded)
+   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
+
+   # Alternative: Get CA from secret if using service account
+   kubectl get secret -n kube-system -o jsonpath='{.data.ca\.crt}' <service-account-secret>
+   ```
+
    ### Create Values File
 
    Create a production values file:
@@ -55,6 +71,17 @@ Production TKA deployments typically use:
 
      operator:
        namespace: tka-system
+
+     # Cluster information exposed to authenticated users
+     clusterInfo:
+       apiEndpoint: "https://api.prod-cluster.example.com:6443"
+       caData: "LS0tLS1CRUdJTi... (base64-encoded CA certificate)"
+       insecureSkipTLSVerify: false
+       labels:
+         environment: production
+         region: us-west-2
+         cluster: prod-cluster
+         team: platform
 
      otel:
        endpoint: jaeger-collector.monitoring.svc.cluster.local:14250

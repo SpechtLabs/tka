@@ -71,6 +71,10 @@ tka generate kubeconfig`,
 	cmdRoot.AddCommand(cmdSignout)
 	cmdRoot.AddCommand(cmdReauth)
 
+	// Cluster info
+	cmdRoot.AddCommand(cmdClusterInfo)
+	cmdGet.AddCommand(cmdClusterInfo)
+
 	if err := cmdRoot.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -2,6 +2,7 @@ package api
 
 import (
 	mw "github.com/spechtlabs/tka/pkg/middleware"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
@@ -44,5 +45,28 @@ func WithAuthMiddleware(m mw.Middleware) Option {
 func WithPrometheusMiddleware(p *ginprometheus.Prometheus) Option {
 	return func(tka *TKAServer) {
 		tka.sharedPrometheus = p
+	}
+}
+
+// WithClusterInfo configures the TKA server with cluster connection information.
+// This information is exposed to authenticated users via the cluster-info API endpoint
+// and is used by clients to configure their kubeconfig files for connecting to the cluster.
+func WithClusterInfo(info *models.TkaClusterInfo) Option {
+	return func(tka *TKAServer) {
+		tka.clusterInfo = info
+	}
+}
+
+// WithNewClusterInfo is a convenience function that creates and configures cluster information
+// for the TKA server. This is useful when you want to construct the cluster info inline
+// rather than creating a separate TkaClusterInfo struct.
+func WithNewClusterInfo(serverURL string, caData string, labels map[string]string) Option {
+	return func(tka *TKAServer) {
+		tka.clusterInfo = &models.TkaClusterInfo{
+			ServerURL:             serverURL,
+			CAData:                caData,
+			InsecureSkipTLSVerify: false, // Default to secure TLS verification
+			Labels:                labels,
+		}
 	}
 }

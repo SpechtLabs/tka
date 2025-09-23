@@ -92,6 +92,35 @@ These settings control how the TKA CLI displays information and are used by clie
 - `output.markdownlint-fix` (bool, default `false`)
   - Apply markdown formatting fixes to generated documentation
 
+### Cluster Information
+
+The `clusterInfo` section configures the cluster connection details that TKA exposes to authenticated users through the cluster-info API endpoint. This information is used by users to configure their kubeconfig files and understand the cluster they're connecting to.
+
+- `clusterInfo.apiEndpoint` (string, **required**)
+  - The Kubernetes API server URL or IP address that users should connect to
+  - This should be the externally accessible endpoint of the cluster's API server
+  - Examples: `"https://api.cluster.example.com:6443"`, `"https://192.168.1.100:6443"`
+  - **Note**: This must be set for TKA to start; the server will fail to start if this is empty
+
+- `clusterInfo.caData` (string, base64-encoded, default `""`)
+  - The base64-encoded Certificate Authority (CA) data for the Kubernetes cluster
+  - Used to verify the TLS certificate presented by the API server
+  - Should be the PEM-encoded CA certificate, encoded as base64
+  - If empty and `insecureSkipTLSVerify` is false, the system's root CA bundle will be used
+  - **Security**: Required for production clusters to ensure secure connections
+
+- `clusterInfo.insecureSkipTLSVerify` (bool, default `false`)
+  - Controls whether TLS certificate verification should be skipped when connecting to the cluster
+  - When `true`, clients will accept any certificate and ignore hostname mismatches
+  - **Security**: Should only be set to `true` for development/testing with self-signed certificates
+  - Production clusters should use valid certificates and keep this `false`
+
+- `clusterInfo.labels` (map[string]string, default `{}`)
+  - Key-value pairs used to identify and categorize the cluster
+  - Helps users distinguish between different clusters and can be used for automation
+  - Common examples: `environment: production`, `region: us-west-2`, `project: webapp`, `team: platform`
+  - These labels are exposed in the cluster-info API response and can be used by client tools
+
 ### Flags
 
 Server and CLI share some flags via the root command:
@@ -148,4 +177,14 @@ operator:
 
 api:
   retryAfterSeconds: 1
+
+clusterInfo:
+  apiEndpoint: "https://api.my-cluster.example.com:6443"
+  caData: "LS0tLS1CRUdJTi... (base64-encoded CA certificate)"
+  insecureSkipTLSVerify: false
+  labels:
+    environment: production
+    region: us-west-2
+    project: webapp
+    team: platform
 ```

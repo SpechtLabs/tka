@@ -1,15 +1,17 @@
 package k8s
 
 import (
+	"encoding/base64"
 	"fmt"
 	"time"
 
+	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -50,44 +52,21 @@ func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 	}
 }
 
-func NewKubeconfig(contextName string, restCfg *rest.Config, token string, clusterName string, userEntry string) *api.Config {
-	return &api.Config{
-		Kind:           "Config",
-		APIVersion:     "v1",
-		CurrentContext: contextName,
-		Clusters: map[string]*api.Cluster{
-			clusterName: {
-				Server:                   restCfg.Host,
-				CertificateAuthorityData: restCfg.CAData,
-				InsecureSkipTLSVerify:    restCfg.Insecure,
-			},
-		},
-		AuthInfos: map[string]*api.AuthInfo{
-			userEntry: {
-				Token: token,
-			},
-		},
-		Contexts: map[string]*api.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: userEntry,
-			},
-		},
+func NewKubeconfig(contextName string, clusterInfo *models.TkaClusterInfo, token string, clusterName string, userEntry string) *api.Config {
+	caData, herr := base64.StdEncoding.DecodeString(clusterInfo.CAData)
+	if herr != nil {
+		otelzap.L().WithError(herr).Fatal("failed to decode CA data")
 	}
-}
 
-// NewKubeconfigWithExternalCluster creates a kubeconfig with external cluster information.
-// This is preferred when generating kubeconfigs for external clients from within a cluster.
-func NewKubeconfigWithExternalCluster(contextName, token, clusterName, userEntry, serverURL string, caData []byte, insecure bool) *api.Config {
 	return &api.Config{
 		Kind:           "Config",
 		APIVersion:     "v1",
 		CurrentContext: contextName,
 		Clusters: map[string]*api.Cluster{
 			clusterName: {
-				Server:                   serverURL,
+				Server:                   clusterInfo.ServerURL,
 				CertificateAuthorityData: caData,
-				InsecureSkipTLSVerify:    insecure,
+				InsecureSkipTLSVerify:    clusterInfo.InsecureSkipTLSVerify,
 			},
 		},
 		AuthInfos: map[string]*api.AuthInfo{
@@ -108,7 +87,6 @@ func NewTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
 	return &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
 			ExpirationSeconds: &expirationSeconds,
-			// Audiences:         []string{"https://kubernetes.default.svc.cluster.local"}, // TODO(cedi): implement properly
 		},
 	}
 }

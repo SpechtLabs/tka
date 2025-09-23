@@ -132,6 +132,33 @@ tka config api.retryafterseconds 3 # Increase retry delay for slow networks
 tka config api.retryafterseconds 1 # Reset to default
 ```
 
+### View Cluster Information
+
+You can view the cluster information that TKA exposes to understand the cluster you're connecting to:
+
+```shell
+$ tka get cluster-info
+
+ℹ Cluster Information:
+    ╭───────────────────────────────────────────╮
+    │ Server URL: https://clusterpi-leader:6443 │
+    │                                           │
+    │ Insecure:   false                         │
+    │ CA Data:    LS0tLS1CRUdJTiBDRVJU...tLS0K  │
+    │                                           │
+    │ Labels:     environment=development       │
+    │             owner=specht-labs             │
+    │             project=tka                   │
+    ╰───────────────────────────────────────────╯
+```
+
+This information is particularly useful for:
+
+- Verifying the correct cluster endpoint
+- Understanding cluster labels for automation
+- Debugging connection issues
+- Confirming TLS configuration
+
 ## Configuration File Management
 
 ### Create Configuration File

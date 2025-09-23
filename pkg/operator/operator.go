@@ -11,6 +11,7 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/api/v1alpha1"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
+	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -32,7 +33,21 @@ type KubeOperator struct {
 	client k8s.TkaClient
 }
 
-func newControllerManagedBy(config *rest.Config) (ctrl.Manager, humane.Error) {
+func getConfigOrDie() *rest.Config {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		herr := humane.Wrap(err, "Failed to get Kubernetes config",
+			"If --kubeconfig.go is set, will use the kubeconfig.go file at that location. Otherwise will assume running in cluster and use the cluster provided kubeconfig.go.",
+			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
+		)
+
+		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config")
+	}
+
+	return config
+}
+
+func newControllerManagedBy() (ctrl.Manager, humane.Error) {
 	// If we run in-cluster then we also do leader election.
 	// But for local debugging, that's not needed
 	inCluster := isInCluster()
@@ -41,7 +56,7 @@ func newControllerManagedBy(config *rest.Config) (ctrl.Manager, humane.Error) {
 		leaderElectionNamespace = "default"
 	}
 
-	mgr, err := ctrl.NewManager(config, ctrl.Options{
+	mgr, err := ctrl.NewManager(getConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  "0",
 		LeaderElection:          inCluster,
@@ -58,11 +73,11 @@ func newControllerManagedBy(config *rest.Config) (ctrl.Manager, humane.Error) {
 	return mgr, nil
 }
 
-func newKubeOperator(mgr ctrl.Manager, config *rest.Config, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
+func newKubeOperator(mgr ctrl.Manager, clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
 	op := &KubeOperator{
 		mgr:    mgr,
 		tracer: otel.Tracer("tka_controller"),
-		client: k8s.NewTkaClient(mgr.GetClient(), config, clientOpts),
+		client: k8s.NewTkaClient(mgr.GetClient(), clusterInfo, clientOpts),
 	}
 
 	if err := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.TkaSignin{}).Named("TkaSignin").Complete(op); err != nil {
@@ -72,7 +87,7 @@ func newKubeOperator(mgr ctrl.Manager, config *rest.Config, clientOpts k8s.Clien
 	return op, nil
 }
 
-func NewK8sOperator(config *rest.Config, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
+func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
@@ -84,7 +99,7 @@ func NewK8sOperator(config *rest.Config, clientOpts k8s.ClientOptions) (*KubeOpe
 
 	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
 
-	mgr, err := newControllerManagedBy(config)
+	mgr, err := newControllerManagedBy()
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +110,7 @@ func NewK8sOperator(config *rest.Config, clientOpts k8s.ClientOptions) (*KubeOpe
 		return nil, humane.New("k8s version must be at least 1.24")
 	}
 
-	op, err := newKubeOperator(mgr, config, clientOpts)
+	op, err := newKubeOperator(mgr, clusterInfo, clientOpts)
 	if err != nil {
 		otelzap.L().WithError(err).Error("failed to create kube operator")
 		return nil, err

@@ -26,3 +26,12 @@ api:
 
 health:
   port: 8080
+
+clusterInfo:
+  apiEndpoint: ""
+  caData: ""
+  insecureSkipTLSVerify: false
+  labels:
+    environment: development
+    project: tka
+    owner: specht-labs
