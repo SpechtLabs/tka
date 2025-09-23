@@ -107,7 +107,9 @@ The `clusterInfo` section configures the cluster connection details that TKA exp
   - Used to verify the TLS certificate presented by the API server
   - Should be the PEM-encoded CA certificate, encoded as base64
   - If empty and `insecureSkipTLSVerify` is false, the system's root CA bundle will be used
-  - **Security**: Required for production clusters to ensure secure connections
+  - **Note**: CA data is public information (not sensitive) and can be stored in ConfigMaps
+  - **Source**: Available from `cluster-info` ConfigMap in `kube-public` namespace or kubeconfig
+  - **Purpose**: Required for production clusters to verify server identity
 
 - `clusterInfo.insecureSkipTLSVerify` (bool, default `false`)
   - Controls whether TLS certificate verification should be skipped when connecting to the cluster

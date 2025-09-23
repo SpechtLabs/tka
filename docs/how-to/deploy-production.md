@@ -48,8 +48,10 @@ Production TKA deployments typically use:
    # Get the CA certificate data (base64-encoded)
    kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
 
-   # Alternative: Get CA from secret if using service account
-   kubectl get secret -n kube-system -o jsonpath='{.data.ca\.crt}' <service-account-secret>
+   # Alternative: Get CA from the public cluster-info ConfigMap
+   kubectl get configmap cluster-info -n kube-public -o jsonpath='{.data.kubeconfig}' | grep certificate-authority-data
+
+   # Note: CA data is public information and safe to store in ConfigMaps/values files
    ```
 
    ### Create Values File
