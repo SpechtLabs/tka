@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"tailscale.com/tailcfg"
 
 	// Misc
@@ -55,12 +56,10 @@ const (
 // 3. Start server with Serve()
 // 4. Gracefully shutdown with Shutdown()
 type TKAServer struct {
-	// Options
-	debug bool
-
 	// API
-	router *gin.Engine
-	tracer trace.Tracer
+	router           *gin.Engine
+	tracer           trace.Tracer
+	sharedPrometheus *ginprometheus.Prometheus
 
 	// Auth service
 	client         client.TkaClient
@@ -78,7 +77,6 @@ type TKAServer struct {
 //
 // Parameters:
 //   - srv: A configured tailscale.Server that handles network connectivity and TLS
-//   - _: Reserved parameter for future use (pass nil)
 //   - opts: Zero or more Option functions to customize server behavior
 //
 // Returns:
@@ -94,7 +92,6 @@ type TKAServer struct {
 // Example:
 //
 //	server, err := NewTKAServer(tailscaleServer, nil,
-//	  WithDebug(true),
 //	  WithRetryAfterSeconds(5),
 //	)
 //	if err != nil {
@@ -102,18 +99,18 @@ type TKAServer struct {
 //	}
 //
 // Note: You must call LoadApiRoutes() and/or LoadOrchestratorRoutes() before serving.
-func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Error) {
+func NewTKAServer(srv *ts.Server, opts ...Option) *TKAServer {
 	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
 	defaultAuthMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, capName)
 
 	tkaServer := &TKAServer{
-		debug:             false,
 		router:            nil,
 		tracer:            otel.Tracer("tka"),
 		client:            nil,
 		authMiddleware:    defaultAuthMiddleware,
 		retryAfterSeconds: 1,
 		tsServer:          srv,
+		sharedPrometheus:  nil,
 	}
 
 	// Apply Options
@@ -121,11 +118,14 @@ func NewTKAServer(srv *ts.Server, _ any, opts ...Option) (*TKAServer, humane.Err
 		opt(tkaServer)
 	}
 
-	// Setup Gin router
-	tkaServer.router = utils.NewO11yGin("tka_server", tkaServer.debug)
+	if tkaServer.sharedPrometheus == nil {
+		tkaServer.sharedPrometheus = ginprometheus.NewPrometheus("tka_server")
+	}
+
+	tkaServer.router = utils.NewO11yGin("tka_server", tkaServer.sharedPrometheus)
 
 	tkaServer.loadStaticRoutes()
-	return tkaServer, nil
+	return tkaServer
 }
 
 func (t *TKAServer) loadStaticRoutes() {

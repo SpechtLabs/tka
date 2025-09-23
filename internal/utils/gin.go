@@ -13,13 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewO11yGin(routerName string, debug bool) *gin.Engine {
-	if debug {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
+func NewO11yGin(routerName string, prom *ginprometheus.Prometheus) *gin.Engine {
 	// Setup Gin router
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -44,9 +38,10 @@ func NewO11yGin(routerName string, debug bool) *gin.Engine {
 		},
 	}))
 
-	// Set-up Prometheus to expose prometheus metrics
-	p := ginprometheus.NewPrometheus(routerName)
-	router.Use(p.HandlerFunc())
+	// Use shared Prometheus instance - only add middleware, don't register endpoints
+	if prom != nil {
+		router.Use(prom.HandlerFunc())
+	}
 
 	return router
 }

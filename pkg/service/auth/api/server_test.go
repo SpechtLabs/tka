@@ -18,19 +18,22 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/auth/api"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/stretchr/testify/require"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+var sharedPrometheus = ginprometheus.NewPrometheus("tka")
 
 func newTestServer(t *testing.T, auth k8s.TkaClient, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}
 
-	srv, err := api.NewTKAServer(nil, nil,
+	srv := api.NewTKAServer(nil,
 		api.WithAuthMiddleware(authMwMock),
+		api.WithPrometheusMiddleware(sharedPrometheus),
 	)
-	require.NoError(t, err)
 
 	if err := srv.LoadApiRoutes(auth); err != nil {
 		t.Fatalf("failed to load api routes: %v", err)
@@ -77,8 +80,7 @@ var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-	s, herr := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
-	require.NoError(t, herr)
+	s := api.NewTKAServer(nil, api.WithAuthMiddleware(authMwMock))
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
@@ -98,7 +100,6 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:    {Expected: true, Seen: false},
 		http.MethodGet + " /orchestrator/v1alpha1/clusters":                  {Expected: false, Seen: false},
 		http.MethodPost + " /orchestrator/v1alpha1/clusters":                 {Expected: false, Seen: false},
-		http.MethodGet + " /metrics/controller":                              {Expected: true, Seen: false},
 		http.MethodGet + " /swagger":                                         {Expected: true, Seen: false},
 	}
 
@@ -124,12 +125,10 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 func TestNewTKAServer_SwaggerRedirect(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-	s, herr := api.NewTKAServer(nil, nil,
+	s := api.NewTKAServer(nil,
 		api.WithAuthMiddleware(authMwMock),
 		api.WithRetryAfterSeconds(10),
-		api.WithDebug(true),
 	)
-	require.NoError(t, herr)
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
@@ -162,8 +161,7 @@ func TestTKAServer_Serve(t *testing.T) {
 			authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
 
 			// Create server without tailscale server (nil)
-			s, herr := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
-			require.NoError(t, herr)
+			s := api.NewTKAServer(nil, api.WithAuthMiddleware(authMwMock))
 			require.NotNil(t, s)
 
 			// Call Serve
@@ -200,8 +198,7 @@ func TestTKAServer_Shutdown(t *testing.T) {
 			authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
 
 			// Create server without tailscale server (nil)
-			s, herr := api.NewTKAServer(nil, nil, api.WithAuthMiddleware(authMwMock))
-			require.NoError(t, herr)
+			s := api.NewTKAServer(nil, api.WithAuthMiddleware(authMwMock))
 			require.NotNil(t, s)
 
 			// Call Shutdown

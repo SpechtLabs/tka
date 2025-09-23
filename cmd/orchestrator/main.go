@@ -91,8 +91,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return herr
 	}
 
-	tkaServer, err := api.NewTKAServer(srv, nil,
-		api.WithDebug(debug),
+	tkaServer, err := api.NewTKAServer(srv,
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
 	)
 	if err != nil {

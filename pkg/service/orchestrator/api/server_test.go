@@ -15,7 +15,7 @@ func TestNewTKAServer_OrchestratorRoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
 
-	s, err := api.NewTKAServer(nil, nil,
+	s, err := api.NewTKAServer(nil,
 		api.WithAuthMiddleware(authMwMock),
 	)
 

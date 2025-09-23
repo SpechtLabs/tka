@@ -20,6 +20,7 @@ import (
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -79,9 +80,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 				string(file), "config", string(file),
 			).Debug("Config file used")
 		}
+		gin.SetMode(gin.DebugMode)
 	} else {
 		configFileName := viper.GetViper().ConfigFileUsed()
 		otelzap.L().Sugar().With("config_file", configFileName).Debug("Config file used")
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	ctx, cancelFn := context.WithCancelCause(cmd.Context())
@@ -118,14 +121,13 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return herr
 	}
 
-	tkaServer, err := api.NewTKAServer(srv, nil,
-		api.WithDebug(debug),
+	// Create shared Prometheus instance for all servers
+	sharedPrometheus := ginprometheus.NewPrometheus("tka")
+
+	tkaServer := api.NewTKAServer(srv,
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
+		api.WithPrometheusMiddleware(sharedPrometheus),
 	)
-	if err != nil {
-		cancelFn(err)
-		return err
-	}
 
 	if err := tkaServer.LoadApiRoutes(k8sOperator.GetClient()); err != nil {
 		cancelFn(err)
@@ -133,7 +135,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	// Create local metrics server
-	healthSrv := newHealthServer(srv, debug)
+	healthSrv := newHealthServer(srv, sharedPrometheus)
 	localPort := viper.GetInt("health.port")
 	if localPort == 0 {
 		localPort = 8080 // Default local metrics port
@@ -213,13 +215,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 }
 
 // newHealthServer creates a local HTTP server for metrics and health checks
-func newHealthServer(tsServer ts.TailscaleServer, debug bool) *http.Server {
-	if debug {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
+func newHealthServer(tsServer ts.TailscaleServer, prom *ginprometheus.Prometheus) *http.Server {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(ginzap.GinzapWithConfig(otelzap.L(), &ginzap.Config{
@@ -228,9 +224,10 @@ func newHealthServer(tsServer ts.TailscaleServer, debug bool) *http.Server {
 	}))
 
 	// Metrics endpoint - expose all Prometheus metrics
+	// Since we're using a shared Prometheus instance, all metrics will be available via the default handler
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	// Controller metrics endpoint - for backwards compatibility
+	// Controller metrics endpoint - expose controller-runtime metrics for backwards compatibility
 	router.GET("/metrics/controller", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
 
 	// Ready endpoint - checks if Tailscale server is connected

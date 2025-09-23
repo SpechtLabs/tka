@@ -2,6 +2,7 @@ package api
 
 import (
 	mw "github.com/spechtlabs/tka/pkg/middleware"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
 // Option defines a functional option pattern for configuring TKAServer instances.
@@ -16,15 +17,6 @@ import (
 //	  WithAuthMiddleware(mockAuth),
 //	)
 type Option func(*TKAServer)
-
-// WithDebug configures debug mode for the TKAServer.
-// When enabled, the server runs in Gin's debug mode with verbose logging.
-// When disabled, the server runs in release mode for better performance.
-func WithDebug(enable bool) Option {
-	return func(tka *TKAServer) {
-		tka.debug = enable
-	}
-}
 
 // WithRetryAfterSeconds configures the Retry-After header value for asynchronous operations.
 // This affects HTTP 202 (Accepted) responses when credentials are being provisioned.
@@ -43,5 +35,14 @@ func WithRetryAfterSeconds(seconds int) Option {
 func WithAuthMiddleware(m mw.Middleware) Option {
 	return func(tka *TKAServer) {
 		tka.authMiddleware = m
+	}
+}
+
+// WithPrometheusMiddleware replaces the default Prometheus middleware.
+// This is primarily used for testing with mock Prometheus or for custom
+// Prometheus implementations.
+func WithPrometheusMiddleware(p *ginprometheus.Prometheus) Option {
+	return func(tka *TKAServer) {
+		tka.sharedPrometheus = p
 	}
 }
