@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"net/http"
 
 	// gin
@@ -9,14 +8,10 @@ import (
 	"github.com/spechtlabs/tka/internal/utils"
 	client "github.com/spechtlabs/tka/pkg/client/k8s"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
-	authMw "github.com/spechtlabs/tka/pkg/middleware/auth"
 	"github.com/spechtlabs/tka/pkg/service/auth/models"
-	"github.com/spechtlabs/tka/pkg/service/capability"
-	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
-	"tailscale.com/tailcfg"
 
 	// Misc
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -26,9 +21,7 @@ import (
 	// o11y
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
-
 	// tka
-	ts "github.com/spechtlabs/tka/pkg/tailscale"
 )
 
 const (
@@ -70,9 +63,6 @@ type TKAServer struct {
 
 	// API behavior
 	retryAfterSeconds int
-
-	// Tailnet Server
-	tsServer *ts.Server
 }
 
 // NewTKAServer creates a new TKAServer instance with the provided Tailscale server and options.
@@ -102,17 +92,13 @@ type TKAServer struct {
 //	}
 //
 // Note: You must call LoadApiRoutes() and/or LoadOrchestratorRoutes() before serving.
-func NewTKAServer(srv *ts.Server, opts ...Option) *TKAServer {
-	capName := tailcfg.PeerCapability(viper.GetString("tailscale.capName"))
-	defaultAuthMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, capName)
-
+func NewTKAServer(opts ...Option) *TKAServer {
 	tkaServer := &TKAServer{
 		router:            nil,
 		tracer:            otel.Tracer("tka"),
 		client:            nil,
-		authMiddleware:    defaultAuthMiddleware,
+		authMiddleware:    nil,
 		retryAfterSeconds: 1,
-		tsServer:          srv,
 		sharedPrometheus:  nil,
 		clusterInfo:       nil,
 	}
@@ -183,24 +169,6 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	v1alpha1Grpup.GET(ClusterInfoApiRoute, t.getClusterInfo)
 
 	return nil
-}
-
-// Serve starts the TKA server with TLS setup and HTTP functionality, handling Tailnet connection and request serving.
-// It listens on the configured port and returns wrapped errors for any issues encountered during initialization or runtime.
-func (t *TKAServer) Serve(ctx context.Context) humane.Error {
-	if t.tsServer == nil {
-		return humane.New("tailscale server not configured", "Provide a tailscale.Server via api.WithTailnetServer option")
-	}
-	return t.tsServer.Serve(ctx, t.router)
-}
-
-// Shutdown gracefully stops the tka server if it is running, releasing any resources and handling in-progress requests.
-// It returns a humane.Error if the server fails to stop.
-func (t *TKAServer) Shutdown(ctx context.Context) humane.Error {
-	if t.tsServer == nil {
-		return nil
-	}
-	return t.tsServer.Shutdown(ctx)
 }
 
 // Engine returns the underlying gin.Engine for advanced integration scenarios.

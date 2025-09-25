@@ -252,12 +252,93 @@ func (s *Server) Start(ctx context.Context) humane.Error {
 //	}
 //	go httpServer.Serve(listener)
 func (s *Server) ListenTCP(address string) (net.Listener, humane.Error) {
+	return s.Listen("tcp", address)
+}
+
+// Listen creates a listener on the Tailscale network.
+// This method returns a standard net.Listener that can be used with any http.Server.
+//
+// The server must be started with Start() before calling this method.
+//
+// The network must be "tcp", "tls" or "funnel". The addr must be of the form
+// "ip:port" (or "[ip]:port") where ip is a valid IPv4 or IPv6 address
+// corresponding to "tcp", "tls" or "funnel" respectively. IP must be specified.
+//
+// Example:
+//
+//	listener, err := server.Listen("tcp", ":8080")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	httpServer := &http.Server{
+//		Handler: myHandler,
+//		ReadTimeout: 30 * time.Second,
+//	}
+//	go httpServer.Serve(listener)
+func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 	if !s.started {
 		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
 	}
-	listener, err := s.ts.Listen("tcp", address)
+	listener, err := s.ts.Listen(network, address)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create TCP listener")
+		return nil, humane.Wrap(err, fmt.Sprintf("failed to create %s listener", network))
+	}
+	return listener, nil
+}
+
+// ListenTLS creates a TLS listener on the Tailscale network.
+// This method returns a standard net.Listener that can be used with any http.Server.
+//
+// The server must be started with Start() before calling this method.
+//
+// Example:
+//
+//	listener, err := server.ListenTLS(":8080")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	httpServer := &http.Server{
+//		Handler: myHandler,
+//		ReadTimeout: 30 * time.Second,
+//	}
+//	go httpServer.Serve(listener)
+func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
+	if !s.started {
+		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+	}
+	listener, err := s.ts.ListenTLS("tcp", address)
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to create TLS listener")
+	}
+	return listener, nil
+}
+
+// ListenFunnel creates a Funnel listener on the Tailscale network.
+// This method returns a standard net.Listener that can be used with any http.Server.
+//
+// The server must be started with Start() before calling this method.
+//
+// Example:
+//
+//	listener, err := server.ListenFunnel(":8080")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	httpServer := &http.Server{
+//		Handler: myHandler,
+//		ReadTimeout: 30 * time.Second,
+//	}
+//	go httpServer.Serve(listener)
+func (s *Server) ListenFunnel(address string) (net.Listener, humane.Error) {
+	if !s.started {
+		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+	}
+	listener, err := s.ts.ListenFunnel("tcp", address)
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to create Funnel listener")
 	}
 	return listener, nil
 }
@@ -289,6 +370,10 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 // The handler will receive requests from authenticated Tailscale devices. Use
 // IsFunnelRequest() to detect and reject public traffic if needed.
 //
+// The network must be "tcp", "tls" or "funnel". The addr must be of the form
+// "ip:port" (or "[ip]:port") where ip is a valid IPv4 or IPv6 address
+// corresponding to "tcp", "tls" or "funnel" respectively. IP must be specified.
+//
 // Example:
 //
 //	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -302,13 +387,7 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 //	if err := server.Serve(ctx, handler); err != nil {
 //		log.Printf("Server error: %v", err)
 //	}
-func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error {
-	if !s.started {
-		if err := s.Start(ctx); err != nil {
-			return humane.Wrap(err, "failed to start server")
-		}
-	}
-
+func (s *Server) Serve(ctx context.Context, handler http.Handler, network string) humane.Error {
 	// Get listener from tsnet
 	address := s.Addr
 	if address == "" {
@@ -319,7 +398,20 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error {
 		}
 	}
 
-	listener, err := s.ts.Listen("tcp", address)
+	var listener net.Listener
+	var err humane.Error
+
+	switch network {
+	case "tcp":
+		listener, err = s.ListenTCP(address)
+	case "tls":
+		listener, err = s.ListenTLS(address)
+	case "funnel":
+		listener, err = s.ListenFunnel(address)
+	default:
+		listener, err = s.Listen(network, address)
+	}
+
 	if err != nil {
 		return humane.Wrap(err, "failed to create listener")
 	}
@@ -333,6 +425,23 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error {
 		return humane.Wrap(err, "failed to serve HTTP")
 	}
 
+	return nil
+}
+
+// ServeTLS serves over the Tailscale network using the TLS protocol.
+func (s *Server) ServeTLS(ctx context.Context, handler http.Handler) humane.Error {
+	if err := s.Serve(ctx, handler, "tls"); err != nil {
+		return humane.Wrap(err, "failed to serve TLS")
+	}
+	return nil
+}
+
+// ServeFunnel serves over the Tailscale network using the Funnel protocol.
+// See the funnel documentation for more details: https://tailscale.com/kb/1223/funnel
+func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.Error {
+	if err := s.Serve(ctx, handler, "funnel"); err != nil {
+		return humane.Wrap(err, "failed to serve Funnel")
+	}
 	return nil
 }
 
@@ -373,10 +482,26 @@ func (s *Server) connectTailnet(ctx context.Context) humane.Error {
 }
 
 // ListenAndServe provides a stdlib-compatible method to serve over the Tailnet using the configured Addr or port.
-func (s *Server) ListenAndServe() error {
+func (s *Server) ListenAndServe() humane.Error {
 	// Use background context for compatibility; prefer Serve(ctx, handler) in new code.
-	if err := s.Serve(context.Background(), s.Handler); err != nil {
-		return err.Cause()
+	if err := s.Serve(context.Background(), s.Handler, "tcp"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ListenAndServeFunnel serves over the Tailscale network using the Funnel protocol.
+func (s *Server) ListenAndServeFunnel() humane.Error {
+	if err := s.ServeFunnel(context.Background(), s.Handler); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ListenAndServeTLS serves over the Tailscale network using the TLS protocol.
+func (s *Server) ListenAndServeTLS(certFile, keyFile string) humane.Error {
+	if err := s.ServeTLS(context.Background(), s.Handler); err != nil {
+		return err
 	}
 	return nil
 }
