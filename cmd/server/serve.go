@@ -17,9 +17,11 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
+	authMw "github.com/spechtlabs/tka/pkg/middleware/auth"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
 	"github.com/spechtlabs/tka/pkg/service/auth/api"
 	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/capability"
 	ts "github.com/spechtlabs/tka/pkg/tailscale"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"tailscale.com/tailcfg"
 )
 
 func init() {
@@ -257,6 +260,8 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Create Tailscale server
 	srv := newTailscaleServer(debug)
 
+	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, tailcfg.PeerCapability(viper.GetString("tailscale.capName")))
+
 	// Start the Tailscale connection
 	if err := srv.Start(ctx); err != nil {
 		herr := humane.Wrap(err, "failed to connect to tailscale", "ensure your TS_AUTH_KEY is set and valid")
@@ -267,10 +272,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Create shared Prometheus instance for all servers
 	sharedPrometheus := ginprometheus.NewPrometheus("tka")
 
-	tkaServer := api.NewTKAServer(srv,
+	tkaServer := api.NewTKAServer(
 		api.WithRetryAfterSeconds(viper.GetInt("api.retryAfterSeconds")),
 		api.WithPrometheusMiddleware(sharedPrometheus),
 		api.WithClusterInfo(clusterInfo),
+		api.WithAuthMiddleware(authMiddleware),
 	)
 
 	if err := tkaServer.LoadApiRoutes(k8sOperator.GetClient()); err != nil {
@@ -284,7 +290,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 
 	// Start TKA server (Tailscale)
 	go func() {
-		if err := tkaServer.Serve(ctx); err != nil {
+		network := "tcp"
+		if viper.GetInt("tailscale.port") == 443 {
+			network = "tls"
+		}
+		if err := srv.Serve(ctx, tkaServer.Engine(), network); err != nil {
 			if err.Cause() != nil {
 				cancelFn(err.Cause())
 			} else {
@@ -329,12 +339,6 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	if err := healthSrv.Shutdown(shutdownCtx); err != nil {
 		otelzap.L().WithError(err).Error("Failed to shutdown local metrics server gracefully")
 		// Continue with other shutdowns even if local server shutdown failed
-	}
-
-	// Shutdown TKA server (stops accepting new requests)
-	if err := tkaServer.Shutdown(shutdownCtx); err != nil {
-		otelzap.L().WithError(err).Error("Failed to shutdown TKA server gracefully")
-		// Continue with Tailscale shutdown even if TKA shutdown failed
 	}
 
 	// Shutdown Tailscale server

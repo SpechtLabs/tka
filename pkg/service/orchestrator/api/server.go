@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 
 	// gin
 	"github.com/gin-gonic/gin"
@@ -147,24 +146,6 @@ func (t *TKAServer) LoadOrchestratorRoutes() humane.Error {
 	v1alpha1Grpup.GET(ClustersRoute, t.getClusters)
 	v1alpha1Grpup.POST(ClustersRoute, t.registerCluster)
 	return nil
-}
-
-// Serve starts the TKA server with TLS setup and HTTP functionality, handling Tailnet connection and request serving.
-// It listens on the configured port and returns wrapped errors for any issues encountered during initialization or runtime.
-func (t *TKAServer) Serve(ctx context.Context) humane.Error {
-	if t.tsServer == nil {
-		return humane.New("tailscale server not configured", "Provide a tailscale.Server via api.WithTailnetServer option")
-	}
-	return t.tsServer.Serve(ctx, t.router)
-}
-
-// Shutdown gracefully stops the tka server if it is running, releasing any resources and handling in-progress requests.
-// It returns a humane.Error if the server fails to stop.
-func (t *TKAServer) Shutdown(ctx context.Context) humane.Error {
-	if t.tsServer == nil {
-		return nil
-	}
-	return t.tsServer.Shutdown(ctx)
 }
 
 // Engine returns the underlying gin.Engine for advanced integration scenarios.

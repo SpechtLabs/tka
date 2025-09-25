@@ -105,7 +105,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	go func() {
-		if err := tkaServer.Serve(ctx); err != nil {
+		network := "tcp"
+		if viper.GetInt("tailscale.port") == 443 {
+			network = "tls"
+		}
+		if err := srv.Serve(ctx, tkaServer.Engine(), network); err != nil {
 			if err.Cause() != nil {
 				cancelFn(err.Cause())
 			} else {
@@ -124,12 +128,6 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	defer cancel()
 
 	otelzap.L().Info("Shutting down servers...")
-
-	// Shutdown TKA server first (stops accepting new requests)
-	if err := tkaServer.Shutdown(shutdownCtx); err != nil {
-		otelzap.L().WithError(err).Error("Failed to shutdown TKA server gracefully")
-		// Continue with Tailscale shutdown even if TKA shutdown failed
-	}
 
 	// Shutdown Tailscale server
 	if err := srv.Stop(shutdownCtx); err != nil {
