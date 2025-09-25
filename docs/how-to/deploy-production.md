@@ -387,9 +387,6 @@ helm status tka -n tka-system
 
 # List TKA resources
 helm get all tka -n tka-system
-
-# Verify connectivity
-kubectl exec -it deployment/tka -n tka-system -- curl -k https://tka.your-tailnet.ts.net/metrics
 ```
 
 ## Next Steps

@@ -211,6 +211,26 @@ func setConfigValue(key, value string, forceCreate bool) humane.Error {
 		return humane.New("No configuration file is used. Use --force to create one at ~/.config/tka/config.yaml")
 	}
 
+	// If forcing creation and no config file in use, create default path
+	if configFileUsed == "" && forceCreate {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return humane.Wrap(err, "failed to determine home directory")
+		}
+		configDir := fmt.Sprintf("%s/.config/tka", homeDir)
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
+			return humane.Wrap(err, "failed to create config directory")
+		}
+		configPath := fmt.Sprintf("%s/config.yaml", configDir)
+		viper.SetConfigFile(configPath)
+		// Create empty file if not exists
+		if _, err := os.Stat(configPath); err != nil {
+			if f, cErr := os.Create(configPath); cErr == nil {
+				_ = f.Close()
+			}
+		}
+	}
+
 	// Set the value in viper
 	viper.Set(key, parsedValue)
 

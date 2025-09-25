@@ -178,7 +178,7 @@ tka login --no-eval
 
 - Verify you're on the Tailscale network: `tailscale status`
 - Check ACL capability grants in Tailscale admin console
-- Test basic connectivity: `curl -k https://tka.your-tailnet.ts.net/metrics`
+- Test basic connectivity: `kubectl port-forward -n tka-system svc/tka 8080:8080 && curl -s http://localhost:8080/metrics`
 
 ### Shell Behavior Issues
 

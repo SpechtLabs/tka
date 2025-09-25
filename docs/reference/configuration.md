@@ -139,6 +139,11 @@ Server-only flags:
 ```text
 --dir, -d               tsnet state directory (maps to tailscale.stateDir)
 --cap-name, -n          Capability name to require (maps to tailscale.capName)
+--health-port           Port for local metrics and health server (maps to health.port)
+--api-endpoint          Kubernetes API endpoint URL (maps to clusterInfo.apiEndpoint)
+--ca-data               Base64-encoded cluster CA data (maps to clusterInfo.caData)
+--insecure-skip-tls-verify  Skip TLS verification (maps to clusterInfo.insecureSkipTLSVerify)
+--labels                Cluster labels key=value list (maps to clusterInfo.labels)
 ```
 
 ### Example config.yaml

@@ -24,8 +24,12 @@ Common issues and solutions when using TKA.
 # Verify Tailscale status
 tailscale status
 
+# Check if you can reach the TKA metrics server
+kubectl port-forward -n tka-system svc/tka 8080:8080
+curl -s http://localhost:8080/metrics
+
 # Check if you can reach the TKA server
-curl -k https://tka.your-tailnet.ts.net/metrics
+curl -s {tka}.{your-tailnet}.ts.net:8123/cluster-info
 ```
 
 ### 400 Bad Request on Capability
@@ -160,7 +164,7 @@ tka --server tka --port 443 login
 tka --debug login
 
 # Test connectivity
-curl -k https://tka.your-tailnet.ts.net/metrics
+curl -s http://localhost:8080/metrics
 
 # Check DNS resolution
 nslookup tka.your-tailnet.ts.net

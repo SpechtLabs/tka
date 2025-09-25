@@ -38,7 +38,7 @@ func InitObservability() func() {
 	traceProvider := otelprovider.NewTracer(tracerOptions...)
 
 	// Initialize Logging
-	debug := viper.GetBool("server.debug")
+	debug := viper.GetBool("debug")
 	var zapLogger *zap.Logger
 	var err error
 	if debug {
