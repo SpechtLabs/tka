@@ -3,12 +3,14 @@ package operator
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spechtlabs/tka/api/v1alpha1"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -42,7 +44,19 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 	signIn := &v1alpha1.TkaSignin{}
 	if err := c.Get(ctx, req.NamespacedName, signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
-			otelzap.L().Info("signin deleted", zap.String("name", req.Name), zap.String("namespace", req.Namespace))
+			signIn = &v1alpha1.TkaSignin{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      req.Name,
+					Namespace: req.Namespace,
+				},
+				Spec: v1alpha1.TkaSigninSpec{
+					Username: strings.TrimPrefix(req.Name, k8s.DefaultUserEntryPrefix),
+				},
+			}
+			if err := t.signOutUser(ctx, signIn); err != nil {
+				otelzap.L().WithError(err).Error("Failed to sign out user", zap.String("username", signIn.Spec.Username))
+				return reconcile.Result{}, fmt.Errorf("%s", err.Display())
+			}
 			return reconcile.Result{}, nil
 		}
 
