@@ -96,11 +96,11 @@ These settings control how the TKA CLI displays information and are used by clie
 
 The `clusterInfo` section configures the cluster connection details that TKA exposes to authenticated users through the cluster-info API endpoint. This information is used by users to configure their kubeconfig files and understand the cluster they're connecting to.
 
-- `clusterInfo.apiEndpoint` (string, **required**)
+- `clusterInfo.apiEndpoint` (string, **required unless `configMapRef.enabled` is true**)
   - The Kubernetes API server URL or IP address that users should connect to
   - This should be the externally accessible endpoint of the cluster's API server
   - Examples: `"https://api.cluster.example.com:6443"`, `"https://192.168.1.100:6443"`
-  - **Note**: This must be set for TKA to start; the server will fail to start if this is empty
+  - **Note**: Must be set for TKA to start when not using `configMapRef`.
 
 - `clusterInfo.caData` (string, base64-encoded, default `""`)
   - The base64-encoded Certificate Authority (CA) data for the Kubernetes cluster
@@ -122,6 +122,30 @@ The `clusterInfo` section configures the cluster connection details that TKA exp
   - Helps users distinguish between different clusters and can be used for automation
   - Common examples: `environment: production`, `region: us-west-2`, `project: webapp`, `team: platform`
   - These labels are exposed in the cluster-info API response and can be used by client tools
+
+#### ConfigMap Reference
+
+Use a Kubernetes ConfigMap to supply cluster connection details. This is useful for kubeadm clusters which expose a `cluster-info` ConfigMap in the `kube-public` namespace.
+
+- `clusterInfo.configMapRef.enabled` (bool, default `false`)
+  - When `true`, TKA reads connection details from the specified ConfigMap
+  - Mutually exclusive with explicit `clusterInfo.*` connection settings
+- `clusterInfo.configMapRef.name` (string, default `""`)
+  - Name of the ConfigMap containing connection details
+- `clusterInfo.configMapRef.namespace` (string, default `""`)
+  - Namespace where the ConfigMap is located
+- `clusterInfo.configMapRef.keys.apiEndpoint` (string, default `"apiEndpoint"`)
+  - Key within the ConfigMap data which contains the API endpoint
+- `clusterInfo.configMapRef.keys.caData` (string, default `"caData"`)
+  - Key within the ConfigMap data which contains base64-encoded CA certificate data
+- `clusterInfo.configMapRef.keys.insecure` (string, default `"insecure"`)
+  - Key within the ConfigMap data which contains a boolean-like string for insecure TLS (e.g., `"true"`, `"1"`)
+- `clusterInfo.configMapRef.keys.kubeconfig` (string, default `"kubeconfig"`)
+  - Optional. If set and present, TKA will parse the embedded kubeconfig and extract the first cluster's `server` and `certificate-authority-data` (kubeadm `cluster-info` style).
+- Use `clusterInfo.labels` to add labels; they apply in both explicit and ConfigMap modes
+
+> [!NOTE]
+> You must provide exactly one of: explicit `clusterInfo.apiEndpoint` or `configMapRef.enabled: true` with a valid reference. If both are provided, TKA will refuse to start.
 
 ### Flags
 
@@ -186,12 +210,20 @@ api:
   retryAfterSeconds: 1
 
 clusterInfo:
-  apiEndpoint: "https://api.my-cluster.example.com:6443"
-  caData: "LS0tLS1CRUdJTi... (base64-encoded CA certificate)"
-  insecureSkipTLSVerify: false
   labels:
     environment: production
     region: us-west-2
     project: webapp
     team: platform
+
+  # Alternative: use a ConfigMap as the source of cluster connection details
+  # Enable and omit apiEndpoint above.
+  configMapRef:
+    enabled: false
+    name: "cluster-info"
+    namespace: "kube-public"
+    keys:
+      apiEndpoint: "apiEndpoint"
+      caData: "caData"
+      insecure: "insecure"
 ```

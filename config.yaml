@@ -35,3 +35,11 @@ clusterInfo:
     environment: development
     project: tka
     owner: specht-labs
+  configMapRef:
+    enabled: false
+    name: ""
+    namespace: ""
+    keys:
+      apiEndpoint: "apiEndpoint"
+      caData: "caData"
+      insecure: "insecure"
