@@ -29,9 +29,9 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/sys v0.36.0
 	golang.org/x/term v0.35.0
-	k8s.io/api v0.34.0
-	k8s.io/apimachinery v0.34.0
-	k8s.io/client-go v0.34.0
+	k8s.io/api v0.34.1
+	k8s.io/apimachinery v0.34.1
+	k8s.io/client-go v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.1
 	sigs.k8s.io/yaml v1.6.0
 	tailscale.com v1.88.2
