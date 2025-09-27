@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -30,7 +29,7 @@ func newTestServer(t *testing.T, auth k8s.TkaClient, rule capability.Rule) (*api
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}
 
-	srv := api.NewTKAServer(nil,
+	srv := api.NewTKAServer(
 		api.WithAuthMiddleware(authMwMock),
 		api.WithPrometheusMiddleware(sharedPrometheus),
 	)
@@ -80,7 +79,7 @@ var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-	s := api.NewTKAServer(nil, api.WithAuthMiddleware(authMwMock))
+	s := api.NewTKAServer(api.WithAuthMiddleware(authMwMock))
 	require.NotNil(t, s)
 	require.NotNil(t, s.Engine())
 
@@ -125,7 +124,7 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 func TestNewTKAServer_SwaggerRedirect(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-	s := api.NewTKAServer(nil,
+	s := api.NewTKAServer(
 		api.WithAuthMiddleware(authMwMock),
 		api.WithRetryAfterSeconds(10),
 	)
@@ -140,77 +139,4 @@ func TestNewTKAServer_SwaggerRedirect(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	require.Equal(t, http.StatusMovedPermanently, resp.Request.Response.StatusCode)
 	require.Equal(t, "/swagger/index.html", resp.Request.Response.Header.Get("Location"))
-}
-
-func TestTKAServer_Serve(t *testing.T) {
-	tests := []struct {
-		name          string
-		expectError   bool
-		errorContains []string
-	}{
-		{
-			name:          "no tailscale server configured",
-			expectError:   true,
-			errorContains: []string{"tailscale server not configured"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gin.SetMode(gin.TestMode)
-			authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-
-			// Create server without tailscale server (nil)
-			s := api.NewTKAServer(nil, api.WithAuthMiddleware(authMwMock))
-			require.NotNil(t, s)
-
-			// Call Serve
-			ctx := context.Background()
-			err := s.Serve(ctx)
-
-			// Check error expectations
-			if tt.expectError {
-				require.Error(t, err)
-				for _, contains := range tt.errorContains {
-					require.Contains(t, err.Error(), contains)
-				}
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestTKAServer_Shutdown(t *testing.T) {
-	tests := []struct {
-		name        string
-		expectError bool
-	}{
-		{
-			name:        "no tailscale server configured",
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gin.SetMode(gin.TestMode)
-			authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: capability.Rule{}, OmitRule: false}
-
-			// Create server without tailscale server (nil)
-			s := api.NewTKAServer(nil, api.WithAuthMiddleware(authMwMock))
-			require.NotNil(t, s)
-
-			// Call Shutdown
-			ctx := context.Background()
-			err := s.Shutdown(ctx)
-
-			// Check error expectations
-			if tt.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
 }
