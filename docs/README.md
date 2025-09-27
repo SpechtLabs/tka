@@ -7,7 +7,7 @@ config:
     hero:
       name: Tailscale-native Kubernetes access
       text: Skip the proxies, gateways, and OIDC complexity.
-      tagline: Secure, ephemeral cluster access — powered entirely by your Tailscale network and identity.
+      tagline: Secure, ephemeral cluster access - powered entirely by your Tailscale network and identity.
       image: /logo.png
       actions:
         - text: Overview →
@@ -33,11 +33,11 @@ config:
 
       - title: Ephemeral credentials by design
         icon: mdi:timer-sand
-        details: Short-lived tokens that auto-expire. Get access exactly when you need it, for exactly as long as you need it — and not a second longer.
+        details: Short-lived tokens that auto-expire. Get access exactly when you need it, for exactly as long as you need it - and not a second longer.
 
       - title: Kubernetes-native architecture
         icon: mdi:kubernetes
-        details: Built on ServiceAccounts, ClusterRoles, and standard APIs. No custom auth protocols or vendor lock-in — just native Kubernetes security.
+        details: Built on ServiceAccounts, ClusterRoles, and standard APIs. No custom auth protocols or vendor lock-in - just native Kubernetes security.
 
       - title: GitOps-ready configuration
         icon: mdi:account-key-outline
@@ -90,30 +90,8 @@ Both workflows provide instant, secure access without the usual ceremony.
 
 @tab `tka shell`
 
-  ::: collapse accordion expand
-
-- Quiet output
-
   ```shell
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
-
-  $ tka shell --quiet
-  (tka) $ kubectl version | grep Server
-  Server Version: v1.31.1+k3s1
-
-  (tka) $ exit
-
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
-  ```
-
-- :- Verbose output
-
-  ```shell
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
-
+  # Sign-in and spawn a sub-shell
   $ tka shell
   ✓ sign-in successful!
       ╭───────────────────────────────────────╮
@@ -122,96 +100,46 @@ Both workflows provide instant, secure access without the usual ceremony.
       │ Until: Sun, 07 Sep 2025 19:24:29 CEST │
       ╰───────────────────────────────────────╯
 
+  # Verify we are in fact authenticated
   (tka) $ kubectl version | grep Server
   Server Version: v1.31.1+k3s1
 
+  # Exiting our sub-shell automatically invalidates our session
   (tka) $ exit
   ✓ You have been signed out
 
+  # verify we are no longer signed in
   $ kubectl get ns
   error: You must be logged in to the server (Unauthorized)
   ```
-
-  :::
 
 @tab `tka login`
 
-  ::: collapse accordion expand
-
-- With [Shell Integration](./how-to/shell-integration.md)
-
   ```shell
+  # Sign-in and populate the KUBECONFIG context in our shell
   $ tka login
 
+  # Verify our session
   $ kubectl version | grep Server
   Server Version: v1.31.1+k3s1
 
-  $ tka logout --quiet
-
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
-  ```
-
-- :- Quiet output / Without [Shell integration](./how-to/shell-integration.md)
-
-  You can use `tka login --quiet` to only print the use statement for your kubeconfig
-
-  ```shell
-  $ tka login --no-eval --quiet
-  export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
-
-  $ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
-  $ kubectl version | grep Server
-  Server Version: v1.31.1+k3s1
-
-  $ tka logout --quiet
-
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
-  ```
-
-  > [!TIP]
-  > This is what the [Shell Integration](./how-to/shell-integration.md) uses under the hood, to essentially do a
-  >
-  > ```bash
-  > eval "$(command ts-k8s-auth login --quiet)"
-  > ```
-  >
-  > when you run `tka login`.
-  >
-  > You can leverage this for your own, custom shell integrations.
-
-- :- Verbose output without [Shell integration](./how-to/shell-integration.md)
-
-  ```shell
-  $ tka login --no-eval
-  ✓ sign-in successful!
-      ╭───────────────────────────────────────╮
-      │ User:  cedi                           │
-      │ Role:  cluster-admin                  │
-      │ Until: Mon, 08 Sep 2025 19:25:01 CEST │
-      ╰───────────────────────────────────────╯
-  ✓ kubeconfig written to:
-      /tmp/kubeconfig-2950671502.yaml
-  → To use this session, run:
-      export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
-
-  $ export KUBECONFIG=/tmp/kubeconfig-2950671502.yaml
-  $ kubectl version | grep Server
-  Server Version: v1.31.1+k3s1
-
+  # manually logging out and invalidating our credentials
   $ tka logout
   ✓ You have been signed out
 
+  # verify we are no longer signed in
   $ kubectl get ns
   error: You must be logged in to the server (Unauthorized)
   ```
+
+  > [!NOTE]
+  > This requires the [Shell Integration](./how-to/shell-integration.md) to be set-up
 
 :::
 
 TKA is built by SREs who understand production operations. Every workflow is designed for real-world reliability, security, and ease of use.
 
-Found a rough edge? Have an idea for improvement? [Open an issue](https://github.com/spechtlabs/tka/issues/new/choose) — we're always working to make Kubernetes access better.
+Found a rough edge? Have an idea for improvement? [Open an issue](https://github.com/spechtlabs/tka/issues/new/choose) - we're always working to make Kubernetes access better.
 
 ## Security Notice
 

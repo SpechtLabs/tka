@@ -5,11 +5,11 @@ createTime: 2025/01/27 10:00:00
 ---
 
 > [!TIP]
-> There is also a [Getting Started with TKA (comprehensive guide)](./comprehensive.md) tutorial available
+> There is also a [advanced tutorial)](./comprehensive.md) available
 
 <!-- @include: prerequisites.md -->
 
-## Quick Path
+## Quick Start
 
 For the fastest setup, follow these condensed steps:
 
