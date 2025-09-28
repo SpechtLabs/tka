@@ -25,7 +25,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	// tka
-	ts "github.com/spechtlabs/tka/pkg/tailscale"
+	ts "github.com/spechtlabs/tka/pkg/tshttp"
 )
 
 const (

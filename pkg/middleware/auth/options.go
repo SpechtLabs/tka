@@ -1,18 +1,16 @@
 package auth
 
-import (
-	"github.com/spechtlabs/tka/pkg/tailscale"
-)
+import "github.com/spechtlabs/tka/pkg/tshttp"
 
-type Option[capRule tailscale.TailscaleCapability] func(*ginAuthMiddleware[capRule])
+type Option[capRule tshttp.TailscaleCapability] func(*ginAuthMiddleware[capRule])
 
-func AllowFunnelRequest[capRule tailscale.TailscaleCapability](allowed bool) Option[capRule] {
+func AllowFunnelRequest[capRule tshttp.TailscaleCapability](allowed bool) Option[capRule] {
 	return func(m *ginAuthMiddleware[capRule]) {
 		m.allowFunnel = allowed
 	}
 }
 
-func AllowTaggedNodes[capRule tailscale.TailscaleCapability](allowed bool) Option[capRule] {
+func AllowTaggedNodes[capRule tshttp.TailscaleCapability](allowed bool) Option[capRule] {
 	return func(m *ginAuthMiddleware[capRule]) {
 		m.allowTagged = allowed
 	}

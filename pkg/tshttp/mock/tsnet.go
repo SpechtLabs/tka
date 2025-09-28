@@ -1,6 +1,6 @@
-// Package mock provides mock implementations for testing Tailscale functionality.
+// Package mock provides mock implementations for testing tshttp functionality.
 // This package contains mock implementations of the interfaces defined in the
-// parent tailscale package, enabling comprehensive unit testing.
+// parent tshttp package, enabling comprehensive unit testing.
 package mock
 
 import (
@@ -8,7 +8,7 @@ import (
 	"net"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	ts "github.com/spechtlabs/tka/pkg/tailscale"
+	ts "github.com/spechtlabs/tka/pkg/tshttp"
 	"tailscale.com/ipn/ipnstate"
 )
 

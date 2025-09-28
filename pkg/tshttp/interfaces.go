@@ -1,7 +1,7 @@
-// Package tailscale provides interfaces and types for Tailscale network integration.
+// Package tshttp provides interfaces and types for HTTP servers on Tailscale networks.
 // This file defines the core interfaces used throughout the package for testability
 // and abstraction of Tailscale functionality.
-package tailscale
+package tshttp
 
 import (
 	"context"

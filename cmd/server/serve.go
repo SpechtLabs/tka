@@ -22,7 +22,7 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/auth/api"
 	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	"github.com/spechtlabs/tka/pkg/service/capability"
-	ts "github.com/spechtlabs/tka/pkg/tailscale"
+	ts "github.com/spechtlabs/tka/pkg/tshttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	ginprometheus "github.com/zsais/go-gin-prometheus"

@@ -12,7 +12,7 @@ import (
 	"github.com/spechtlabs/tka/internal/cli/cmd"
 	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/service/orchestrator/api"
-	ts "github.com/spechtlabs/tka/pkg/tailscale"
+	ts "github.com/spechtlabs/tka/pkg/tshttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -433,7 +433,7 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/spechtlabs/tka/pkg/tailscale"
+    "github.com/spechtlabs/tka/pkg/tshttp"
 )
 
 func main() {
@@ -471,7 +471,7 @@ import (
     "syscall"
     "time"
 
-    "github.com/spechtlabs/tka/pkg/tailscale"
+    "github.com/spechtlabs/tka/pkg/tshttp"
 )
 
 func main() {

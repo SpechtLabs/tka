@@ -1,4 +1,4 @@
-package tailscale_test
+package tshttp_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spechtlabs/tka/pkg/tailscale"
-	"github.com/spechtlabs/tka/pkg/tailscale/mock"
+	"github.com/spechtlabs/tka/pkg/tshttp"
+	"github.com/spechtlabs/tka/pkg/tshttp/mock"
 	"github.com/stretchr/testify/require"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnstate"
@@ -23,7 +23,7 @@ func TestNewServer(t *testing.T) {
 	tests := []struct {
 		name         string
 		hostname     string
-		opts         []tailscale.Option
+		opts         []tshttp.Option
 		wantAddr     string
 		wantTimeouts map[string]time.Duration
 	}{
@@ -42,10 +42,10 @@ func TestNewServer(t *testing.T) {
 		{
 			name:     "custom port and timeouts",
 			hostname: "custom",
-			opts: []tailscale.Option{
-				tailscale.WithPort(8080),
-				tailscale.WithReadTimeout(15 * time.Second),
-				tailscale.WithWriteTimeout(25 * time.Second),
+			opts: []tshttp.Option{
+				tshttp.WithPort(8080),
+				tshttp.WithReadTimeout(15 * time.Second),
+				tshttp.WithWriteTimeout(25 * time.Second),
 			},
 			wantAddr: ":8080",
 			wantTimeouts: map[string]time.Duration{
@@ -56,9 +56,9 @@ func TestNewServer(t *testing.T) {
 		{
 			name:     "debug and state dir options",
 			hostname: "debug-app",
-			opts: []tailscale.Option{
-				tailscale.WithDebug(true),
-				tailscale.WithStateDir("/tmp/test-state"),
+			opts: []tshttp.Option{
+				tshttp.WithDebug(true),
+				tshttp.WithStateDir("/tmp/test-state"),
 			},
 			wantAddr: ":443",
 		},
@@ -67,7 +67,7 @@ func TestNewServer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			s := tailscale.NewServer(tt.hostname, tt.opts...)
+			s := tshttp.NewServer(tt.hostname, tt.opts...)
 
 			require.NotNil(t, s.Server)
 			require.Equal(t, tt.wantAddr, s.Addr)
@@ -145,7 +145,7 @@ func TestServer_Start(t *testing.T) {
 			mockTS := mock.NewMockTSNet()
 			tt.setupMock(t, mockTS)
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 			ctx := context.Background()
 
 			err := s.Start(ctx)
@@ -251,12 +251,12 @@ func TestServer_ConnectionState(t *testing.T) {
 				tt.setupMock(t, mockTS)
 			}
 
-			opts := []tailscale.Option{tailscale.WithTSNet(mockTS)}
+			opts := []tshttp.Option{tshttp.WithTSNet(mockTS)}
 			if tt.port != 0 {
-				opts = append(opts, tailscale.WithPort(tt.port))
+				opts = append(opts, tshttp.WithPort(tt.port))
 			}
 
-			s := tailscale.NewServer("myapp", opts...)
+			s := tshttp.NewServer("myapp", opts...)
 			ctx := context.Background()
 
 			if tt.started {
@@ -388,7 +388,7 @@ func TestServer_ListenMethods(t *testing.T) {
 				tt.setupMock(t, mockTS)
 			}
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 
 			if tt.started {
 				err := s.Start(context.Background())
@@ -445,7 +445,7 @@ func TestServer_WhoIs(t *testing.T) {
 		addr      string
 		wantErr   bool
 		errMsg    string
-		wantInfo  *tailscale.WhoIsInfo
+		wantInfo  *tshttp.WhoIsInfo
 	}{
 		{
 			name:    "requires start",
@@ -460,7 +460,7 @@ func TestServer_WhoIs(t *testing.T) {
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
 				m.Whois = &mock.MockWhoIs{
-					Resp: &tailscale.WhoIsInfo{
+					Resp: &tshttp.WhoIsInfo{
 						LoginName: "alice@example.com",
 						Tags:      []string{},
 					},
@@ -468,7 +468,7 @@ func TestServer_WhoIs(t *testing.T) {
 			},
 			addr:    "100.100.100.100:443",
 			wantErr: false,
-			wantInfo: &tailscale.WhoIsInfo{
+			wantInfo: &tshttp.WhoIsInfo{
 				LoginName: "alice@example.com",
 				Tags:      []string{},
 			},
@@ -496,7 +496,7 @@ func TestServer_WhoIs(t *testing.T) {
 				tt.setupMock(t, mockTS)
 			}
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 
 			if tt.started {
 				err := s.Start(context.Background())
@@ -577,7 +577,7 @@ func TestServer_ServeNetworks(t *testing.T) {
 			mockTS := mock.NewMockTSNet()
 			tt.setupMock(t, mockTS)
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := s.Serve(context.Background(), handler, tt.network)
@@ -599,14 +599,14 @@ func TestServer_HighLevelMethods(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		testFn    func(*testing.T, *tailscale.Server) error
+		testFn    func(*testing.T, *tshttp.Server) error
 		setupMock func(*testing.T, *mock.MockTSNet)
 		wantErr   bool
 		errMsg    string
 	}{
 		{
 			name: "ListenAndServe",
-			testFn: func(t *testing.T, s *tailscale.Server) error {
+			testFn: func(t *testing.T, s *tshttp.Server) error {
 				t.Helper()
 				return s.ListenAndServe()
 			},
@@ -619,7 +619,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 		},
 		{
 			name: "ListenAndServeTLS",
-			testFn: func(t *testing.T, s *tailscale.Server) error {
+			testFn: func(t *testing.T, s *tshttp.Server) error {
 				t.Helper()
 				return s.ListenAndServeTLS("", "")
 			},
@@ -632,7 +632,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 		},
 		{
 			name: "ListenAndServeFunnel",
-			testFn: func(t *testing.T, s *tailscale.Server) error {
+			testFn: func(t *testing.T, s *tshttp.Server) error {
 				t.Helper()
 				return s.ListenAndServeFunnel()
 			},
@@ -645,7 +645,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 		},
 		{
 			name: "ServeTLS",
-			testFn: func(t *testing.T, s *tailscale.Server) error {
+			testFn: func(t *testing.T, s *tshttp.Server) error {
 				t.Helper()
 				return s.ServeTLS(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			},
@@ -658,7 +658,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 		},
 		{
 			name: "ServeFunnel",
-			testFn: func(t *testing.T, s *tailscale.Server) error {
+			testFn: func(t *testing.T, s *tshttp.Server) error {
 				t.Helper()
 				return s.ServeFunnel(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			},
@@ -677,7 +677,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 			mockTS := mock.NewMockTSNet()
 			tt.setupMock(t, mockTS)
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 			s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := tt.testFn(t, s)
@@ -715,7 +715,7 @@ func TestServer_Shutdown(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 			mockTS := mock.NewMockTSNet()
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 
 			if tt.started {
 				err := s.Start(context.Background())
@@ -741,7 +741,7 @@ func TestServer_HTTPCompatibility(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
-	s := tailscale.NewServer("test")
+	s := tshttp.NewServer("test")
 
 	// Should embed http.Server
 	require.NotNil(t, s.Server)
@@ -762,7 +762,7 @@ func TestServer_HandlerAssignment(t *testing.T) {
 
 	t.Run("handler assignment", func(t *testing.T) {
 		t.Helper()
-		s := tailscale.NewServer("test")
+		s := tshttp.NewServer("test")
 
 		// Initially no handler
 		require.Nil(t, s.Handler)
@@ -788,7 +788,7 @@ func TestServer_HandlerAssignment(t *testing.T) {
 		mockTS := mock.NewMockTSNet()
 		mockTS.ListenErr = errors.New("listen failed")
 
-		s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+		s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 		require.Nil(t, s.Handler)
@@ -874,11 +874,11 @@ func TestIsFunnelRequest(t *testing.T) {
 			}
 
 			if tt.ctxConn != nil {
-				ctx := context.WithValue(req.Context(), tailscale.CtxConnKey{}, tt.ctxConn)
+				ctx := context.WithValue(req.Context(), tshttp.CtxConnKey{}, tt.ctxConn)
 				req = req.WithContext(ctx)
 			}
 
-			got := tailscale.IsFunnelRequest(req)
+			got := tshttp.IsFunnelRequest(req)
 			require.Equal(t, tt.wantFunnel, got)
 		})
 	}
@@ -903,7 +903,7 @@ func TestWhoIsInfo_IsTagged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			info := tailscale.WhoIsInfo{Tags: tt.tags}
+			info := tshttp.WhoIsInfo{Tags: tt.tags}
 			require.Equal(t, tt.want, info.IsTagged())
 		})
 	}
@@ -913,7 +913,7 @@ func TestWhoIsInfo_Fields(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
-	info := tailscale.WhoIsInfo{
+	info := tshttp.WhoIsInfo{
 		LoginName: "alice@example.com",
 		Tags:      []string{"tag:web", "tag:prod"},
 	}
@@ -953,9 +953,9 @@ func TestServer_AddressHandling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 			mockTS := mock.NewMockTSNet()
-			s := tailscale.NewServer("test",
-				tailscale.WithTSNet(mockTS),
-				tailscale.WithPort(tt.port),
+			s := tshttp.NewServer("test",
+				tshttp.WithTSNet(mockTS),
+				tshttp.WithPort(tt.port),
 			)
 
 			require.Equal(t, tt.wantAddr, s.Addr)

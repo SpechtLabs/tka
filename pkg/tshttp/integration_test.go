@@ -1,4 +1,4 @@
-package tailscale_test
+package tshttp_test
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/spechtlabs/tka/pkg/tailscale"
-	"github.com/spechtlabs/tka/pkg/tailscale/mock"
+	"github.com/spechtlabs/tka/pkg/tshttp"
+	"github.com/spechtlabs/tka/pkg/tshttp/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,7 +68,7 @@ func TestServer_ServeNetworks_Integration(t *testing.T) {
 			mockTS := mock.NewMockTSNet()
 			tt.setupMock(mockTS)
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := s.Serve(context.Background(), handler, tt.network)
@@ -92,14 +92,14 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		testFn    func(*tailscale.Server) error
+		testFn    func(*tshttp.Server) error
 		setupMock func(*mock.MockTSNet)
 		wantErr   bool
 		errMsg    string
 	}{
 		{
 			name:   "ListenAndServe",
-			testFn: func(s *tailscale.Server) error { return s.ListenAndServe() },
+			testFn: func(s *tshttp.Server) error { return s.ListenAndServe() },
 			setupMock: func(m *mock.MockTSNet) {
 				m.ListenErr = errors.New("listen failed")
 			},
@@ -108,7 +108,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 		},
 		{
 			name:   "ListenAndServeTLS",
-			testFn: func(s *tailscale.Server) error { return s.ListenAndServeTLS("", "") },
+			testFn: func(s *tshttp.Server) error { return s.ListenAndServeTLS("", "") },
 			setupMock: func(m *mock.MockTSNet) {
 				m.TLSErr = errors.New("tls failed")
 			},
@@ -117,7 +117,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 		},
 		{
 			name:   "ListenAndServeFunnel",
-			testFn: func(s *tailscale.Server) error { return s.ListenAndServeFunnel() },
+			testFn: func(s *tshttp.Server) error { return s.ListenAndServeFunnel() },
 			setupMock: func(m *mock.MockTSNet) {
 				m.FunnelErr = errors.New("funnel failed")
 			},
@@ -126,7 +126,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 		},
 		{
 			name: "ServeTLS",
-			testFn: func(s *tailscale.Server) error {
+			testFn: func(s *tshttp.Server) error {
 				return s.ServeTLS(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			},
 			setupMock: func(m *mock.MockTSNet) {
@@ -137,7 +137,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 		},
 		{
 			name: "ServeFunnel",
-			testFn: func(s *tailscale.Server) error {
+			testFn: func(s *tshttp.Server) error {
 				return s.ServeFunnel(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			},
 			setupMock: func(m *mock.MockTSNet) {
@@ -154,7 +154,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 			mockTS := mock.NewMockTSNet()
 			tt.setupMock(mockTS)
 
-			s := tailscale.NewServer("test", tailscale.WithTSNet(mockTS))
+			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 			s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := tt.testFn(s)
@@ -202,9 +202,9 @@ func TestServer_AddressHandling_Integration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 			mockTS := mock.NewMockTSNet()
-			s := tailscale.NewServer("test",
-				tailscale.WithTSNet(mockTS),
-				tailscale.WithPort(tt.port),
+			s := tshttp.NewServer("test",
+				tshttp.WithTSNet(mockTS),
+				tshttp.WithPort(tt.port),
 			)
 
 			require.Equal(t, tt.wantAddr, s.Addr)

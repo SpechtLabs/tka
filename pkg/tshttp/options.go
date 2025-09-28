@@ -1,6 +1,6 @@
-// Package tailscale provides configuration options for Tailscale servers.
+// Package tshttp provides configuration options for HTTP servers on Tailscale networks.
 // This file contains functional options for customizing server behavior.
-package tailscale
+package tshttp
 
 import (
 	"fmt"

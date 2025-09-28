@@ -1,6 +1,6 @@
-// Package tailscale provides adapters for integrating with Tailscale's tsnet package.
+// Package tshttp provides adapters for integrating HTTP servers with Tailscale's tsnet package.
 // This file contains adapter implementations that bridge our interfaces with tsnet types.
-package tailscale
+package tshttp
 
 import (
 	"context"

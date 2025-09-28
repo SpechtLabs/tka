@@ -1,4 +1,4 @@
-// Package tailscale provides a Tailscale-network-only HTTP server that creates HTTP
+// Package tshttp provides a Tailscale-network-only HTTP server that creates HTTP
 // servers that are only accessible via the Tailscale network (tailnet), providing
 // automatic security, TLS certificates, and identity resolution.
 //
@@ -8,9 +8,9 @@
 //
 // Use the Serve() method for a complete solution:
 //
-//	server := tailscale.NewServer("myapp",
-//		tailscale.WithPort(443),
-//		tailscale.WithDebug(true),
+//	server := tshttp.NewServer("myapp",
+//		tshttp.WithPort(443),
+//		tshttp.WithDebug(true),
 //	)
 //
 //	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@
 //
 // Use Start() + ListenTCP() for more control with standard http.Server:
 //
-//	server := tailscale.NewServer("myapp")
+//	server := tshttp.NewServer("myapp")
 //	if err := server.Start(ctx); err != nil {
 //		log.Fatal(err)
 //	}
@@ -70,8 +70,8 @@
 //	}
 //
 // For detailed documentation and examples, see:
-// https://tka.specht-labs.de/reference/developer/tailscale-server
-package tailscale
+// https://tka.specht-labs.de/reference/developer/tshttp-server
+package tshttp
 
 import (
 	"context"
@@ -140,10 +140,10 @@ type Server struct {
 //
 // Example:
 //
-//	server := tailscale.NewServer("myapp",
-//		tailscale.WithPort(443),
-//		tailscale.WithStateDir("/var/lib/myapp/ts-state"),
-//		tailscale.WithDebug(false),
+//	server := tshttp.NewServer("myapp",
+//		tshttp.WithPort(443),
+//		tshttp.WithStateDir("/var/lib/myapp/ts-state"),
+//		tshttp.WithDebug(false),
 //	)
 //
 // The returned server must be started with Serve() and can be gracefully
@@ -208,7 +208,7 @@ func NewServer(hostname string, opts ...Option) *Server {
 //
 // Example usage:
 //
-//	server := tailscale.NewServer("myapp")
+//	server := tshttp.NewServer("myapp")
 //	if err := server.Start(ctx); err != nil {
 //		log.Fatal(err)
 //	}
@@ -374,7 +374,7 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 // Example:
 //
 //	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		if tailscale.IsFunnelRequest(r) {
+//		if tshttp.IsFunnelRequest(r) {
 //			http.Error(w, "Access denied", http.StatusForbidden)
 //			return
 //		}
