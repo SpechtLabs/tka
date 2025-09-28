@@ -22,7 +22,7 @@
 //		fmt.Fprintf(w, "Hello, %s!", info.LoginName)
 //	})
 //
-//	if err := server.Serve(ctx, handler); err != nil {
+//	if err := server.Serve(ctx, handler, "tcp"); err != nil {
 //		log.Fatal(err)
 //	}
 //
@@ -87,7 +87,6 @@ import (
 	"go.uber.org/zap"
 
 	// Tailscale
-	"tailscale.com/client/local"
 	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tsnet"
 )
@@ -121,8 +120,8 @@ type Server struct {
 	hostname string
 
 	// Tailscale components
-	ts        *tsnet.Server    // Embedded Tailscale server
-	lc        *local.Client    // Local client for WhoIs lookups
+	ts        TSNet            // Abstracted tsnet server for testability
+	whois     WhoIsResolver    // Resolver for WhoIs lookups
 	st        *ipnstate.Status // Connection status
 	serverURL string           // Full server URL (e.g., "https://myapp.tailnet.ts.net:443")
 	started   bool             // Track if Start() has been called
@@ -167,8 +166,8 @@ func NewServer(hostname string, opts ...Option) *Server {
 		port:      443,
 		stateDir:  "",
 		hostname:  hostname,
-		ts:        ts,
-		lc:        nil,
+		ts:        &tsnetAdapter{s: ts},
+		whois:     nil,
 		st:        nil,
 		serverURL: "",
 		started:   false,
@@ -185,11 +184,11 @@ func NewServer(hostname string, opts ...Option) *Server {
 	}
 
 	// Apply state dir after options
-	server.ts.Dir = server.stateDir
+	server.ts.SetDir(server.stateDir)
 
 	// Configure debug logging if needed
 	if server.debug {
-		server.ts.Logf = otelzap.L().Sugar().Debugf
+		server.ts.SetLogf(otelzap.L().Sugar().Debugf)
 	}
 
 	// Ensure ConnContext stashes the connection for later inspection (e.g., Funnel detection)
@@ -261,8 +260,7 @@ func (s *Server) ListenTCP(address string) (net.Listener, humane.Error) {
 // The server must be started with Start() before calling this method.
 //
 // The network must be "tcp", "tls" or "funnel". The addr must be of the form
-// "ip:port" (or "[ip]:port") where ip is a valid IPv4 or IPv6 address
-// corresponding to "tcp", "tls" or "funnel" respectively. IP must be specified.
+// ":port" (e.g., ":8080") for the specified network type.
 //
 // Example:
 //
@@ -371,8 +369,7 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 // IsFunnelRequest() to detect and reject public traffic if needed.
 //
 // The network must be "tcp", "tls" or "funnel". The addr must be of the form
-// "ip:port" (or "[ip]:port") where ip is a valid IPv4 or IPv6 address
-// corresponding to "tcp", "tls" or "funnel" respectively. IP must be specified.
+// ":port" (e.g., ":8080") for the specified network type.
 //
 // Example:
 //
@@ -384,32 +381,23 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 //		fmt.Fprintf(w, "Hello from tailnet!")
 //	})
 //
-//	if err := server.Serve(ctx, handler); err != nil {
+//	if err := server.Serve(ctx, handler, "tcp"); err != nil {
 //		log.Printf("Server error: %v", err)
 //	}
 func (s *Server) Serve(ctx context.Context, handler http.Handler, network string) humane.Error {
-	// Get listener from tsnet
-	address := s.Addr
-	if address == "" {
-		if s.port == 443 {
-			address = ":https"
-		} else {
-			address = ":http"
-		}
-	}
-
 	var listener net.Listener
 	var err humane.Error
 
+	// Get listener from tsnet
 	switch network {
 	case "tcp":
-		listener, err = s.ListenTCP(address)
+		listener, err = s.ListenTCP(s.Addr)
 	case "tls":
-		listener, err = s.ListenTLS(address)
+		listener, err = s.ListenTLS(s.Addr)
 	case "funnel":
-		listener, err = s.ListenFunnel(address)
+		listener, err = s.ListenFunnel(s.Addr)
 	default:
-		listener, err = s.Listen(network, address)
+		listener, err = s.Listen(network, s.Addr)
 	}
 
 	if err != nil {
@@ -473,8 +461,10 @@ func (s *Server) connectTailnet(ctx context.Context) humane.Error {
 
 	s.serverURL = fmt.Sprintf("%s://%s%s", protocol, strings.TrimSuffix(s.st.Self.DNSName, "."), portSuffix)
 
-	if s.lc, err = s.ts.LocalClient(); err != nil {
-		return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
+	if s.whois == nil {
+		if s.whois, err = s.ts.LocalWhoIs(); err != nil {
+			return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
+		}
 	}
 
 	otelzap.L().InfoContext(ctx, "tka tailscale running", zap.String("url", s.serverURL))
@@ -499,6 +489,7 @@ func (s *Server) ListenAndServeFunnel() humane.Error {
 }
 
 // ListenAndServeTLS serves over the Tailscale network using the TLS protocol.
+// The certFile and keyFile parameters are ignored as Tailscale provides automatic TLS certificates.
 func (s *Server) ListenAndServeTLS(certFile, keyFile string) humane.Error {
 	if err := s.ServeTLS(context.Background(), s.Handler); err != nil {
 		return err
@@ -506,21 +497,17 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) humane.Error {
 	return nil
 }
 
-// WhoIs resolves identity information for a remote address using the tailscale local client.
+// WhoIs resolves identity information for a remote address using the Tailscale local client.
+// The server must be started before calling this method.
 func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error) {
-	who, err := s.lc.WhoIs(ctx, remoteAddr)
-	if err != nil {
-		return nil, humane.Wrap(err, "failed to get WhoIs", "check (debug) logs for more details")
+	if s.whois == nil {
+		return nil, humane.New("WhoIs resolver not available", "call Start() first")
 	}
-
-	info := &WhoIsInfo{
-		LoginName: who.UserProfile.LoginName,
-		CapMap:    who.CapMap,
-		Tags:      who.Node.Tags,
-	}
-	return info, nil
+	return s.whois.WhoIs(ctx, remoteAddr)
 }
 
+// IsConnected reports whether the server is connected to the Tailscale network.
+// Returns true only when the backend state is "Running".
 func (s *Server) IsConnected() bool {
 	if s.st == nil {
 		return false
@@ -529,10 +516,9 @@ func (s *Server) IsConnected() bool {
 	return s.st.BackendState == "Running"
 }
 
-// BackendState is an ipn.State string value
-//
-//	"NoState", "NeedsLogin", "NeedsMachineAuth", "Stopped",
-//	"Starting", "Running".
+// BackendState returns the current Tailscale backend state.
+// Possible values: "NoState", "NeedsLogin", "NeedsMachineAuth", "Stopped",
+// "Starting", "Running".
 func (s *Server) BackendState() string {
 	if s.st == nil {
 		return "NoState"

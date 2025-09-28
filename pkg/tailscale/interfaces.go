@@ -1,9 +1,14 @@
+// Package tailscale provides interfaces and types for Tailscale network integration.
+// This file defines the core interfaces used throughout the package for testability
+// and abstraction of Tailscale functionality.
 package tailscale
 
 import (
 	"context"
+	"net"
 
 	"github.com/sierrasoftworks/humane-errors-go"
+	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tailcfg"
 )
 
@@ -18,6 +23,8 @@ type WhoIsInfo struct {
 	// Keys are capability names, values are the granted capabilities.
 	CapMap tailcfg.PeerCapMap
 
+	// Tags contains the Tailscale ACL tags assigned to this device.
+	// Tagged devices represent service accounts rather than human users.
 	Tags []string
 }
 
@@ -27,7 +34,7 @@ func (w *WhoIsInfo) IsTagged() bool {
 	return len(w.Tags) > 0
 }
 
-// WhoIsResolver is a function that resolves identity information for a remote address.
+// WhoIsResolver resolves identity information for remote addresses.
 // Implementations typically use Tailscale's local client to perform WhoIs lookups
 // on the provided remote address.
 //
@@ -39,20 +46,53 @@ func (w *WhoIsInfo) IsTagged() bool {
 //		return fmt.Errorf("identity lookup failed: %w", err)
 //	}
 //
-//	if info.IsTagged {
+//	if info.IsTagged() {
 //		// Handle service account differently
 //		return handleServiceAccount(info)
 //	}
 type WhoIsResolver interface {
+	// WhoIs resolves identity information for the given remote address.
+	// The remoteAddr should be in the format "ip:port".
 	WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error)
 }
 
-// TailscaleCapability is an interface that represents a capability that can be granted to a user.
+// TailscaleCapability represents a capability that can be granted to a user.
+// Capabilities are used for fine-grained access control within Tailscale ACLs.
 type TailscaleCapability interface {
+	// Priority returns the priority level of this capability.
+	// Higher values indicate higher priority.
 	Priority() int
 }
 
+// TailscaleServer represents the core functionality of a Tailscale server.
+// This interface provides methods to query the server's connection state.
 type TailscaleServer interface {
+	// IsConnected returns true if the server is connected to the Tailscale network.
 	IsConnected() bool
+	// BackendState returns the current backend state as a string.
+	// Possible values: "NoState", "NeedsLogin", "NeedsMachineAuth", "Stopped",
+	// "Starting", "Running".
 	BackendState() string
+}
+
+// TSNet abstracts the subset of tsnet.Server functionality we use.
+// This interface enables testing by allowing mock implementations.
+type TSNet interface {
+	// Up connects to the Tailscale control plane and returns the connection status.
+	Up(ctx context.Context) (*ipnstate.Status, error)
+
+	// Listen creates a listener on the Tailscale network for the given network and address.
+	Listen(network, addr string) (net.Listener, error)
+	// ListenTLS creates a TLS listener on the Tailscale network.
+	ListenTLS(network, addr string) (net.Listener, error)
+	// ListenFunnel creates a Funnel listener that accepts public internet traffic.
+	ListenFunnel(network, addr string) (net.Listener, error)
+
+	// LocalWhoIs returns a WhoIsResolver for identity lookups.
+	LocalWhoIs() (WhoIsResolver, error)
+
+	// SetDir sets the directory for Tailscale state storage.
+	SetDir(dir string)
+	// SetLogf sets the logging function for Tailscale operations.
+	SetLogf(logf func(string, ...any))
 }

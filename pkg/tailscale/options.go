@@ -1,3 +1,5 @@
+// Package tailscale provides configuration options for Tailscale servers.
+// This file contains functional options for customizing server behavior.
 package tailscale
 
 import (
@@ -5,17 +7,20 @@ import (
 	"time"
 )
 
-// Option defines a function type for modifying Server configuration
+// Option defines a functional option for configuring a Server.
+// Options are applied during server creation to customize behavior.
 type Option func(*Server)
 
-// WithDebug sets debug mode for the Server
+// WithDebug enables or disables debug logging for the Server.
+// When enabled, detailed Tailscale operation logs will be output.
 func WithDebug(debug bool) Option {
 	return func(s *Server) {
 		s.debug = debug
 	}
 }
 
-// WithPort sets the listening port for the Server
+// WithPort sets the listening port for the Server.
+// The default port is 443. Setting a different port will affect the server URL.
 func WithPort(port int) Option {
 	return func(s *Server) {
 		s.port = port
@@ -41,6 +46,8 @@ func WithStateDir(dir string) Option {
 	}
 }
 
+// WithReadTimeout sets the maximum duration for reading the entire request,
+// including the body. A zero or negative value means there will be no timeout.
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil {
@@ -49,6 +56,8 @@ func WithReadTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithReadHeaderTimeout sets the amount of time allowed to read request headers.
+// If zero, the value of ReadTimeout is used.
 func WithReadHeaderTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil {
@@ -57,6 +66,8 @@ func WithReadHeaderTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithIdleTimeout sets the maximum amount of time to wait for the next request
+// when keep-alives are enabled. If zero, the value of ReadTimeout is used.
 func WithIdleTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil {
@@ -65,10 +76,28 @@ func WithIdleTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithWriteTimeout sets the maximum duration before timing out writes of the response.
+// A zero or negative value means there will be no timeout.
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(s *Server) {
 		if s.Server != nil {
 			s.WriteTimeout = timeout
 		}
+	}
+}
+
+// WithWhoIsResolver sets a custom WhoIsResolver for identity lookups.
+// This is primarily useful for testing with mock resolvers.
+func WithWhoIsResolver(whois WhoIsResolver) Option {
+	return func(s *Server) {
+		s.whois = whois
+	}
+}
+
+// WithTSNet sets a custom TSNet implementation.
+// This is primarily useful for testing with mock implementations.
+func WithTSNet(ts TSNet) Option {
+	return func(s *Server) {
+		s.ts = ts
 	}
 }
