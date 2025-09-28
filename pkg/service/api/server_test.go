@@ -14,7 +14,7 @@ import (
 	"github.com/spechtlabs/tka/pkg/client/k8s/mock"
 	mwMock "github.com/spechtlabs/tka/pkg/middleware/auth/mock"
 	"github.com/spechtlabs/tka/pkg/models"
-	"github.com/spechtlabs/tka/pkg/service/auth/api"
+	"github.com/spechtlabs/tka/pkg/service/api"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/stretchr/testify/require"
 	ginprometheus "github.com/zsais/go-gin-prometheus"

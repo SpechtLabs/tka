@@ -9,8 +9,8 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	globalModels "github.com/spechtlabs/tka/pkg/models"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
 	"github.com/spechtlabs/tka/pkg/service/capability"
+	"github.com/spechtlabs/tka/pkg/service/models"
 	"go.uber.org/zap"
 )
 

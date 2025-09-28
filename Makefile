@@ -11,6 +11,14 @@ KIND ?= kind
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 
+.PHONY: build
+build: generate
+	goreleaser build --clean --snapshot --config .goreleaser.pr.yaml
+
+.PHONY: build-release
+build-release: generate
+	goreleaser build --clean --config .goreleaser.yaml
+
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)

@@ -8,7 +8,7 @@ import (
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/models"
-	"github.com/spechtlabs/tka/pkg/service/auth/api"
+	"github.com/spechtlabs/tka/pkg/service/api"
 )
 
 func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {

@@ -31,26 +31,11 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: *ldflags
 
-  - id: orchestrator
-    env: *env
-    goos: *srv_goos
-    goarch: *goarch
-    goarm: *goarm
-    binary: ts-k8s-orch
-    dir: ./cmd/orchestrator/
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    ldflags: *ldflags
-
 archives:
   - id: server
     ids:
       - server
     name_template: 'tailscale-k8s-auth_server_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
-
-  - id: orchestrator
-    ids:
-      - orchestrator
-    name_template: 'tailscale-k8s-auth_orchestrator_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
 
   - id: cli
     ids:

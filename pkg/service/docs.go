@@ -16,14 +16,11 @@ package service
 
 import (
 	globalModels "github.com/spechtlabs/tka/pkg/models"
-	authModels "github.com/spechtlabs/tka/pkg/service/auth/models"
-	orchestratorModels "github.com/spechtlabs/tka/pkg/service/orchestrator/models"
+	authModels "github.com/spechtlabs/tka/pkg/service/models"
 )
 
 // This file ensures all models are included in Swag documentation
 var (
 	_ = globalModels.ErrorResponse{}
 	_ = authModels.UserLoginResponse{}
-	_ = orchestratorModels.ClusterListResponse{}
-	_ = orchestratorModels.ClusterListItem{}
 )

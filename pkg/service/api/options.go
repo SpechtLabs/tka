@@ -2,7 +2,7 @@ package api
 
 import (
 	mw "github.com/spechtlabs/tka/pkg/middleware"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/models"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 

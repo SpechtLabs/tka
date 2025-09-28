@@ -12,7 +12,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
 	"github.com/spechtlabs/tka/internal/utils"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/models"
 	"go.uber.org/zap"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

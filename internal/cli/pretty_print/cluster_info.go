@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/models"
 )
 
 func PrintClusterInfo(respBody *models.TkaClusterInfo) {

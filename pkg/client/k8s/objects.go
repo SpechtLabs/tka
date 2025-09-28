@@ -7,7 +7,7 @@ import (
 
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/models"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

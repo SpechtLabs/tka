@@ -8,7 +8,7 @@ import (
 	"github.com/spechtlabs/tka/internal/utils"
 	client "github.com/spechtlabs/tka/pkg/client/k8s"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/models"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	ginprometheus "github.com/zsais/go-gin-prometheus"

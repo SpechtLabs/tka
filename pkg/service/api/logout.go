@@ -8,7 +8,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	globalModels "github.com/spechtlabs/tka/pkg/models"
-	"github.com/spechtlabs/tka/pkg/service/auth/models"
+	"github.com/spechtlabs/tka/pkg/service/models"
 )
 
 // logout handles user logout from TKA service
