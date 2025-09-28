@@ -31,9 +31,7 @@ chmod +x ts-k8s-auth && sudo mv ts-k8s-auth /usr/local/bin/
 
 # Deploy TKA server with Helm
 helm repo add spechtlabs https://charts.specht-labs.de
-helm install tka spechtlabs/tka -n tka-system --create-namespace \
-  --set tka.tailscale.tailnet=your-tailnet.ts.net \
-  --set secrets.tailscale.authKey=tskey-auth-your-key-here
+helm install tka spechtlabs/tka -n tka-system --create-namespace --set tka.tailscale.tailnet=your-tailnet.ts.net --set secrets.tailscale.authKey=tskey-auth-your-key-here
 
 # Install shell integration for tka wrapper functions
 eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish

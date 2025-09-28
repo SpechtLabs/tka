@@ -1,6 +1,6 @@
 ---
 title: Architecture Overview
-permalink: /explanation/architecture
+permalink: /understanding/architecture
 createTime: 2025/01/27 10:00:00
 ---
 
@@ -122,4 +122,4 @@ flowchart LR
 
 - For **implementation details** (API endpoints, CLI commands, config knobs), see the [Developer Reference](../reference/).
 - For **security considerations**, see the [Security Model](./security.md).
-- For **deployment guidance**, see the [Production Deployment How‑To](../how-to/deploy-production.md).
+- For **deployment guidance**, see the [Comprehensive Guide](../tutorials/comprehensive.md) (includes production deployment).

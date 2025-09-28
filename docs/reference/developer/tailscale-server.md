@@ -588,4 +588,4 @@ func authMiddleware(server *tailscale.Server) func(http.Handler) http.Handler {
 
 - [TKA Architecture](../../explanation/architecture.md) - How this fits into TKA
 - [Security Model](../../explanation/security.md) - Security implications
-- [Production Deployment](../../how-to/deploy-production.md) - Production usage patterns
+- [Production Deployment](../../tutorials/comprehensive.md#production-deployment) - Production usage patterns

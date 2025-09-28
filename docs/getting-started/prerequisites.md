@@ -1,10 +1,9 @@
 ---
-title: prerequisites
+title: Prerequisites
 createTime: 2025/09/07 23:16:49
-permalink: /article/hog05hcf/
+permalink: /getting-started/prerequisites
 ---
-<!-- This page is intended to be included in multiple places, therefore no H1-->
-<!-- markdownlint-disable MD041 -->
+
 Learn to set up TKA in a Kubernetes cluster and authenticate using your Tailscale identity.
 
 ## What You'll Build

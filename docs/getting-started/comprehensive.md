@@ -1,19 +1,13 @@
 ---
-title: Getting Started with TKA (Comprehensive Guide)
-permalink: /tutorials/comprehensive
+title: Comprehensive Guide to TKA
+permalink: /getting-started/comprehensive
 createTime: 2025/01/27 10:00:00
 ---
 
-<!-- markdownlint-disable MD033 -->
-
 > [!TIP]
-> There is also a [Getting Started with TKA (Quick Start)](./quick.md) tutorial available
+> For a minimal setup, see the [Quick Start Guide](./quick.md)
 
-<!-- @include: prerequisites.md -->
-
-## Comprehensive Guide
-
-For more detailed setup with explanations and alternatives:
+This guide covers both development and production deployments with detailed explanations, alternatives, and best practices.
 
 :::: steps
 
@@ -23,19 +17,19 @@ For more detailed setup with explanations and alternatives:
 
    If you have a Kubernetes cluster, ensure you can connect:
 
-   <Terminal title="Check cluster connection">
+   ::: terminal Check cluster connection
 
    ```bash
    kubectl cluster-info
    ```
 
-   </Terminal>
+   :::
 
    #### Option B: Create Test Cluster with kind
 
    If you need a test cluster:
 
-   <Terminal title="Create test cluster with kind">
+   ::: terminal Create test cluster with kind
 
    ```bash
    # Install kind
@@ -50,13 +44,13 @@ For more detailed setup with explanations and alternatives:
    $ kubectl get nodes
    ```
 
-   </Terminal>
+   :::
 
 2. ### Step 2: Install TKA CLI
 
    #### Option A: Download Release (Recommended)
 
-   <Terminal title="Download and install TKA CLI">
+   ::: terminal Download and install TKA CLI
 
    ```bash
    # Download CLI for your platform
@@ -70,11 +64,11 @@ For more detailed setup with explanations and alternatives:
    $ ts-k8s-auth version
    ```
 
-   </Terminal>
+   :::
 
    #### Option B: Build from Source
 
-   <Terminal title="Build TKA CLI from source">
+   ::: terminal Build TKA CLI from source
 
    ```bash
    # Clone repository
@@ -88,13 +82,13 @@ For more detailed setup with explanations and alternatives:
    $ ./bin/ts-k8s-auth version
    ```
 
-   </Terminal>
+   :::
 
 3. ### Step 3: Install TKA Server with Helm
 
    #### Add Helm Repository
 
-   <Terminal title="Add Helm repository">
+   ::: terminal Add Helm repository
 
    ```bash
    # Add the SpechtLabs Helm repository
@@ -105,22 +99,22 @@ For more detailed setup with explanations and alternatives:
    $ helm search repo spechtlabs/tka
    ```
 
-   </Terminal>
+   :::
 
    #### Create Namespace
 
-   <Terminal title="Create namespace">
+   ::: terminal Create namespace
 
    ```bash
    # Create namespace for TKA
    $ kubectl create namespace tka-system
    ```
 
-   </Terminal>
+   :::
 
    #### Verify Helm Chart
 
-   <Terminal title="Verify Helm chart">
+   ::: terminal Verify Helm chart
 
    ```bash
    # Check CRDs included in chart
@@ -130,7 +124,7 @@ For more detailed setup with explanations and alternatives:
    $ helm template tka spechtlabs/tka | kubectl apply --dry-run=client -f -
    ```
 
-   </Terminal>
+   :::
 
 4. ### Step 4: Configure TKA Server
 
@@ -138,7 +132,7 @@ For more detailed setup with explanations and alternatives:
 
    First, collect the necessary cluster connection details:
 
-   <Terminal title="Gather cluster information">
+   ::: terminal Gather cluster information
 
    ```bash
    # Get your cluster's API endpoint
@@ -153,7 +147,7 @@ For more detailed setup with explanations and alternatives:
    $ kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
    ```
 
-   </Terminal>
+   :::
 
    #### Create Helm Values File
 
@@ -216,16 +210,14 @@ For more detailed setup with explanations and alternatives:
 
    #### Create Tailscale Secret
 
-   <Terminal title="Create Tailscale secret">
+   ::: terminal Create Tailscale secret
 
    ```bash
    # Create secret with your Tailscale auth key
-   $ kubectl create secret generic tka-tailscale \
-     --from-literal=TS_AUTHKEY=tskey-auth-your-key-here \
-     -n tka-system
+   $ kubectl create secret generic tka-tailscale --from-literal=TS_AUTHKEY=tskey-auth-your-key-here -n tka-system
    ```
 
-   </Terminal>
+   :::
 
 5. ### Step 5: Configure Tailscale ACLs
 
@@ -286,25 +278,21 @@ For more detailed setup with explanations and alternatives:
 
    #### Install with Helm
 
-   <Terminal title="Deploy TKA with Helm">
+   ::: terminal Deploy TKA with Helm
 
    ```bash
    # Deploy TKA using your values file
-   $ helm install tka spechtlabs/tka \
-     --namespace tka-system \
-     --values values.yaml
+   $ helm install tka spechtlabs/tka --namespace tka-system --values values.yaml
 
    # Or use inline values for quick setup
-   $ helm install tka spechtlabs/tka \
-     --namespace tka-system \
-     --set tka.tailscale.tailnet=your-tailnet.ts.net
+   $ helm install tka spechtlabs/tka --namespace tka-system --set tka.tailscale.tailnet=your-tailnet.ts.net
    ```
 
-   </Terminal>
+   :::
 
    #### Verify Deployment
 
-   <Terminal title="Verify deployment">
+   ::: terminal Verify deployment
 
    ```bash
    # Check deployment status
@@ -317,7 +305,7 @@ For more detailed setup with explanations and alternatives:
    $ kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
    ```
 
-   </Terminal>
+   :::
 
    Expected log output:
 
@@ -328,15 +316,24 @@ For more detailed setup with explanations and alternatives:
    INFO[0003] Kubernetes operator started
    ```
 
-   #### For Production Deployments
+   #### Production Deployment Considerations
 
-   See the [Production Deployment Guide](../how-to/deploy-production.md) for production-ready configurations with monitoring, security hardening, and high availability considerations.
+   For production environments, consider these additional configurations:
+
+   - **Resource limits**: Increase memory/CPU requests and limits
+   - **Security context**: Enable non-root user and read-only filesystem
+   - **Persistence**: Use production-grade storage classes
+   - **Monitoring**: Enable ServiceMonitor for Prometheus
+   - **Network policies**: Restrict ingress/egress traffic
+   - **Node placement**: Use node selectors and tolerations
+
+   See the production configuration section below for detailed setup.
 
 7. ### Step 7: Configure the CLI
 
    Create a CLI configuration file and install shell integration:
 
-   <Terminal title="Configure TKA CLI">
+   ::: terminal Configure TKA CLI
 
    ```bash
    # Create config directory
@@ -354,13 +351,13 @@ For more detailed setup with explanations and alternatives:
    $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
    ```
 
-   </Terminal>
+   :::
 
    #### Alternative: Environment Variables
 
    You can also configure via environment variables (but still need shell integration):
 
-   <Terminal title="Alternative: Environment variables">
+   ::: terminal Alternative: Environment variables
 
    ```bash
    $ export TKA_TAILSCALE_HOSTNAME=tka
@@ -371,7 +368,7 @@ For more detailed setup with explanations and alternatives:
    $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
    ```
 
-   </Terminal>
+   :::
 
    #### URL Construction
 
@@ -385,7 +382,7 @@ For more detailed setup with explanations and alternatives:
 
    #### Basic Authentication Flow
 
-   <Terminal title="Basic authentication flow">
+   ::: terminal Basic authentication flow
 
    ```bash
    $ tka login
@@ -409,13 +406,13 @@ For more detailed setup with explanations and alternatives:
    ✓ You have been signed out
    ```
 
-   </Terminal>
+   :::
 
    #### Alternative: Use Subshell
 
    For isolated access that automatically cleans up:
 
-   <Terminal title="Use subshell for isolated access">
+   ::: terminal Use subshell for isolated access
 
    ```bash
    # Start subshell with temporary access
@@ -430,13 +427,13 @@ For more detailed setup with explanations and alternatives:
    ✓ You have been signed out
    ```
 
-   </Terminal>
+   :::
 
 9. ### Step 9: Verify Everything Works
 
    #### Check TKA Resources
 
-     <Terminal title="Check TKA resources">
+     ::: terminal Check TKA resources
 
      ```bash
      # View your signin
@@ -449,11 +446,11 @@ For more detailed setup with explanations and alternatives:
      $ kubectl get clusterrolebindings | grep tka-user
      ```
 
-     </Terminal>
+     :::
 
    #### Test RBAC
 
-     <Terminal title="Test RBAC permissions">
+     ::: terminal Test RBAC permissions
 
      ```bash
      # Test based on your assigned role
@@ -462,8 +459,264 @@ For more detailed setup with explanations and alternatives:
      $ kubectl auth can-i "*" "*"  # Only true for cluster-admin
      ```
 
-     </Terminal>
+     :::
 
 ::::
 
-<!-- @include: troubleshooting_and_next_steps.md -->
+## Production Deployment
+
+For production environments, TKA requires additional configuration for security, monitoring, and reliability.
+
+### Architecture Overview
+
+Production TKA deployments typically use:
+
+- **Primary Login Cluster**: Single cluster hosting the TKA API (usually `tka.your-tailnet.ts.net`)
+- **Federated Clusters**: Additional clusters that register with the primary for authentication
+- **External Secrets**: Secure storage for Tailscale auth keys
+- **Monitoring Stack**: Observability for the TKA components
+
+### Production Configuration
+
+Create a production values file with enhanced security and monitoring:
+
+```yaml
+# values-production.yaml
+tka:
+  tailscale:
+    hostname: prod-cluster
+    tailnet: your-tailnet.ts.net
+
+  server:
+    readTimeout: 30s
+    readHeaderTimeout: 10s
+    writeTimeout: 60s
+    idleTimeout: 300s
+
+  operator:
+    namespace: tka-system
+
+  # Cluster information exposed to authenticated users
+  clusterInfo:
+    apiEndpoint: "https://api.prod-cluster.example.com:6443"
+    caData: "LS0tLS1CRUdJTi... (base64-encoded CA certificate)"
+    insecureSkipTLSVerify: false
+    labels:
+      environment: production
+      region: us-west-2
+      cluster: prod-cluster
+      team: platform
+
+  otel:
+    endpoint: jaeger-collector.monitoring.svc.cluster.local:14250
+    insecure: false
+
+# Production resource limits
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "200m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Persistence for Tailscale state
+persistence:
+  enabled: true
+  size: "2Gi"
+  storageClass: "fast-ssd"  # Adjust for your cluster
+
+# Security configuration
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+
+# Node placement for production
+nodeSelector:
+  node-role.kubernetes.io/control-plane: ""
+
+tolerations:
+- key: "node-role.kubernetes.io/control-plane"
+  operator: "Exists"
+  effect: "NoSchedule"
+
+# Monitoring
+serviceMonitor:
+  enabled: true
+
+# Network policies for security
+networkPolicy:
+  enabled: true
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # Tailscale control plane
+    - protocol: TCP
+      port: 6443  # Kubernetes API
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080  # Metrics
+
+# Secret configuration
+secrets:
+  tailscale:
+    # Use existing secret for production
+    create: false
+    secretName: tka-tailscale-prod
+```
+
+### Security Hardening
+
+#### Pod Security Standards
+
+Apply Pod Security Standards to the namespace:
+
+::: terminal Apply Pod Security Standards
+
+```bash
+# Apply PSS labels to namespace
+$ kubectl label namespace tka-system pod-security.kubernetes.io/enforce=restricted pod-security.kubernetes.io/audit=restricted pod-security.kubernetes.io/warn=restricted
+```
+
+:::
+
+#### Secure Secrets Management
+
+Store the Tailscale auth key securely:
+
+::: terminal Create production Tailscale secret
+
+```bash
+# Create secret for auth key
+$ kubectl create secret generic tka-tailscale-prod --from-literal=TS_AUTHKEY=tskey-auth-your-production-key -n tka-system
+```
+
+:::
+
+### Monitoring and Observability
+
+#### Prometheus Monitoring
+
+The Helm chart automatically creates a ServiceMonitor when enabled:
+
+```yaml
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus  # Must match your Prometheus selector
+```
+
+#### Key Metrics to Monitor
+
+- **Request latency and error rates**: Standard HTTP metrics
+- **User authentication metrics**:
+  - `tka_login_attempts_total`: Login attempts by cluster role and outcome
+  - `tka_active_user_sessions`: Current active sessions by cluster role
+  - `tka_user_signins_total`: Total successful sign-ins by cluster role and username
+- **ServiceAccount creation/deletion rates**: Kubernetes resource metrics
+- **Controller reconciliation metrics**: `tka_reconciler_duration`
+- **Resource consumption**: Memory, CPU, and storage metrics
+
+#### Alerting Rules
+
+TKA includes built-in Prometheus alerting rules for security monitoring:
+
+```yaml
+# values-production.yaml
+prometheusRule:
+  enabled: true
+  labels:
+    release: prometheus  # Must match your Prometheus selector
+  privilegedRoleAlert:
+    enabled: true       # Enable/disable privileged role monitoring
+    clusterRole: cluster-admin  # Configure any role to monitor
+    severity: critical
+    duration: 0s        # Immediate alert for privileged role usage
+    maxActiveSessions: 1
+    runbookUrl: "https://your-company.com/runbooks/tka-privileged-role-login"
+  serverDownAlert:
+    enabled: true       # Enable/disable server health monitoring
+  errorRateAlert:
+    enabled: false      # Disable if not needed in production
+  forbiddenRateAlert:
+    enabled: true       # Enable security monitoring
+```
+
+Key alerts included:
+
+- **TKAPrivilegedRoleLogin**: Triggers when someone logs in with the configured privileged role
+- **TKAMultiplePrivilegedSessions**: Alerts when multiple sessions of the privileged role are active
+- **TKAServerDown**: Critical alert when TKA server is unavailable
+- **TKAHighErrorRate**: Warning when login error rate exceeds threshold
+- **TKAHighForbiddenRate**: Security alert for potential unauthorized access attempts
+
+### Production Deployment
+
+::: terminal Deploy TKA for production
+
+```bash
+# Install TKA using production values
+$ helm install tka spechtlabs/tka --namespace tka-system --values values-production.yaml
+
+# Verify deployment
+$ kubectl get pods -n tka-system -l app.kubernetes.io/name=tka
+$ kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
+```
+
+:::
+
+### High Availability Considerations
+
+> [!IMPORTANT]
+> **Scaling Limitations**: TKA cannot scale beyond 1 replica due to Tailscale node identity conflicts. Each Tailscale node requires a unique identity.
+
+#### Backup and Recovery
+
+::: terminal Backup TKA configuration
+
+```bash
+# Backup Helm values and TKA secrets
+$ helm get values tka -n tka-system > tka-values-backup.yaml
+$ kubectl get secret tka-tailscale-prod -n tka-system -o yaml > tka-secret-backup.yaml
+
+# Backup CRDs and custom resources
+$ kubectl get crd tkasignins.tka.specht-labs.de -o yaml > tka-crd-backup.yaml
+$ kubectl get tkasignins -A -o yaml > tka-signins-backup.yaml
+```
+
+:::
+
+### Maintenance and Updates
+
+#### Helm-based Updates
+
+::: terminal Update TKA with Helm
+
+```bash
+# Update Helm repository
+$ helm repo update
+
+# Upgrade TKA release
+$ helm upgrade tka spechtlabs/tka --namespace tka-system --values values-production.yaml
+
+# Monitor rollout
+$ kubectl rollout status deployment/tka -n tka-system
+```
+
+:::

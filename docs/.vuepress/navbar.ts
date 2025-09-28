@@ -1,79 +1,70 @@
 import { defineNavbarConfig } from "vuepress-theme-plume";
 
 export const navbar = defineNavbarConfig([
-  { text: "Home", link: "/" },
+  { text: "Home", link: "/", icon: "mdi:home" },
 
   {
-    text: "Overview",
+    text: "Getting Started",
+    icon: "mdi:rocket-launch",
     items: [
-      { text: "Overview", link: "/explanation/overview" },
-      { text: "Architecture", link: "/explanation/architecture" },
-      { text: "Security Model", link: "/explanation/security" },
+      { text: "Overview", link: "/getting-started/overview", icon: "mdi:eye" },
+      { text: "Prerequisites", link: "/getting-started/prerequisites", icon: "mdi:check-circle" },
+      { text: "Quick Start", link: "/getting-started/quick", icon: "mdi:flash" },
+      { text: "Comprehensive Guide", link: "/getting-started/comprehensive", icon: "mdi:book-open-page-variant" },
+      { text: "Troubleshooting", link: "/getting-started/troubleshooting", icon: "mdi:wrench" },
     ],
   },
 
   {
-    text: "Tutorials",
+    text: "Guides",
+    icon: "mdi:compass",
     items: [
-      {
-        text: "Getting Started with TKA",
-        items: [
-          { text: "Quick Start", link: "/tutorials/quick" },
-          { text: "Comprehensive Guide", link: "/tutorials/comprehensive" },
-        ],
-      },
+      { text: "Configure ACLs", link: "/guides/configure-acl", icon: "mdi:shield-lock" },
+      { text: "Shell Integration", link: "/guides/shell-integration", icon: "mdi:console" },
+      { text: "Use Subshell", link: "/guides/use-subshell", icon: "mdi:layers" },
+      { text: "CLI Autocompletion", link: "/guides/autocompletion", icon: "mdi:keyboard" },
+      { text: "Configure Settings", link: "/guides/configure-settings", icon: "mdi:cog" },
+      { text: "Troubleshooting", link: "/guides/troubleshooting", icon: "mdi:bug" },
     ],
   },
 
   {
-    text: "How-to Guides",
+    text: "Understanding",
+    icon: "mdi:lightbulb",
     items: [
-      { text: "Configure ACLs", link: "/how-to/configure-acl" },
-      { text: "Shell Integration", link: "/how-to/shell-integration" },
-      { text: "Use Subshell", link: "/how-to/use-subshell" },
-      { text: "CLI Autocompletion", link: "/how-to/autocompletion" },
-      { text: "Production Deployment", link: "/how-to/deploy-production" },
-      { text: "Configure Settings", link: "/how-to/configure-settings" },
-      { text: "Troubleshooting", link: "/how-to/troubleshooting" },
+      { text: "Architecture", link: "/understanding/architecture", icon: "mdi:sitemap" },
+      { text: "Security Model", link: "/understanding/security", icon: "mdi:security" },
     ],
   },
 
- {
+  {
     text: "Reference",
+    icon: "mdi:book",
     items: [
-      {
-        text: "API & CLI", items: [
-          { text: "API Reference", link: "/reference/api" },
-          { text: "CLI Reference", link: "/reference/cli" },
-          { text: "Configuration", link: "/reference/configuration" },
-        ]
-      },
-        {
-          text: "Developer", items: [
-            { text: "Architecture", link: "/reference/developer/architecture" },
-            { text: "Shell Integration Details", link: "/reference/developer/shell-integration" },
-            { text: "Request Flows", link: "/reference/developer/request-flows" },
-            { text: "pkg/tailscale", link: "/reference/developer/tailscale-server" },
-          ]
-        },
+      { text: "API Reference", link: "/reference/api", icon: "mdi:api" },
+      { text: "CLI Reference", link: "/reference/cli", icon: "mdi:terminal" },
+      { text: "Configuration", link: "/reference/configuration", icon: "mdi:file-cog" },
+      { text: "Developer Docs", link: "/reference/developer/architecture", icon: "mdi:code-braces" },
     ],
   },
 
   {
     text: "More",
+    icon: "mdi:dots-horizontal",
     items: [
       {
         text: "Download",
         link: "https://github.com/spechtlabs/tka/releases",
         target: "_blank",
         rel: "noopener noreferrer",
+        icon: "mdi:download",
       },
-
       {
         text: "Report an Issue",
         link: "https://github.com/spechtlabs/tka/issues/new/choose",
         target: "_blank",
         rel: "noopener noreferrer",
+        icon: "mdi:bug-outline",
       }
     ],
   },

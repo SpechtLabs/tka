@@ -1,11 +1,8 @@
 ---
-title: troubleshooting_and_next_steps
+title: Troubleshooting and Next Steps
 createTime: 2025/09/07 23:05:53
-permalink: /article/6zwd39tf/
+permalink: /getting-started/troubleshooting
 ---
-<!-- This page is intended to be included in multiple places, therefore no H1-->
-<!-- markdownlint-disable MD041 -->
-## Troubleshooting
 
 If something isn't working, check our [troubleshooting guide](../how-to/troubleshooting.md) for common issues:
 
@@ -18,7 +15,7 @@ If something isn't working, check our [troubleshooting guide](../how-to/troubles
 
 Now that TKA is working:
 
-1. **Production Setup**: Follow the [production deployment guide](../how-to/deploy-production.md)
+1. **Production Setup**: Follow the [production deployment section](./comprehensive.md#production-deployment) in the comprehensive guide
 2. **Shell Integration**: Set up [automatic environment updates](../how-to/shell-integration.md)
 3. **Multi-cluster**: Configure [multiple clusters](../how-to/multi-cluster-setup.md)
 4. **Advanced ACLs**: Learn more about [ACL configuration](../how-to/configure-acl.md)

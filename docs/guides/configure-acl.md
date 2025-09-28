@@ -1,6 +1,6 @@
 ---
 title: Configure TKA capability in Tailscale ACLs
-permalink: /how-to/configure-acl
+permalink: /guides/configure-acl
 createTime: 2025/01/27 10:00:00
 ---
 

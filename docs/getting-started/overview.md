@@ -1,6 +1,6 @@
 ---
 title: TKA Overview
-permalink: /explanation/overview
+permalink: /getting-started/overview
 createTime: 2025/08/25 06:33:41
 ---
 

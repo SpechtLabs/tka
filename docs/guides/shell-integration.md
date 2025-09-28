@@ -1,6 +1,6 @@
 ---
 title: Shell Integration Setup
-permalink: /how-to/shell-integration
+permalink: /guides/shell-integration
 createTime: 2025/01/27 10:00:00
 ---
 
@@ -106,8 +106,7 @@ Once installed, TKA commands work seamlessly:
 
 #### Before
 
-<!-- markdownlint-disable MD033 -->
-<Terminal title="Before integration (manual)">
+::: terminal Before integration (manual)
 
 ```shell
 $ tka login
@@ -127,11 +126,11 @@ $ kubectl get pods
 
 ```
 
-</Terminal>
+:::
 
 #### After
 
-<Terminal title="After integration (automatic)">
+::: terminal After integration (automatic)
 
 ```shell
 $ tka login
@@ -141,8 +140,7 @@ $ kubectl get pods
 # Works immediately
 ```
 
-</Terminal>
-<!-- markdownlint-enable MD033 -->
+:::
 
 ::: note
 The shell integration is roughly equal to
@@ -311,7 +309,7 @@ unset KUBECONFIG
 
 - [Configure ACLs](./configure-acl.md)
 - [Troubleshooting Guide](./troubleshooting.md)
-- [Production Deployment](./deploy-production.md)
+- [Production Deployment](../tutorials/comprehensive.md#production-deployment)
 
 ## Related Documentation
 

@@ -1,6 +1,6 @@
 ---
 title: Configure TKA Settings
-permalink: /how-to/configure-settings
+permalink: /guides/configure-settings
 createTime: 2025/01/27 15:00:00
 ---
 

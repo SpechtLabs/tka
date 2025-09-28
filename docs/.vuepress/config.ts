@@ -1,7 +1,7 @@
 import { viteBundler } from "@vuepress/bundler-vite";
-// import registerComponentsPlugin from '@vuepress/plugin-register-components';
 import { registerComponentsPlugin } from "@vuepress/plugin-register-components";
 import { path } from "@vuepress/utils";
+import container from "markdown-it-container";
 import { defineUserConfig } from "vuepress";
 import { plumeTheme } from "vuepress-theme-plume";
 
@@ -27,6 +27,41 @@ export default defineUserConfig({
   bundler: viteBundler(),
   shouldPrefetch: false,
 
+  extendsMarkdown: (md) => {
+    md.use(container, "terminal", {
+      validate: (params: string) => {
+        const info = params.trim();
+        return /^terminal(?:\s+.*)?$/.test(info);
+      },
+      render: (tokens: any[], idx: number) => {
+        const token = tokens[idx];
+        if (token.nesting === 1) {
+          const info = token.info.trim();
+          const rest = info.replace(/^terminal\s*/, "");
+          const attrs: Record<string, string> = {};
+          const attrRegex = /(\w+)=((?:\"[^\"]*\")|(?:'[^']*')|(?:[^\s]+))/g;
+          let consumed = "";
+          let m: RegExpExecArray | null;
+          while ((m = attrRegex.exec(rest)) !== null) {
+            const key = m[1];
+            let val = m[2];
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            attrs[key] = val;
+            consumed += m[0] + " ";
+          }
+          const positional = rest.replace(consumed, "").trim();
+          const titleRaw = attrs.title ?? positional ?? "";
+          const title = titleRaw ? md.utils.escapeHtml(titleRaw) : "";
+          const titleAttr = title ? ` title=\"${title}\"` : "";
+          return `\n<Terminal${titleAttr}>\n`;
+        }
+        return `\n</Terminal>\n`;
+      },
+    });
+  },
+
   plugins: [
     registerComponentsPlugin({
       componentsDir: path.resolve(__dirname, "./components"),
@@ -38,23 +73,114 @@ export default defineUserConfig({
     docsDir: "docs",
     docsBranch: "main",
 
-    editLink: false,
+    editLink: true,
     lastUpdated: false,
     contributors: false,
 
-    blog: {
-      postList: true,
-      tags: false,
-      archives: false,
-      categories: false,
-      postCover: "right",
-      pagination: 15,
-    },
+    blog: false,
 
     article: "/article/",
 
     cache: "filesystem",
     search: { provider: "local" },
+
+    sidebar: {
+      // Getting Started section - combines tutorials and overview
+      "/getting-started/": [
+        {
+          text: "Getting Started",
+          icon: "mdi:rocket-launch",
+          prefix: "/getting-started/",
+          items: [
+            { text: "Overview", link: "overview", icon: "mdi:eye" },
+            { text: "Prerequisites", link: "prerequisites", icon: "mdi:check-circle" },
+            { text: "Quick Start", link: "quick", icon: "mdi:flash", badge: "5 min" },
+            { text: "Comprehensive Guide", link: "comprehensive", icon: "mdi:book-open-page-variant" },
+            { text: "Troubleshooting & Next Steps", link: "troubleshooting", icon: "mdi:wrench" },
+          ],
+        },
+      ],
+
+      // Guides section
+      "/guides/": [
+        {
+          text: "How-to Guides",
+          icon: "mdi:compass",
+          prefix: "/guides/",
+          items: [
+            {
+              text: "Security & Access",
+              icon: "mdi:shield",
+              link: "configure-acl",
+              items: [
+                { text: "Configure ACLs", link: "configure-acl", icon: "mdi:shield-lock" },
+              ]
+            },
+            {
+              text: "Shell & CLI",
+              icon: "mdi:console-line",
+              link: "shell-integration",
+              items: [
+                { text: "Shell Integration", link: "shell-integration", icon: "mdi:console" },
+                { text: "Use Subshell", link: "use-subshell", icon: "mdi:layers" },
+                { text: "CLI Autocompletion", link: "autocompletion", icon: "mdi:keyboard" },
+              ]
+            },
+            {
+              text: "Configuration & Support",
+              icon: "mdi:cog",
+              link: "configure-settings",
+              items: [
+                { text: "Configure Settings", link: "configure-settings", icon: "mdi:cog" },
+                { text: "Troubleshooting", link: "troubleshooting", icon: "mdi:bug" },
+              ]
+            }
+          ],
+        },
+      ],
+
+      // Understanding section
+      "/understanding/": [
+        {
+          text: "Understanding TKA",
+          icon: "mdi:lightbulb",
+          collapsed: false,
+          prefix: "/understanding/",
+          items: [
+            { text: "Architecture", link: "architecture", icon: "mdi:sitemap" },
+            { text: "Security Model", link: "security", icon: "mdi:security" },
+          ],
+        },
+      ],
+
+      // Reference section - comprehensive
+      "/reference/": [
+        {
+          text: "API & CLI Reference",
+          icon: "mdi:book",
+          collapsed: false,
+          prefix: "/reference/",
+          items: [
+            { text: "API Reference", link: "api", icon: "mdi:api" },
+            { text: "CLI Reference", link: "cli", icon: "mdi:terminal" },
+            { text: "Configuration", link: "configuration", icon: "mdi:file-cog" },
+          ],
+        },
+        {
+          text: "Developer Documentation",
+          icon: "mdi:code-braces",
+          badge: "Advanced",
+          collapsed: true,
+          prefix: "/reference/developer/",
+          items: [
+            { text: "Architecture", link: "architecture", icon: "mdi:sitemap" },
+            { text: "Shell Integration Details", link: "shell-integration", icon: "mdi:console" },
+            { text: "Request Flows", link: "request-flows", icon: "mdi:workflow" },
+            { text: "pkg/tailscale", link: "tailscale-server", icon: "mdi:package-variant" },
+          ],
+        },
+      ],
+    },
 
     /**
      * markdown

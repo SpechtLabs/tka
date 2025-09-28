@@ -1,10 +1,8 @@
 ---
 title: Troubleshooting Guide
-permalink: /how-to/troubleshooting
+permalink: /guides/troubleshooting
 createTime: 2025/01/27 10:00:00
 ---
-
-<!-- markdownlint-disable MD033 -->
 
 Common issues and solutions when using TKA.
 
@@ -22,7 +20,7 @@ Common issues and solutions when using TKA.
 - Disable Funnel for the TKA server if enabled
 - Check that your client device is authenticated to Tailscale
 
-<Terminal title="Verify connectivity">
+::: terminal Verify connectivity
 
 ```bash
 # Verify Tailscale status
@@ -36,7 +34,7 @@ $ curl -s http://localhost:8080/metrics
 $ curl -s {tka}.{your-tailnet}.ts.net:8123/cluster-info
 ```
 
-</Terminal>
+:::
 
 ### 400 Bad Request on Capability
 
@@ -81,7 +79,7 @@ $ curl -s {tka}.{your-tailnet}.ts.net:8123/cluster-info
 
 **Solution**:
 
-<Terminal title="Sign in and fetch kubeconfig">
+::: terminal Sign in and fetch kubeconfig
 
 ```bash
 # Sign in first
@@ -91,7 +89,7 @@ $ tka login
 $ tka kubeconfig
 ```
 
-</Terminal>
+:::
 
 ## Provisioning Issues
 
@@ -107,7 +105,7 @@ $ tka kubeconfig
 - Check controller logs for errors
 - Verify RBAC permissions for TKA controller
 
-<Terminal title="Check provisioning status">
+::: terminal Check provisioning status
 
 ```bash
 # Check controller logs
@@ -120,7 +118,7 @@ $ kubectl get tkasignins -n tka-system
 $ kubectl get serviceaccounts -n tka-system
 ```
 
-</Terminal>
+:::
 
 ### Long Provisioning Times
 
@@ -130,7 +128,7 @@ $ kubectl get serviceaccounts -n tka-system
 
 **Solution**:
 
-<Terminal title="Check controller performance">
+::: terminal Check controller performance
 
 ```bash
 # Check controller resource usage
@@ -143,7 +141,7 @@ $ kubectl get events -n tka-system --sort-by='.lastTimestamp'
 $ kubectl get pods -l control-plane=controller-manager -n tka-system
 ```
 
-</Terminal>
+:::
 
 ## Configuration Issues
 
@@ -155,7 +153,7 @@ $ kubectl get pods -l control-plane=controller-manager -n tka-system
 
 **Solution**:
 
-<Terminal title="Fix environment variables">
+::: terminal Fix environment variables
 
 ```bash
 # Use underscores for nested keys
@@ -173,7 +171,7 @@ EOF
 $ tka --server tka --port 443 login
 ```
 
-</Terminal>
+:::
 
 ### Server Connection Issues
 
@@ -181,7 +179,7 @@ $ tka --server tka --port 443 login
 
 **Diagnostics**:
 
-<Terminal title="Diagnose server connection">
+::: terminal Diagnose server connection
 
 ```bash
 # Check server address construction
@@ -197,7 +195,7 @@ $ nslookup tka.your-tailnet.ts.net
 $ tailscale ping tka.your-tailnet.ts.net
 ```
 
-</Terminal>
+:::
 
 ## Server Issues
 
@@ -209,7 +207,7 @@ $ tailscale ping tka.your-tailnet.ts.net
 
 1. **Invalid Auth Key**:
 
-   <Terminal title="Fix invalid auth key">
+   ::: terminal Fix invalid auth key
 
    ```bash
    # For local debugging only (production should use Helm)
@@ -217,11 +215,11 @@ $ tailscale ping tka.your-tailnet.ts.net
    $ tka-server serve
    ```
 
-   </Terminal>
+   :::
 
 2. **Port Already in Use**:
 
-   <Terminal title="Fix port conflict">
+   ::: terminal Fix port conflict
 
    ```bash
    # Check what's using the port
@@ -231,11 +229,11 @@ $ tailscale ping tka.your-tailnet.ts.net
    $ tka-server serve --port 8443
    ```
 
-   </Terminal>
+   :::
 
 3. **Permission Issues**:
 
-   <Terminal title="Fix permission issues">
+   ::: terminal Fix permission issues
 
    ```bash
    # Ensure binary is executable
@@ -246,7 +244,7 @@ $ tailscale ping tka.your-tailnet.ts.net
    $ sudo tka-server serve --port 443
    ```
 
-   </Terminal>
+   :::
 
 ### Tailscale Connection Issues
 
@@ -254,7 +252,7 @@ $ tailscale ping tka.your-tailnet.ts.net
 
 **Solution**:
 
-<Terminal title="Fix Tailscale connection">
+::: terminal Fix Tailscale connection
 
 ```bash
 # Check auth key permissions
@@ -270,7 +268,7 @@ $ ping login.tailscale.com
 $ tka-server serve --dir /tmp/tka-state
 ```
 
-</Terminal>
+:::
 
 ## Client Issues
 
@@ -280,7 +278,7 @@ $ tka-server serve --dir /tmp/tka-state
 
 **Solution**:
 
-<Terminal title="Fix shell integration">
+::: terminal Fix shell integration
 
 ```bash
 # Verify integration is installed
@@ -294,7 +292,7 @@ $ tka login --no-eval
 # Then manually export the shown KUBECONFIG
 ```
 
-</Terminal>
+:::
 
 ### kubectl Commands Fail After Login
 
@@ -302,7 +300,7 @@ $ tka login --no-eval
 
 **Diagnostics**:
 
-<Terminal title="Diagnose kubectl issues">
+::: terminal Diagnose kubectl issues
 
 ```bash
 # Check KUBECONFIG is set
@@ -318,7 +316,7 @@ $ kubectl --kubeconfig=/path/to/tka-kubeconfig get pods
 $ kubectl auth whoami
 ```
 
-</Terminal>
+:::
 
 ## Kubernetes Integration Issues
 
@@ -330,7 +328,7 @@ $ kubectl auth whoami
 
 **Solution**:
 
-<Terminal title="Fix RBAC permissions">
+::: terminal Fix RBAC permissions
 
 ```bash
 # Check what role you're assigned
@@ -346,7 +344,7 @@ $ kubectl describe clusterrole cluster-admin
 $ kubectl create clusterrole tka-developer --verb=get,list --resource=pods,services
 ```
 
-</Terminal>
+:::
 
 ### ServiceAccount Issues
 
@@ -354,7 +352,7 @@ $ kubectl create clusterrole tka-developer --verb=get,list --resource=pods,servi
 
 **Solution**:
 
-<Terminal title="Fix ServiceAccount issues">
+::: terminal Fix ServiceAccount issues
 
 ```bash
 # Check TKA controller permissions
@@ -367,7 +365,7 @@ $ kubectl get namespace tka-system
 $ kubectl describe namespace tka-system
 ```
 
-</Terminal>
+:::
 
 ## Network and Connectivity
 
@@ -377,7 +375,7 @@ $ kubectl describe namespace tka-system
 
 **Solution**:
 
-<Terminal title="Fix DNS resolution">
+::: terminal Fix DNS resolution
 
 ```bash
 # Check MagicDNS is enabled
@@ -390,7 +388,7 @@ $ tailscale ip tka
 $ ping tka.your-tailnet.ts.net
 ```
 
-</Terminal>
+:::
 
 ### Certificate Issues
 
@@ -400,7 +398,7 @@ $ ping tka.your-tailnet.ts.net
 
 **Solution**:
 
-<Terminal title="Fix certificate issues">
+::: terminal Fix certificate issues
 
 ```bash
 # Enable HTTPS in Tailscale admin console
@@ -413,7 +411,7 @@ $ tka-server serve --port 8080  # Uses HTTP automatically
 $ export TKA_TAILSCALE_HOSTNAME=https://tka
 ```
 
-</Terminal>
+:::
 
 ## Performance Issues
 
@@ -423,7 +421,7 @@ $ export TKA_TAILSCALE_HOSTNAME=https://tka
 
 **Diagnostics**:
 
-<Terminal title="Diagnose performance issues">
+::: terminal Diagnose performance issues
 
 ```bash
 # Check server logs for bottlenecks
@@ -436,7 +434,7 @@ $ kubectl top pods -n tka-system
 $ tailscale ping tka.your-tailnet.ts.net
 ```
 
-</Terminal>
+:::
 
 ### High Memory Usage
 
@@ -444,7 +442,7 @@ $ tailscale ping tka.your-tailnet.ts.net
 
 **Solution**:
 
-<Terminal title="Fix high memory usage">
+::: terminal Fix high memory usage
 
 ```bash
 # Update resource limits using Helm values
@@ -460,18 +458,16 @@ EOF
 $ helm upgrade tka spechtlabs/tka -n tka-system -f resources-values.yaml
 
 # Or use --set for quick changes
-$ helm upgrade tka spechtlabs/tka -n tka-system \
-  --set resources.limits.memory=512Mi \
-  --set resources.requests.memory=256Mi
+$ helm upgrade tka spechtlabs/tka -n tka-system --set resources.limits.memory=512Mi --set resources.requests.memory=256Mi
 ```
 
-</Terminal>
+:::
 
 ## Debug Mode
 
 Enable debug logging for more detailed troubleshooting:
 
-<Terminal title="Enable debug mode">
+::: terminal Enable debug mode
 
 ```bash
 # Client debug
@@ -484,7 +480,7 @@ $ tka-server serve --debug
 $ export TKA_DEBUG=true
 ```
 
-</Terminal>
+:::
 
 ## Getting Help
 
@@ -500,4 +496,4 @@ If you're still experiencing issues:
 
 - [Configuration Reference](../reference/configuration.md)
 - [Security Model](../explanation/security.md)
-- [Production Deployment](./deploy-production.md)
+- [Production Deployment](../tutorials/comprehensive.md#production-deployment)

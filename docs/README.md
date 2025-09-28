@@ -5,76 +5,72 @@ externalLinkIcon: false
 config:
   - type: doc-hero
     hero:
-      name: Tailscale-native Kubernetes access
-      text: Skip the proxies, gateways, and OIDC complexity.
-      tagline: Secure, ephemeral cluster access - powered entirely by your Tailscale network and identity.
+      name: One command gets you secure kubectl access. No proxies, no OIDC setup, no hassle.
+      text: Tailscale-native Kubernetes access
+      tagline: Ephemeral credentials that auto-expire, powered by your existing Tailscale network.
       image: /logo.png
       actions:
-        - text: Overview →
-          link: /explanation/overview
-          theme: brand
-          icon: fa:book
         - text: Get Started →
-          link: /tutorials/quick
+          link: /getting-started/quick
+          theme: brand
+          icon: mdi:rocket-launch
+        - text: View Documentation →
+          link: /getting-started/overview
           theme: alt
-          icon: fa:paper-plane
-        - text: GitHub Releases →
-          link: https://github.com/spechtlabs/tka/releases
-          theme: alt
-          icon: fa:github
+          icon: mdi:book-open-page-variant
 
   - type: features
     title: Why Tailscale K8s Auth?
     description: Built for Kubernetes. Powered by your tailnet.
     features:
-      - title: Ephemeral credentials by design
+      - title: Zero-proxy simplicity
+        icon: mdi:link-off
+        details: Direct API access without auth proxies, reverse tunnels, or complex gateway chains. Your kubectl talks directly to the cluster.
+
+      - title: Ephemeral by design
         icon: mdi:timer-sand
-        details: Short-lived tokens that auto-expire. Get access exactly when you need it, for exactly as long as you need it - and not a second longer.
+        details: Short-lived tokens that auto-expire. Get access exactly when you need it, for exactly as long as you need it.
 
       - title: Zero-trust, zero-ingress
         icon: mdi:shield-lock-outline
-        details: No public auth endpoints. Access request flow through your private Tailscale network with device-level attestation and ACL enforcement.
+        details: No public endpoints. Access flows through your private Tailscale network with device-level attestation.
 
-      - title: Kubernetes-native architecture
+      - title: Kubernetes-native
         icon: mdi:kubernetes
-        details: Built on ServiceAccounts, ClusterRoles, and standard APIs. No custom auth protocols or vendor lock-in - just native Kubernetes security.
-
-      - title: Zero-proxy simplicity
-        icon: mdi:link-off
-        details: Direct API access without auth proxies, reverse tunnels, or complex gateway chains that always break. Your kubectl talks directly to the cluster.
+        details: Built on ServiceAccounts and ClusterRoles. No custom protocols or vendor lock-in - just native Kubernetes security.
 
   - type: VPListCompareCustom
-    title: "Why switch to TKA?"
-    description: "See how TKA simplifies and secures Kubernetes access compared to legacy methods."
+    title: "Traditional vs. TKA"
+    description: "Compare the old way with the TKA approach"
     left:
-      title: "Traditional Kubernetes access is broken"
-      description: "The old stack is hard to operate, fragile to scale, and risky by default."
+      title: "Traditional Kubernetes Access"
+      description: "Complex, fragile, and hard to maintain"
       items:
-        - title: "Painful to manage"
-          description: "OIDC wiring, kubeconfig sprawl, and constant context switching"
-        - title: "Fragile access chains"
-          description: "Auth proxies, bastion hosts, and brittle hops that break at 2 a.m."
-        - title: "Security gaps"
-          description: "Long‑lived tokens, shared credentials, and limited auditability"
-        - title: "Productivity drag"
-          description: "Re‑auth loops, stale configs, and per‑cluster snowflakes"
-        - title: "Onboarding friction"
-          description: "Per‑env setup, docs drift, and a zoo of CLIs"
+        - title: "Complex Setup"
+          description: "OIDC providers, auth proxies, bastion hosts"
+        - title: "Fragile Chains"
+          description: "Multiple hops that break at the worst times"
+        - title: "Long-lived Tokens"
+          description: "Shared credentials with limited rotation"
+        - title: "Manual Onboarding"
+          description: "Per-environment setup and documentation drift"
+        - title: "Hard to Debug"
+          description: "Complex auth flows with poor visibility"
 
     right:
-      title: "TKA is simpler, secure, and Kubernetes‑native"
-      description: "A thin control plane that uses your tailnet and native RBAC. No gateways."
+      title: "TKA Approach"
+      description: "Simple, secure, and Kubernetes-native"
       items:
-        - title: "Ephemeral by design"
-          description: "Short‑lived, scoped credentials that auto‑expire (least privilege)"
-        - title: "Zero infrastructure"
-          description: "No proxies or gateways. Use your existing Tailscale network and ACLs"
-        - title: "Native RBAC"
-          description: "Built on ServiceAccounts, ClusterRoles, and standard Kubernetes APIs"
-        - title: "Clear audit trail"
-          description: "Identity via Tailscale and Kubernetes events/logs you already use"
-        - title: "Fast onboarding"
-          description: "One‑command Helm deploy. kubectl works out of the box"
+        - title: "One-Command Deploy"
+          description: "Helm install. That's it. kubectl works immediately"
+        - title: "Zero Infrastructure"
+          description: "Uses your existing Tailscale network"
+        - title: "Ephemeral Credentials"
+          description: "Auto-expiring tokens with least privilege"
+        - title: "Instant Onboarding"
+          description: "If you have Tailscale, you have access"
+        - title: "Clear Audit Trail"
+          description: "Standard Kubernetes events and logs"
 
   - type: custom
 
@@ -91,12 +87,11 @@ TKA is built by SREs who understand production operations. Every workflow is des
 
 We provide two intuitive workflows to provide instant, secure access without the usual ceremony:
 
-::: collapse accordion expand
+:::: collapse accordion expand
 
 - **`tka shell`** → ephemeral, isolated sessions (perfect for quick debugging and production safety)
 
-  <!-- markdownlint-disable MD033 -->
-  <Terminal>
+  ::: terminal
 
   ```shell
   $ tka shell --quiet
@@ -109,13 +104,11 @@ We provide two intuitive workflows to provide instant, secure access without the
   ✓ You have been signed out
   ```
 
-  </Terminal>
-  <!-- markdownlint-enable MD033 -->
+  :::
 
 - :- **`tka login`** → persistent sessions with full control (ideal for development and administration)
 
-  <!-- markdownlint-disable MD033 -->
-  <Terminal>
+  ::: terminal
 
   ```shell
   $ tka login
@@ -128,29 +121,18 @@ We provide two intuitive workflows to provide instant, secure access without the
   ✓ You have been signed out
   ```
 
-  </Terminal>
-  <!-- markdownlint-enable MD033 -->
+  :::
 
-  > [!NOTE]
-  > This requires the [Shell Integration](./how-to/shell-integration.md) to be set-up
-
-:::
-
-<!-- markdownlint-disable MD033-->
-<br />
-<!-- markdownlint-enable MD033-->
+::::
 
 ::: tip Found a rough edge? Have an idea for improvement?
 [Open an issue](https://github.com/spechtlabs/tka/issues/new/choose) - we're always working to make Kubernetes access better.
 :::
 
-## Security Notice
+## Security & Maturity
 
-:::warning Early Stage Security Model
+::: info Security Model Status
+TKA's security model is thoughtfully designed and suitable for many production use cases. However, it hasn't undergone formal security auditing yet.
 
-TKA's security model is thoughtfully designed but still **evolving**.
-
-While built with security best practices and suitable for many use cases, it hasn't undergone professional security auditing. For mission-critical production environments requiring the highest security assurance, consider professionally audited solutions.
-
-For detailed security information, see the [Security Model documentation](explanation/security.md).
+For mission-critical environments requiring the highest security assurance, consider professionally audited solutions or [review our security documentation](understanding/security.md) to make an informed decision.
 :::

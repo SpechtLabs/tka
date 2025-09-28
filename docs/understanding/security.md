@@ -1,6 +1,6 @@
 ---
 title: Security Model
-permalink: /explanation/security
+permalink: /understanding/security
 createTime: 2025/08/25 06:31:28
 ---
 
