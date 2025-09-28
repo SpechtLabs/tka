@@ -27,119 +27,122 @@ config:
     title: Why Tailscale K8s Auth?
     description: Built for Kubernetes. Powered by your tailnet.
     features:
-      - title: Zero-trust, zero-ingress
-        icon: mdi:shield-lock-outline
-        details: No public endpoints or exposed services. Access flows through your private Tailscale network with device-level attestation and ACL enforcement.
-
       - title: Ephemeral credentials by design
         icon: mdi:timer-sand
         details: Short-lived tokens that auto-expire. Get access exactly when you need it, for exactly as long as you need it - and not a second longer.
+
+      - title: Zero-trust, zero-ingress
+        icon: mdi:shield-lock-outline
+        details: No public auth endpoints. Access request flow through your private Tailscale network with device-level attestation and ACL enforcement.
 
       - title: Kubernetes-native architecture
         icon: mdi:kubernetes
         details: Built on ServiceAccounts, ClusterRoles, and standard APIs. No custom auth protocols or vendor lock-in - just native Kubernetes security.
 
-      - title: GitOps-ready configuration
-        icon: mdi:account-key-outline
-        details: Declarative grant-to-role mapping via CRDs. Define who gets what access in code, review in pull requests, deploy via GitOps.
-
       - title: Zero-proxy simplicity
         icon: mdi:link-off
-        details: Direct API access without auth proxies, reverse tunnels, or complex gateway chains. Your kubectl talks directly to the cluster.
+        details: Direct API access without auth proxies, reverse tunnels, or complex gateway chains that always break. Your kubectl talks directly to the cluster.
 
-      - title: Multi-cluster federation
-        icon: mdi:server-network
-        details: Central authentication with distributed clusters. One login service, many target clusters. Perfect for platform teams and enterprise deployments.
+  - type: VPListCompareCustom
+    title: "Why switch to TKA?"
+    description: "See how TKA simplifies and secures Kubernetes access compared to legacy methods."
+    left:
+      title: "Traditional Kubernetes access is broken"
+      description: "The old stack is hard to operate, fragile to scale, and risky by default."
+      items:
+        - title: "Painful to manage"
+          description: "OIDC wiring, kubeconfig sprawl, and constant context switching"
+        - title: "Fragile access chains"
+          description: "Auth proxies, bastion hosts, and brittle hops that break at 2 a.m."
+        - title: "Security gaps"
+          description: "Long‑lived tokens, shared credentials, and limited auditability"
+        - title: "Productivity drag"
+          description: "Re‑auth loops, stale configs, and per‑cluster snowflakes"
+        - title: "Onboarding friction"
+          description: "Per‑env setup, docs drift, and a zoo of CLIs"
+
+    right:
+      title: "TKA is simpler, secure, and Kubernetes‑native"
+      description: "A thin control plane that uses your tailnet and native RBAC. No gateways."
+      items:
+        - title: "Ephemeral by design"
+          description: "Short‑lived, scoped credentials that auto‑expire (least privilege)"
+        - title: "Zero infrastructure"
+          description: "No proxies or gateways. Use your existing Tailscale network and ACLs"
+        - title: "Native RBAC"
+          description: "Built on ServiceAccounts, ClusterRoles, and standard Kubernetes APIs"
+        - title: "Clear audit trail"
+          description: "Identity via Tailscale and Kubernetes events/logs you already use"
+        - title: "Fast onboarding"
+          description: "One‑command Helm deploy. kubectl works out of the box"
 
   - type: custom
 
-  - type: VPReleasesCustom
+  - type: VPReleases
     repo: SpechtLabs/tka
 
-  - type: VPContributorsCustom
+  - type: VPContributors
     repo: SpechtLabs/tka
 ---
 
-## Welcome to TKA
-
-Traditional Kubernetes access control is broken:
-
-- **Painful to manage** → OIDC integrations, kubeconfig sprawl, endless context switching
-- **Overly complex** → auth proxies, bastion gateways, and brittle auth chains
-- **Security gaps** → long-lived tokens, shared credentials, unclear audit trails
-
-TKA solves this with a fundamentally simpler approach:
-
-- **Secure by default** → ephemeral, scoped credentials that auto-expire
-- **Zero infrastructure** → leverage your existing Tailscale network and ACLs
-- **Kubernetes-native** → built on ServiceAccounts, RBAC, and standard APIs
-- **Easy deployment** → One-command Helm chart deployment with production-ready defaults
-
-TKA issues **short-lived cluster credentials** backed by your [Tailscale](https://tailscale.com) identity and Kubernetes' native RBAC. No proxies, no sprawl, no complexity.
-
 ## Best-in-Class Developer Experience
 
-Stop fighting your Kubernetes access tooling. TKA provides two intuitive workflows designed by SREs for real-world operations:
+TKA is built by SREs who understand production operations. Every workflow is designed for real-world reliability, security, and ease of use.
+
+We provide two intuitive workflows to provide instant, secure access without the usual ceremony:
+
+::: collapse accordion expand
 
 - **`tka shell`** → ephemeral, isolated sessions (perfect for quick debugging and production safety)
-- **`tka login`** → persistent sessions with full control (ideal for development and administration)
 
-Both workflows provide instant, secure access without the usual ceremony.
-
-::: tabs
-
-@tab `tka shell`
+  <!-- markdownlint-disable MD033 -->
+  <Terminal>
 
   ```shell
-  # Sign-in and spawn a sub-shell
-  $ tka shell
+  $ tka shell --quiet
   ✓ sign-in successful!
-      ╭───────────────────────────────────────╮
-      │ User:  cedi                           │
-      │ Role:  developer                      │
-      │ Until: Sun, 07 Sep 2025 19:24:29 CEST │
-      ╰───────────────────────────────────────╯
 
-  # Verify we are in fact authenticated
   (tka) $ kubectl version | grep Server
   Server Version: v1.31.1+k3s1
 
-  # Exiting our sub-shell automatically invalidates our session
   (tka) $ exit
   ✓ You have been signed out
-
-  # verify we are no longer signed in
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
   ```
 
-@tab `tka login`
+  </Terminal>
+  <!-- markdownlint-enable MD033 -->
+
+- :- **`tka login`** → persistent sessions with full control (ideal for development and administration)
+
+  <!-- markdownlint-disable MD033 -->
+  <Terminal>
 
   ```shell
-  # Sign-in and populate the KUBECONFIG context in our shell
   $ tka login
+  ✓ sign-in successful!
 
-  # Verify our session
   $ kubectl version | grep Server
   Server Version: v1.31.1+k3s1
 
-  # manually logging out and invalidating our credentials
   $ tka logout
   ✓ You have been signed out
-
-  # verify we are no longer signed in
-  $ kubectl get ns
-  error: You must be logged in to the server (Unauthorized)
   ```
+
+  </Terminal>
+  <!-- markdownlint-enable MD033 -->
 
   > [!NOTE]
   > This requires the [Shell Integration](./how-to/shell-integration.md) to be set-up
 
 :::
 
-TKA is built by SREs who understand production operations. Every workflow is designed for real-world reliability, security, and ease of use.
+<!-- markdownlint-disable MD033-->
+<br />
+<!-- markdownlint-enable MD033-->
 
-Found a rough edge? Have an idea for improvement? [Open an issue](https://github.com/spechtlabs/tka/issues/new/choose) - we're always working to make Kubernetes access better.
+::: tip Found a rough edge? Have an idea for improvement?
+[Open an issue](https://github.com/spechtlabs/tka/issues/new/choose) - we're always working to make Kubernetes access better.
+:::
 
 ## Security Notice
 

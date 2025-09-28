@@ -4,6 +4,8 @@ permalink: /how-to/deploy-production
 createTime: 2025/01/27 10:00:00
 ---
 
+<!-- markdownlint-disable MD033 -->
+
 Deploy TKA in a production environment with high availability, monitoring, and security best practices using the official Helm chart.
 
 ## Architecture Overview
@@ -21,18 +23,26 @@ Production TKA deployments typically use:
 
    ### Add TKA Helm Repository
 
+   <Terminal title="Add TKA Helm repository">
+
    ```bash
    # Add the SpechtLabs Helm repository
-   helm repo add spechtlabs https://charts.specht-labs.de
-   helm repo update
+   $ helm repo add spechtlabs https://charts.specht-labs.de
+   $ helm repo update
    ```
+
+   </Terminal>
 
    ### Create Namespace
 
+   <Terminal title="Create namespace">
+
    ```bash
    # Create namespace for TKA
-   kubectl create namespace tka-system
+   $ kubectl create namespace tka-system
    ```
+
+   </Terminal>
 
 2. ## Production Configuration
 
@@ -40,19 +50,23 @@ Production TKA deployments typically use:
 
    Before creating the values file, you'll need to gather the cluster connection details:
 
+   <Terminal title="Gather cluster information">
+
    ```bash
    # Get your cluster's API endpoint
-   kubectl cluster-info
+   $ kubectl cluster-info
    # Look for: "Kubernetes control plane is running at https://..."
 
    # Get the CA certificate data (base64-encoded)
-   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
+   $ kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
 
    # Alternative: Get CA from the public cluster-info ConfigMap
-   kubectl get configmap cluster-info -n kube-public -o jsonpath='{.data.kubeconfig}' | grep certificate-authority-data
+   $ kubectl get configmap cluster-info -n kube-public -o jsonpath='{.data.kubeconfig}' | grep certificate-authority-data
 
    # Note: CA data is public information and safe to store in ConfigMaps/values files
    ```
+
+   </Terminal>
 
    ### Create Values File
 
@@ -163,40 +177,52 @@ Production TKA deployments typically use:
 
    Store the Tailscale auth key securely:
 
+   <Terminal title="Create Tailscale secret">
+
    ```bash
    # Create secret for auth key
-   kubectl create secret generic tka-tailscale-prod \
+   $ kubectl create secret generic tka-tailscale-prod \
      --from-literal=TS_AUTHKEY=tskey-auth-your-production-key \
      -n tka-system
    ```
+
+   </Terminal>
 
 3. ## Deploy TKA with Helm
 
    ### Install TKA
 
+   <Terminal title="Install TKA with Helm">
+
    ```bash
    # Install TKA using Helm
-   helm install tka spechtlabs/tka \
+   $ helm install tka spechtlabs/tka \
      --namespace tka-system \
      --values values-production.yaml
 
    # Verify deployment
-   kubectl get pods -n tka-system
-   kubectl get services -n tka-system
+   $ kubectl get pods -n tka-system
+   $ kubectl get services -n tka-system
    ```
+
+   </Terminal>
 
    ### Verify Installation
 
+   <Terminal title="Verify installation">
+
    ```bash
    # Check TKA pods
-   kubectl get pods -n tka-system -l app.kubernetes.io/name=tka
+   $ kubectl get pods -n tka-system -l app.kubernetes.io/name=tka
 
    # Check logs
-   kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
+   $ kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
 
    # Verify CRDs
-   kubectl get crd tkasignins.tka.specht-labs.de
+   $ kubectl get crd tkasignins.tka.specht-labs.de
    ```
+
+   </Terminal>
 
 4. ## Monitoring and Observability
 
@@ -282,13 +308,17 @@ Production TKA deployments typically use:
 
    Apply Pod Security Standards to the namespace:
 
+   <Terminal title="Apply Pod Security Standards">
+
    ```bash
    # Apply PSS labels to namespace
-   kubectl label namespace tka-system \
+   $ kubectl label namespace tka-system \
      pod-security.kubernetes.io/enforce=restricted \
      pod-security.kubernetes.io/audit=restricted \
      pod-security.kubernetes.io/warn=restricted
    ```
+
+   </Terminal>
 
    ### Security Context
 
@@ -326,44 +356,56 @@ Production TKA deployments typically use:
 
    ### Backup and Recovery
 
+   <Terminal title="Backup TKA configuration">
+
    ```bash
    # Backup Helm values and TKA secrets
-   helm get values tka -n tka-system > tka-values-backup.yaml
-   kubectl get secret tka-tailscale-prod -n tka-system -o yaml > tka-secret-backup.yaml
+   $ helm get values tka -n tka-system > tka-values-backup.yaml
+   $ kubectl get secret tka-tailscale-prod -n tka-system -o yaml > tka-secret-backup.yaml
 
    # Backup CRDs and custom resources
-   kubectl get crd tkasignins.tka.specht-labs.de -o yaml > tka-crd-backup.yaml
-   kubectl get tkasignins -A -o yaml > tka-signins-backup.yaml
+   $ kubectl get crd tkasignins.tka.specht-labs.de -o yaml > tka-crd-backup.yaml
+   $ kubectl get tkasignins -A -o yaml > tka-signins-backup.yaml
    ```
+
+   </Terminal>
 
 7. ## Maintenance and Updates
 
    ### Helm-based Updates
 
+   <Terminal title="Update TKA with Helm">
+
    ```bash
    # Update Helm repository
-   helm repo update
+   $ helm repo update
 
    # Upgrade TKA release
-   helm upgrade tka spechtlabs/tka \
+   $ helm upgrade tka spechtlabs/tka \
      --namespace tka-system \
      --values values-production.yaml
 
    # Monitor rollout
-   kubectl rollout status deployment/tka -n tka-system
+   $ kubectl rollout status deployment/tka -n tka-system
    ```
+
+   </Terminal>
 
    ### Configuration Updates
 
+   <Terminal title="Update configuration">
+
    ```bash
    # Update values file and upgrade
-   helm upgrade tka spechtlabs/tka \
+   $ helm upgrade tka spechtlabs/tka \
      --namespace tka-system \
      --values values-production.yaml
 
    # Check deployment status
-   helm status tka -n tka-system
+   $ helm status tka -n tka-system
    ```
+
+   </Terminal>
 
 ::::
 
@@ -378,16 +420,20 @@ Production TKA deployments typically use:
 
 ### Debug Commands
 
+<Terminal title="Debug production issues">
+
 ```bash
 # Check server logs (using Helm labels)
-kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
+$ kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
 
 # Check Helm release status
-helm status tka -n tka-system
+$ helm status tka -n tka-system
 
 # List TKA resources
-helm get all tka -n tka-system
+$ helm get all tka -n tka-system
 ```
+
+</Terminal>
 
 ## Next Steps
 

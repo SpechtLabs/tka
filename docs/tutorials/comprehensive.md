@@ -4,6 +4,8 @@ permalink: /tutorials/comprehensive
 createTime: 2025/01/27 10:00:00
 ---
 
+<!-- markdownlint-disable MD033 -->
+
 > [!TIP]
 > There is also a [Getting Started with TKA (Quick Start)](./quick.md) tutorial available
 
@@ -21,86 +23,114 @@ For more detailed setup with explanations and alternatives:
 
    If you have a Kubernetes cluster, ensure you can connect:
 
+   <Terminal title="Check cluster connection">
+
    ```bash
    kubectl cluster-info
    ```
+
+   </Terminal>
 
    #### Option B: Create Test Cluster with kind
 
    If you need a test cluster:
 
+   <Terminal title="Create test cluster with kind">
+
    ```bash
    # Install kind
-   curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-$(uname)-$(uname -m)
-   chmod +x ./kind
-   sudo mv ./kind /usr/local/bin/kind
+   $ curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-$(uname)-$(uname -m)
+   $ chmod +x ./kind
+   $ sudo mv ./kind /usr/local/bin/kind
 
    # Create cluster
-   kind create cluster --name tka-demo
+   $ kind create cluster --name tka-demo
 
    # Verify connection
-   kubectl get nodes
+   $ kubectl get nodes
    ```
+
+   </Terminal>
 
 2. ### Step 2: Install TKA CLI
 
    #### Option A: Download Release (Recommended)
 
+   <Terminal title="Download and install TKA CLI">
+
    ```bash
    # Download CLI for your platform
-   curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-$(uname)-$(uname -m) -o ts-k8s-auth
+   $ curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-$(uname)-$(uname -m) -o ts-k8s-auth
 
    # Make executable and install
-   chmod +x ts-k8s-auth
-   sudo mv ts-k8s-auth /usr/local/bin/
+   $ chmod +x ts-k8s-auth
+   $ sudo mv ts-k8s-auth /usr/local/bin/
 
    # Test installation
-   ts-k8s-auth version
+   $ ts-k8s-auth version
    ```
+
+   </Terminal>
 
    #### Option B: Build from Source
 
+   <Terminal title="Build TKA CLI from source">
+
    ```bash
    # Clone repository
-   git clone https://github.com/SpechtLabs/tka
-   cd tka
+   $ git clone https://github.com/SpechtLabs/tka
+   $ cd tka
 
    # Build CLI
-   go build -o bin/ts-k8s-auth ./cmd/cli
+   $ go build -o bin/ts-k8s-auth ./cmd/cli
 
    # Test build
-   ./bin/ts-k8s-auth version
+   $ ./bin/ts-k8s-auth version
    ```
+
+   </Terminal>
 
 3. ### Step 3: Install TKA Server with Helm
 
    #### Add Helm Repository
 
+   <Terminal title="Add Helm repository">
+
    ```bash
    # Add the SpechtLabs Helm repository
-   helm repo add spechtlabs https://charts.specht-labs.de
-   helm repo update
+   $ helm repo add spechtlabs https://charts.specht-labs.de
+   $ helm repo update
 
    # Verify repository
-   helm search repo spechtlabs/tka
+   $ helm search repo spechtlabs/tka
    ```
+
+   </Terminal>
 
    #### Create Namespace
 
+   <Terminal title="Create namespace">
+
    ```bash
    # Create namespace for TKA
-   kubectl create namespace tka-system
+   $ kubectl create namespace tka-system
    ```
+
+   </Terminal>
 
    #### Verify Helm Chart
 
+   <Terminal title="Verify Helm chart">
+
    ```bash
    # Check CRDs included in chart
-   helm template tka spechtlabs/tka | grep -A 5 "kind: CustomResourceDefinition"
+   $ helm template tka spechtlabs/tka | grep -A 5 "kind: CustomResourceDefinition"
 
    # View all resources that will be created
-   helm template tka spechtlabs/tka | kubectl apply --dry-run=client -f -
+   $ helm template tka spechtlabs/tka | kubectl apply --dry-run=client -f -
    ```
+
+   </Terminal>
 
 4. ### Step 4: Configure TKA Server
 
@@ -108,18 +138,22 @@ For more detailed setup with explanations and alternatives:
 
    First, collect the necessary cluster connection details:
 
+   <Terminal title="Gather cluster information">
+
    ```bash
    # Get your cluster's API endpoint
-   kubectl cluster-info
+   $ kubectl cluster-info
    # Example output: "Kubernetes control plane is running at https://127.0.0.1:6443"
 
    # For kind clusters, the endpoint might be different for external access
    # Get the actual external endpoint:
-   kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+   $ kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
 
    # Get the CA certificate data (base64-encoded)
-   kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
+   $ kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
    ```
+
+   </Terminal>
 
    #### Create Helm Values File
 
@@ -182,12 +216,16 @@ For more detailed setup with explanations and alternatives:
 
    #### Create Tailscale Secret
 
+   <Terminal title="Create Tailscale secret">
+
    ```bash
    # Create secret with your Tailscale auth key
-   kubectl create secret generic tka-tailscale \
+   $ kubectl create secret generic tka-tailscale \
      --from-literal=TS_AUTHKEY=tskey-auth-your-key-here \
      -n tka-system
    ```
+
+   </Terminal>
 
 5. ### Step 5: Configure Tailscale ACLs
 
@@ -248,30 +286,38 @@ For more detailed setup with explanations and alternatives:
 
    #### Install with Helm
 
+   <Terminal title="Deploy TKA with Helm">
+
    ```bash
    # Deploy TKA using your values file
-   helm install tka spechtlabs/tka \
+   $ helm install tka spechtlabs/tka \
      --namespace tka-system \
      --values values.yaml
 
    # Or use inline values for quick setup
-   helm install tka spechtlabs/tka \
+   $ helm install tka spechtlabs/tka \
      --namespace tka-system \
      --set tka.tailscale.tailnet=your-tailnet.ts.net
    ```
 
+   </Terminal>
+
    #### Verify Deployment
+
+   <Terminal title="Verify deployment">
 
    ```bash
    # Check deployment status
-   kubectl get pods -n tka-system -l app.kubernetes.io/name=tka
+   $ kubectl get pods -n tka-system -l app.kubernetes.io/name=tka
 
    # Wait for TKA to be ready
-   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=tka -n tka-system
+   $ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=tka -n tka-system
 
    # Check logs
-   kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
+   $ kubectl logs -n tka-system -l app.kubernetes.io/name=tka -f
    ```
+
+   </Terminal>
 
    Expected log output:
 
@@ -290,12 +336,14 @@ For more detailed setup with explanations and alternatives:
 
    Create a CLI configuration file and install shell integration:
 
+   <Terminal title="Configure TKA CLI">
+
    ```bash
    # Create config directory
-   mkdir -p ~/.config/tka
+   $ mkdir -p ~/.config/tka
 
    # Create configuration file
-   cat > ~/.config/tka/config.yaml << EOF
+   $ cat > ~/.config/tka/config.yaml << EOF
    tailscale:
      hostname: tka  # matches Helm chart default
      tailnet: your-tailnet.ts.net
@@ -303,21 +351,27 @@ For more detailed setup with explanations and alternatives:
    EOF
 
    # Install shell integration for the tka wrapper functions
-   eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
+   $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
    ```
+
+   </Terminal>
 
    #### Alternative: Environment Variables
 
    You can also configure via environment variables (but still need shell integration):
 
+   <Terminal title="Alternative: Environment variables">
+
    ```bash
-   export TKA_TAILSCALE_HOSTNAME=tka
-   export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
-   export TKA_TAILSCALE_PORT=443
+   $ export TKA_TAILSCALE_HOSTNAME=tka
+   $ export TKA_TAILSCALE_TAILNET=your-tailnet.ts.net
+   $ export TKA_TAILSCALE_PORT=443
 
    # Still install shell integration for tka wrapper functions
-   eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
+   $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
    ```
+
+   </Terminal>
 
    #### URL Construction
 
@@ -331,72 +385,84 @@ For more detailed setup with explanations and alternatives:
 
    #### Basic Authentication Flow
 
+   <Terminal title="Basic authentication flow">
+
    ```bash
-   tka login
-   # ✓ sign-in successful!
-   #     ╭───────────────────────────────────────╮
-   #     │ User:  alice@example.com              │
-   #     │ Role:  cluster-admin                  │
-   #     │ Until: Mon, 27 Jan 2025 18:30:00 CET  │
-   #     ╰───────────────────────────────────────╯
-   # ✓ kubeconfig written to: /tmp/kubeconfig-123456.yaml
-   # → To use this session, run: export KUBECONFIG=/tmp/kubeconfig-123456.yaml
+   $ tka login
+   ✓ sign-in successful!
+       ╭───────────────────────────────────────╮
+       │ User:  alice@example.com              │
+       │ Role:  cluster-admin                  │
+       │ Until: Mon, 27 Jan 2025 18:30:00 CET  │
+       ╰───────────────────────────────────────╯
+   ✓ kubeconfig written to: /tmp/kubeconfig-123456.yaml
+   → To use this session, run: export KUBECONFIG=/tmp/kubeconfig-123456.yaml
 
-   # Use the kubeconfig
-   export KUBECONFIG=/tmp/kubeconfig-123456.yaml
+   $ export KUBECONFIG=/tmp/kubeconfig-123456.yaml
 
-   # Test access
-   kubectl get pods -A
-   kubectl get nodes
+   $ kubectl get pods -A
+   $ kubectl get nodes
 
-   # Check your session
-   tka get login
+   $ tka get login
 
-   # Clean up
-   tka logout
-   # ✓ You have been signed out
+   $ tka logout
+   ✓ You have been signed out
    ```
+
+   </Terminal>
 
    #### Alternative: Use Subshell
 
    For isolated access that automatically cleans up:
 
+   <Terminal title="Use subshell for isolated access">
+
    ```bash
    # Start subshell with temporary access
-   tka shell
+   $ tka shell
 
    # Inside the subshell, KUBECONFIG is automatically set
-   kubectl get pods
-   kubectl get nodes
+   (tka) $ kubectl get pods
+   (tka) $ kubectl get nodes
 
    # Exit cleans up automatically
-   exit
-   # ✓ You have been signed out
+   (tka) $ exit
+   ✓ You have been signed out
    ```
+
+   </Terminal>
 
 9. ### Step 9: Verify Everything Works
 
    #### Check TKA Resources
 
+     <Terminal title="Check TKA resources">
+
      ```bash
      # View your signin
-     kubectl get tkasignins -n tka-system
+     $ kubectl get tkasignins -n tka-system
 
      # Check service account
-     kubectl get serviceaccounts -n tka-system
+     $ kubectl get serviceaccounts -n tka-system
 
      # View role binding
-     kubectl get clusterrolebindings | grep tka-user
+     $ kubectl get clusterrolebindings | grep tka-user
      ```
+
+     </Terminal>
 
    #### Test RBAC
 
+     <Terminal title="Test RBAC permissions">
+
      ```bash
      # Test based on your assigned role
-     kubectl auth can-i get pods
-     kubectl auth can-i create deployments
-     kubectl auth can-i "*" "*"  # Only true for cluster-admin
+     $ kubectl auth can-i get pods
+     $ kubectl auth can-i create deployments
+     $ kubectl auth can-i "*" "*"  # Only true for cluster-admin
      ```
+
+     </Terminal>
 
 ::::
 

@@ -106,34 +106,43 @@ Once installed, TKA commands work seamlessly:
 
 #### Before
 
-```shell
-# Before integration (manual)
-$ tka login
- ✓ sign-in successful!
-     ╭───────────────────────────────────────╮
-     │ User:  alice@example.com              │
-     │ Role:  cluster-admin                  │
-     │ Until: Mon, 27 Jan 2025 18:30:00 CET  │
-     ╰───────────────────────────────────────╯
- ✓ kubeconfig written to: /tmp/kubeconfig-123456.yaml
- → To use this session, run: export KUBECONFIG=/tmp/kubeconfig-123456.yaml
+<!-- markdownlint-disable MD033 -->
+<Terminal title="Before integration (manual)">
 
-# Use the kubeconfig
+```shell
+$ tka login
+✓ sign-in successful!
+    ╭───────────────────────────────────────╮
+    │ User:  alice@example.com              │
+    │ Role:  cluster-admin                  │
+    │ Until: Mon, 27 Jan 2025 18:30:00 CET  │
+    ╰───────────────────────────────────────╯
+✓ kubeconfig written to: /tmp/kubeconfig-123456.yaml
+→ To use this session, run: export KUBECONFIG=/tmp/kubeconfig-123456.yaml
+
 $ export KUBECONFIG=/tmp/kubeconfig-123456.yaml
 
-# Works only after manually exporting the KUBECONFIG
 $ kubectl get pods
+...
+
 ```
+
+</Terminal>
 
 #### After
 
+<Terminal title="After integration (automatic)">
+
 ```shell
-# After integration (automatic)
 $ tka login
 # Your KUBECONFIG is automatically set!
 
-$ kubectl get pods  # Works immediately
+$ kubectl get pods
+# Works immediately
 ```
+
+</Terminal>
+<!-- markdownlint-enable MD033 -->
 
 ::: note
 The shell integration is roughly equal to

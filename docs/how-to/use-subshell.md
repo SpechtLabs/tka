@@ -4,6 +4,8 @@ permalink: /how-to/use-subshell
 createTime: 2025/01/27 10:00:00
 ---
 
+<!-- markdownlint-disable MD033 -->
+
 The `tka shell` command provides a clean way to get temporary Kubernetes access without affecting your main shell environment.
 
 ## How It Works
@@ -17,20 +19,22 @@ The `tka shell` command provides a clean way to get temporary Kubernetes access 
 
 ## Basic Usage
 
-```bash
-# Start a subshell with temporary access
-tka shell
+<Terminal title="Basic usage">
 
+```shell
+$ tka shell
 # You're now in the subshell with active credentials
+
 kubectl get pods -n default
 kubectl get nodes
 
-# Exit the subshell
-exit
-
+(tka) $ exit
 # Back in your original shell - no access
+
 kubectl get pods  # This will fail
 ```
+
+</Terminal>
 
 ## What Happens Behind the Scenes
 
@@ -95,15 +99,13 @@ SHELL=/bin/fish tka shell  # Uses fish
 
 Access different clusters in separate subshells:
 
-```bash
-# Terminal 1: Production cluster
-export TKA_TAILSCALE_HOSTNAME=tka-prod
-tka shell
+<Terminal title="Multiple clusters">
+$ export TKA_TAILSCALE_HOSTNAME=tka-prod
+$ tka shell
 
-# Terminal 2: Development cluster
-export TKA_TAILSCALE_HOSTNAME=tka-dev
-tka shell
-```
+$ export TKA_TAILSCALE_HOSTNAME=tka-dev
+$ tka shell
+</Terminal>
 
 ### Scripting with Subshells
 

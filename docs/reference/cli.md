@@ -20,7 +20,7 @@ tka is the client for Tailscale Kubernetes Auth. It lets you authenticate to clu
 Control the CLI's look and feel using one of the following:
 
 - Flag: `--theme` or `-t`
-- Config: `theme` (in config file)
+- Config: `output.theme` (in config file)
 - Environment: `TKA_THEME`
 
 **Accepted themes**: ascii, dark, dracula, *tokyo-night*, light
@@ -36,7 +36,7 @@ Control the CLI's look and feel using one of the following:
 $ tka --theme dark login
 
 # light theme
-TKA_THEME=light tka kubeconfig
+$ TKA_OUTPUT_THEME=light tka kubeconfig
 
 # no theme (useful in non-interactive contexts)
 $ tka --theme notty login

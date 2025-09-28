@@ -4,6 +4,8 @@ permalink: /how-to/autocompletion
 createTime: 2025/01/27 13:00:00
 ---
 
+<!-- markdownlint-disable MD033 -->
+
 Set up tab autocompletion for the TKA CLI to get command suggestions, flag completion, and faster command line workflow.
 
 ## Overview
@@ -30,9 +32,13 @@ TKA includes built-in autocompletion support for all major shells. Once configur
 
    TKA can generate completion scripts for your shell:
 
+   <Terminal title="Generate completion script">
+
    ```bash
    tka completion [bash|zsh|fish|powershell]
    ```
+
+   </Terminal>
 
 2. ### Install Completion
 
@@ -42,14 +48,20 @@ TKA includes built-in autocompletion support for all major shells. Once configur
 
    Add to your `~/.bashrc`:
 
+   <Terminal title="Add to ~/.bashrc">
+
    ```bash
    # TKA completion
    source <(tka completion bash)
    ```
 
+   </Terminal>
+
    @tab zsh
 
    Add to your `~/.zshrc`:
+
+   <Terminal title="Add to ~/.zshrc">
 
    ```zsh
    # TKA completion
@@ -59,30 +71,40 @@ TKA includes built-in autocompletion support for all major shells. Once configur
    autoload -U compinit && compinit
    ```
 
+   </Terminal>
+
    @tab fish
 
    Fish completions are automatically loaded from the right location:
 
+   <Terminal title="Install Fish completion">
+
    ```fish
    # Install completion
-   tka completion fish > ~/.config/fish/completions/tka.fish
+   $ tka completion fish > ~/.config/fish/completions/tka.fish
 
    # Reload Fish configuration
-   source ~/.config/fish/config.fish
+   $ source ~/.config/fish/config.fish
    ```
+
+   </Terminal>
 
    @tab PowerShell
 
+   <Terminal title="Install PowerShell completion">
+
    ```powershell
    # Create profile directory if it doesn't exist
-   New-Item -Type Directory -Path (Split-Path $PROFILE) -Force
+   PS> New-Item -Type Directory -Path (Split-Path $PROFILE) -Force
 
    # Add completion to your profile
-   tka completion powershell >> $PROFILE
+   PS> tka completion powershell >> $PROFILE
 
    # Reload profile
-   . $PROFILE
+   PS> . $PROFILE
    ```
+
+   </Terminal>
 
    :::
 
@@ -92,22 +114,23 @@ TKA includes built-in autocompletion support for all major shells. Once configur
 
 Test that autocompletion is working:
 
+<Terminal title="Test autocompletion">
+
 ```bash
 # Type this and press Tab
-tka <Tab>
-
-# Should show: generate completion get integration kubeconfig login reauthenticate shell signout version
+$ tka <Tab>
+generate completion get integration kubeconfig login reauthenticate shell signout version
 
 # Test flag completion
-tka --<Tab>
-
-# Should show: --config --debug --help --long --no-eval --port --server --theme --version
+$ tka --<Tab>
+--config --debug --help --long --no-eval --port --server --theme --version
 
 # Test subcommand completion
-tka get <Tab>
-
-# Should show: kubeconfig login
+$ tka get <Tab>
+kubeconfig login
 ```
+
+</Terminal>
 
 ## Troubleshooting
 
@@ -121,23 +144,31 @@ tka get <Tab>
 
    1. :- **1. Reload shell completely**
 
+      <Terminal title="Reload shell">
+
       ```bash
       # Close and reopen terminal, or
-      exec $SHELL
+      $ exec $SHELL
       ```
+
+      </Terminal>
 
    2. :- **2. Check bash-completion package**
 
+      <Terminal title="Install bash-completion package">
+
       ```bash
       # Ubuntu/Debian
-      sudo apt install bash-completion
+      $ sudo apt install bash-completion
 
       # macOS with Homebrew
-      brew install bash-completion
+      $ brew install bash-completion
 
       # RHEL/CentOS
-      sudo yum install bash-completion
+      $ sudo yum install bash-completion
       ```
+
+      </Terminal>
 
 :::
 
@@ -149,10 +180,14 @@ tka get <Tab>
 
    **Solution**: Ensure completion system is initialized:
 
+   <Terminal title="Initialize Zsh completion system">
+
    ```zsh
    # Add to ~/.zshrc before the completion source line
    autoload -U compinit && compinit
    ```
+
+   </Terminal>
 
 - **Problem**: Completions not loading in Oh My Zsh.
 

@@ -30,6 +30,7 @@ export const navbar = defineNavbarConfig([
     items: [
       { text: "Configure ACLs", link: "/how-to/configure-acl" },
       { text: "Shell Integration", link: "/how-to/shell-integration" },
+      { text: "Use Subshell", link: "/how-to/use-subshell" },
       { text: "CLI Autocompletion", link: "/how-to/autocompletion" },
       { text: "Production Deployment", link: "/how-to/deploy-production" },
       { text: "Configure Settings", link: "/how-to/configure-settings" },
