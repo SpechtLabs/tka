@@ -1,0 +1,100 @@
+# API-related files
+api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'api/**'
+          - 'pkg/swagger/**'
+
+# CLI-related files
+cli:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'cmd/cli/**'
+          - 'internal/cli/**'
+
+# Server-related files
+server:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'cmd/server/**'
+          - 'pkg/service/**'
+
+# Kubernetes/Operator-related files
+kubernetes:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'config/**'
+          - 'pkg/operator/**'
+          - 'pkg/client/k8s/**'
+
+# Tailscale integration
+tailscale:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'pkg/tshttp/**'
+
+# Authentication/Security/Middleware
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'pkg/middleware/**'
+
+# Tests
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*_test.go'
+          - '**/testdata/**'
+          - '**/mock/**'
+
+# Configuration and deployment
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'config.yaml'
+          - 'hack/**'
+
+# Observability (metrics, logging)
+observability:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'internal/utils/o11y.go'
+          - 'pkg/service/api/metrics.go'
+          - 'pkg/operator/metrics.go'
+
+# Models and utilities
+models:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'pkg/models/**'
+          - 'pkg/service/models/**'
+          - 'internal/utils/**'
+
+# Documentation (Markdown files or docs folders)
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+
+# Build system files
+build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'Makefile'
+          - 'Dockerfile'
+          - 'go.mod'
+          - 'go.sum'
+          - 'renovate.json'
+
+# Add 'enhancement' label to any PR where the head branch name starts with `feature`
+enhancement:
+  - head-branch:
+    - '^feature'
+
+# Add 'bug' label to any PR where the head branch name starts with `feature`
+bug:
+  - head-branch:
+      - '^bug'
+      - '^fix'
