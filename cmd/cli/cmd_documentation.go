@@ -11,10 +11,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-const frontMatter = `---
-title: CLI Reference
-permalink: /reference/cli
+const frontMatterTmpl = `---
+title: {{ .FrontMatterTitle }}
+permalink: {{ .FrontMatterPermalink }}
 ---`
+
+var (
+	useFrontMatter       bool
+	frontMatterTitle     string
+	frontMatterPermalink string
+)
 
 func init() {
 	cmdDocumentation.Flags().BoolP("markdownlint-fix", "m", false, "Fix markdownlint errors")
@@ -23,10 +29,14 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
+
+	cmdDocumentation.Flags().BoolVar(&useFrontMatter, "front-matter", false, "Use front matter")
+	cmdDocumentation.Flags().StringVar(&frontMatterTitle, "title", "CLI Reference", "Title of the front matter")
+	cmdDocumentation.Flags().StringVar(&frontMatterPermalink, "permalink", "/reference/cli", "Permalink of the front matter")
 }
 
 var cmdDocumentation = &cobra.Command{
-	Use:    "documentation <path> [--markdownlint-fix]",
+	Use:    "documentation <path> [--markdownlint-fix] [--front-matter-title <title>] [--front-matter-permalink <permalink>]",
 	Short:  "Generate the reference documentation for the tka CLI commands",
 	Long:   `The documentation command generates the reference markdown documentation for the tka CLI commands.`,
 	Hidden: true,
@@ -37,17 +47,25 @@ var cmdDocumentation = &cobra.Command{
 
 	# Refresh the documentation into docs/reference/cli.md and fix markdownlint errors
 	tka documentation docs/reference/cli.md --markdownlint-fix
+
+	# Refresh the documentation into docs/reference/cli.md and set the title and permalink
+	tka documentation docs/reference/cli.md --front-matter-title "CLI Reference" --front-matter-permalink "/reference/cli"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		rootCmd := getRootCmd(cmd)
 
 		renderedHelp := renderReferenceHelp(rootCmd, 0)
 		markdown := strings.Join(renderedHelp, "")
-		page := frontMatter + "\n\n" + markdown
+
+		if useFrontMatter {
+			frontMatter := strings.ReplaceAll(frontMatterTmpl, "{{ .FrontMatterTitle }}", frontMatterTitle)
+			frontMatter = strings.ReplaceAll(frontMatter, "{{ .FrontMatterPermalink }}", frontMatterPermalink)
+			markdown = frontMatter + "\n\n" + markdown
+		}
 
 		// write the markdown to the file
 		filePath := args[0]
-		if err := os.WriteFile(filePath, []byte(page), 0644); err != nil {
+		if err := os.WriteFile(filePath, []byte(markdown), 0644); err != nil {
 			pretty_print.PrintError(err)
 			os.Exit(1)
 		}

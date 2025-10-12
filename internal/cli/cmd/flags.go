@@ -22,9 +22,9 @@ func addCommonFlags(cmd *cobra.Command) {
 	viper.SetDefault("api.retryAfterSeconds", 1)
 
 	cmd.PersistentFlags().StringVarP(&configFileName, "config", "c", "", "Name of the config file")
-	if err := cmd.MarkFlagFilename("config", "yaml", "yml", "json"); err != nil {
-		panic(fmt.Errorf("fatal binding flag completion: %w", err))
-	}
+	_ = cmd.RegisterFlagCompletionFunc("config", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"json", "yaml", "yaml"}, cobra.ShellCompDirectiveDefault
+	})
 
 	cmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 	viper.SetDefault("debug", false)

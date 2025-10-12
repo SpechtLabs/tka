@@ -338,7 +338,6 @@ func TestCmdDocumentationRun(t *testing.T) {
 			expectedFileExists: true,
 			validateContent: func(t *testing.T, content string) {
 				t.Helper()
-				assert.Contains(t, content, frontMatter, "Content should contain front matter")
 				assert.Contains(t, content, "testapp", "Content should contain root command")
 				assert.Contains(t, content, "visible", "Content should contain visible subcommand")
 				assert.NotContains(t, content, "documentation", "Content should not contain hidden documentation command")
@@ -359,7 +358,6 @@ func TestCmdDocumentationRun(t *testing.T) {
 			expectedFileExists: true,
 			validateContent: func(t *testing.T, content string) {
 				t.Helper()
-				assert.Contains(t, content, frontMatter, "Content should contain front matter")
 				assert.Contains(t, content, "testapp", "Content should contain root command")
 				assert.Contains(t, content, "admin", "Content should contain admin command")
 				assert.Contains(t, content, "visible", "Content should contain visible subcommand")

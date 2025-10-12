@@ -9,6 +9,8 @@ on:
       - docs/**/*
       - .github/workflows/docs-website.yaml
       - pkg/swagger/swagger.json
+      - cmd/cli/**
+      - internal/cli/**
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
@@ -17,6 +19,8 @@ on:
       - docs/**/*
       - .github/workflows/docs-website.yaml
       - pkg/swagger/swagger.json
+      - cmd/cli/**
+      - internal/cli/**
 
 jobs:
   md:
@@ -38,6 +42,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
+          cache: true
+          cache-dependency-path: "**/*.sum"
+
+      - name: Generate CLI Documentation
+        run: go run cmd/cli/main.go documentation docs/reference/cli.md --front-matter
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
