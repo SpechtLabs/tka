@@ -2,7 +2,9 @@
 
 [![Go Build & Docker Build](https://github.com/spechtlabs/tka/actions/workflows/build.yaml/badge.svg)](https://github.com/spechtlabs/tka/actions/workflows/build.yaml)
 [![Documentation](https://github.com/spechtlabs/tka/actions/workflows/docs-website.yaml/badge.svg)](https://github.com/spechtlabs/tka/actions/workflows/docs-website.yaml)
+[![Codecov](https://codecov.io/gh/spechtlabs/tka/branch/main/graph/badge.svg)](https://codecov.io/gh/spechtlabs/tka)
 [![Go Report Card](https://goreportcard.com/badge/github.com/spechtlabs/tka)](https://goreportcard.com/report/github.com/spechtlabs/tka)
+[![Go Doc](https://godoc.org/github.com/spechtlabs/tka?status.svg)](https://godoc.org/github.com/spechtlabs/tka)
 
 > Secure, ephemeral Kubernetes access powered by your Tailscale network and identity.
 
