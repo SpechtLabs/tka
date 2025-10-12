@@ -161,9 +161,17 @@ export default defineUserConfig({
           collapsed: false,
           prefix: "/reference/",
           items: [
-            { text: "API Reference", link: "api", icon: "mdi:api" },
-            { text: "CLI Reference", link: "cli", icon: "mdi:terminal" },
             { text: "Configuration", link: "configuration", icon: "mdi:file-cog" },
+            { text: "API Reference", link: "api", icon: "mdi:api" },
+            { text: "CLI Reference", link: "cli", icon: "mdi:terminal", collapsed: true, items: [
+              { text: "Config", link: "cli#usage-config", icon: "mdi:cog", badge: "New" },
+              { text: "Login", link: "cli#usage-login", icon: "mdi:login"  },
+              { text: "Signout", link: "cli#usage-signout", icon: "mdi:logout" },
+              { text: "Reauthenticate", link: "cli#usage-reauthenticate", icon: "mdi:refresh" },
+              { text: "Kubeconfig", link: "cli#usage-kubeconfig", icon: "mdi:kubernetes" },
+              { text: "Shell", link: "cli#usage-shell", icon: "mdi:console"},
+              { text: "Cluster Info", link: "cli#usage-cluster-info", icon: "mdi:information", badge: "New" },
+            ]},
           ],
         },
         {
