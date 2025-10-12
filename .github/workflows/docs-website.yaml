@@ -51,7 +51,7 @@ jobs:
           cache-dependency-path: "**/*.sum"
 
       - name: Generate CLI Documentation
-        run: go run cmd/cli/main.go documentation docs/reference/cli.md --front-matter
+        run: go run ./cmd/cli/ generate documentation docs/reference/cli.md --front-matter
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
