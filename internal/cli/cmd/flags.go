@@ -10,9 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	configFileName string
-)
+var configFileName string
 
 func addCommonFlags(cmd *cobra.Command) {
 	viper.SetDefault("otel.endpoint", "")
@@ -24,39 +22,37 @@ func addCommonFlags(cmd *cobra.Command) {
 	viper.SetDefault("api.retryAfterSeconds", 1)
 
 	cmd.PersistentFlags().StringVarP(&configFileName, "config", "c", "", "Name of the config file")
+	if err := cmd.MarkFlagFilename("config", "yaml", "yml", "json"); err != nil {
+		panic(fmt.Errorf("fatal binding flag completion: %w", err))
+	}
 
 	cmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 	viper.SetDefault("debug", false)
-	err := viper.BindPFlag("debug", cmd.PersistentFlags().Lookup("debug"))
-	if err != nil {
+	if err := viper.BindPFlag("debug", cmd.PersistentFlags().Lookup("debug")); err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
 	cmd.PersistentFlags().StringP("server", "s", "tka", "The Server Name on the Tailscale Network")
 	viper.SetDefault("server.host", "")
-	err = viper.BindPFlag("tailscale.hostname", cmd.PersistentFlags().Lookup("server"))
-	if err != nil {
+	if err := viper.BindPFlag("tailscale.hostname", cmd.PersistentFlags().Lookup("server")); err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
 	cmd.PersistentFlags().IntP("port", "p", 443, "Port of the gRPC API of the Server")
 	viper.SetDefault("tailscale.port", 443)
-	err = viper.BindPFlag("tailscale.port", cmd.PersistentFlags().Lookup("port"))
-	if err != nil {
+	if err := viper.BindPFlag("tailscale.port", cmd.PersistentFlags().Lookup("port")); err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
 	cmd.PersistentFlags().BoolP("long", "l", false, "Show long output (where available)")
 	viper.SetDefault("output.long", false)
-	err = viper.BindPFlag("output.long", cmd.PersistentFlags().Lookup("long"))
-	if err != nil {
+	if err := viper.BindPFlag("output.long", cmd.PersistentFlags().Lookup("long")); err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 
 	cmd.PersistentFlags().BoolP("quiet", "q", false, "Show no output (where available)")
 	viper.SetDefault("output.quiet", false)
-	err = viper.BindPFlag("output.quiet", cmd.PersistentFlags().Lookup("quiet"))
-	if err != nil {
+	if err := viper.BindPFlag("output.quiet", cmd.PersistentFlags().Lookup("quiet")); err != nil {
 		panic(fmt.Errorf("fatal binding flag: %w", err))
 	}
 }
