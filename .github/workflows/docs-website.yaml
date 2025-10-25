@@ -70,7 +70,7 @@ jobs:
         run: cd docs && npm run build
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docs
           path: docs/.vuepress/dist
@@ -93,7 +93,7 @@ jobs:
           enablement: true
 
       - name: Download Artifacts for Website
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: docs
           path: ./dist
@@ -120,7 +120,7 @@ jobs:
 
     steps:
       - name: Download Artifacts for Website
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: docs
           path: ./dist
