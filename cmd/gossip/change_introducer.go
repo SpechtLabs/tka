@@ -43,7 +43,7 @@ It is not meant to be used in production.`,
 			return err
 		}
 
-		store := cluster.NewTestGossipStore(listenAddr, cluster.WithLocalState("initial-state"))
+		store := cluster.NewTestGossipStore[cluster.SerializableString](listenAddr, cluster.WithLocalState(cluster.SerializableString("initial-state")))
 
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {
@@ -51,12 +51,12 @@ It is not meant to be used in production.`,
 		}
 		defer listener.Close()
 
-		gossiper := cluster.NewGossipClient(
+		gossiper := cluster.NewGossipClient[cluster.SerializableString](
 			store,
 			&listener,
-			cluster.WithGossipFactor(gossipFactorInt),
-			cluster.WithGossipInterval(gossipIntervalDuration),
-			cluster.WithPeer(serverAddr),
+			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
+			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
+			cluster.WithPeer[cluster.SerializableString](serverAddr),
 		)
 
 		// Start the gossip client in a goroutine
@@ -75,7 +75,7 @@ It is not meant to be used in production.`,
 				case <-cmd.Context().Done():
 					return
 				case <-time.After(statusChangeIntervalDuration):
-					store.SetData(fmt.Sprintf("status-%d", rand.Intn(100)))
+					store.SetData(cluster.SerializableString(fmt.Sprintf("status-%d", rand.Intn(100))))
 				}
 			}
 		}()
