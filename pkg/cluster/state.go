@@ -4,18 +4,26 @@ import (
 	"fmt"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Version is a uint64 that is used to track the version of a state.
 type Version uint64
+
+type GossipVersionedStateMarshaller interface {
+	Marshal() ([]byte, humane.Error)
+}
+
+type GossipVersionedStateUnmarshaller interface {
+	Unmarshal(data []byte, v interface{}) humane.Error
+}
 
 // SerializableAndStringable is a constraint interface that combines msgpack serialization and string representation requirements.
 // Any type used with GossipVersionedState must implement both interfaces to ensure it can be serialized and displayed.
 // The type must also be comparable for equality checks.
 type SerializableAndStringable interface {
 	fmt.Stringer
-	msgpack.Marshaler
+	GossipVersionedStateMarshaller
+	GossipVersionedStateUnmarshaller
 	comparable
 }
 
