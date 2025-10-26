@@ -5,14 +5,14 @@ import (
 )
 
 // LastWriteWinsState is a implementation of the GossipVersionedState interface that uses the last write time to resolve conflicts.
-type LastWriteWinsState[T comparable] struct {
+type LastWriteWinsState[T SerializableAndStringable] struct {
 	version Version
 	data    T
 }
 
 // NewLastWriteWinsState creates a new GossipVersionedState with the given data.
 // The last write time is used for resolving conflicts when the version is the same.
-func NewLastWriteWinsState[T comparable](data T) GossipVersionedState[T] {
+func NewLastWriteWinsState[T SerializableAndStringable](data T) GossipVersionedState[T] {
 	return &LastWriteWinsState[T]{
 		version: 0,
 		data:    data,
@@ -75,10 +75,11 @@ func (s *LastWriteWinsState[T]) Apply(diff GossipVersionedState[T]) humane.Error
 		return nil
 	}
 
+	// If versions are equal, we check if data is different
 	if s.data != diff.GetData() {
-		// If the diff is the same version, we return an error because we are authorative
-		// Unclear how we got here, but we should return an error
-		return humane.New("Vector clock is out of sync. Unclear how to resolve this conflict.")
+		// This is the "last write wins" scenario - when versions are equal but data differs,
+		// we apply the diff data (the incoming write wins)
+		s.data = diff.GetData()
 	}
 
 	return nil
