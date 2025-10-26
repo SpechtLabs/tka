@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spechtlabs/tka/pkg/cluster"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ It is not meant to be used in production.`,
 		}
 
 		store := cluster.NewTestGossipStore(listenAddr,
-			cluster.WithLocalState(args[0]),
+			cluster.WithLocalState(cluster.SerializableString(args[0])),
 		)
 
 		listener, err := net.Listen("tcp", listenAddr)
@@ -52,12 +52,12 @@ It is not meant to be used in production.`,
 		}
 		defer listener.Close()
 
-		gossiper := cluster.NewGossipClient(
+		gossiper := cluster.NewGossipClient[cluster.SerializableString](
 			store,
 			&listener,
-			cluster.WithGossipFactor(gossipFactorInt),
-			cluster.WithGossipInterval(gossipIntervalDuration),
-			cluster.WithPeer(serverAddr),
+			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
+			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
+			cluster.WithPeer[cluster.SerializableString](serverAddr),
 		)
 
 		// Start the gossip client in a goroutine
@@ -66,7 +66,7 @@ It is not meant to be used in production.`,
 		// Create and start the TUI
 		model := newGossipModel(store)
 		p := tea.NewProgram(model, tea.WithAltScreen())
-		
+
 		if _, err := p.Run(); err != nil {
 			return err
 		}

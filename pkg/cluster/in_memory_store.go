@@ -10,43 +10,43 @@ import (
 	"go.uber.org/zap"
 )
 
-type TestGossipStore struct {
+type TestGossipStore[T SerializableAndStringable] struct {
 	id        string
 	peersLock sync.RWMutex
 	peers     map[string]GossipNode
 	stateLock sync.RWMutex
-	state     map[string]GossipVersionedState[SerializableString]
+	state     map[string]GossipVersionedState[T]
 	address   string
 }
 
-type TestGossipStoreOption func(*TestGossipStore)
+type TestGossipStoreOption[T SerializableAndStringable] func(*TestGossipStore[T])
 
 // WithLocalState sets the local state of the store.
 // This will lock the store for the duration of the function.
-func WithLocalState(state string) TestGossipStoreOption {
-	return func(s *TestGossipStore) {
+func WithLocalState[T SerializableAndStringable](state T) TestGossipStoreOption[T] {
+	return func(s *TestGossipStore[T]) {
 		s.stateLock.Lock()
 		defer s.stateLock.Unlock()
 
 		localState, ok := s.state[s.GetId()]
 		if !ok {
-			localState = NewLastWriteWinsState(SerializableString(state))
+			localState = NewLastWriteWinsState(state)
 		} else {
-			localState.SetData(SerializableString(state))
+			localState.SetData(state)
 		}
 
 		s.state[s.GetId()] = localState
 	}
 }
 
-func NewTestGossipStore(address string, opts ...TestGossipStoreOption) GossipStore {
+func NewTestGossipStore[T SerializableAndStringable](address string, opts ...TestGossipStoreOption[T]) GossipStore[T] {
 	id := hashString(address)
 
-	s := &TestGossipStore{
+	s := &TestGossipStore[T]{
 		id:      id,
 		address: address,
 		peers:   make(map[string]GossipNode),
-		state:   make(map[string]GossipVersionedState[SerializableString]),
+		state:   make(map[string]GossipVersionedState[T]),
 	}
 
 	for _, opt := range opts {
@@ -56,11 +56,11 @@ func NewTestGossipStore(address string, opts ...TestGossipStoreOption) GossipSto
 	return s
 }
 
-func (s *TestGossipStore) GetId() string {
+func (s *TestGossipStore[T]) GetId() string {
 	return s.id
 }
 
-func (s *TestGossipStore) Heartbeat(peerId string, address string) {
+func (s *TestGossipStore[T]) Heartbeat(peerId string, address string) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -73,12 +73,12 @@ func (s *TestGossipStore) Heartbeat(peerId string, address string) {
 	s.peers[peerId] = node
 }
 
-func (s *TestGossipStore) SetData(status string) {
+func (s *TestGossipStore[T]) SetData(status T) {
 	// We don't need to lock the store here because the WithLocalState function will lock the store for us
 	WithLocalState(status)(s)
 }
 
-func (s *TestGossipStore) GetPeers() []GossipNode {
+func (s *TestGossipStore[T]) GetPeers() []GossipNode {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -90,7 +90,7 @@ func (s *TestGossipStore) GetPeers() []GossipNode {
 	return peers
 }
 
-func (s *TestGossipStore) GetPeer(peerId string) *GossipNode {
+func (s *TestGossipStore[T]) GetPeer(peerId string) *GossipNode {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -101,7 +101,7 @@ func (s *TestGossipStore) GetPeer(peerId string) *GossipNode {
 	return nil
 }
 
-func (s *TestGossipStore) Digest() GossipDigest {
+func (s *TestGossipStore[T]) Digest() GossipDigest {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -130,7 +130,7 @@ func (s *TestGossipStore) Digest() GossipDigest {
 	return digest
 }
 
-func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
+func (s *TestGossipStore[T]) Diff(other GossipDigest) GossipDiff {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -236,7 +236,7 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 	return diff
 }
 
-func (s *TestGossipStore) Apply(diff GossipDiff) {
+func (s *TestGossipStore[T]) Apply(diff GossipDiff) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -256,11 +256,11 @@ func (s *TestGossipStore) Apply(diff GossipDiff) {
 			// Peer is not in the peers map, we need to add it
 			s.peers[peerId] = NewGossipNode(peerId, versionState.DigestEntry.Address)
 
-			var data SerializableString
+			var data T
 			if err := data.Unmarshal(versionState.Data, &data); err != nil {
 				otelzap.L().WithError(err).Error("Failed to unmarshal state data")
 			} else {
-				s.state[peerId] = &LastWriteWinsState[SerializableString]{
+				s.state[peerId] = &LastWriteWinsState[T]{
 					version: Version(versionState.DigestEntry.Version),
 					data:    data,
 				}
@@ -271,11 +271,11 @@ func (s *TestGossipStore) Apply(diff GossipDiff) {
 
 		peer.Heartbeat(versionState.DigestEntry.Address)
 
-		var data SerializableString
+		var data T
 		if err := data.Unmarshal(versionState.Data, &data); err != nil {
 			otelzap.L().WithError(err).Error("Failed to unmarshal state data")
 		} else {
-			s.state[peerId] = &LastWriteWinsState[SerializableString]{
+			s.state[peerId] = &LastWriteWinsState[T]{
 				version: Version(versionState.DigestEntry.Version),
 				data:    data,
 			}
@@ -283,7 +283,7 @@ func (s *TestGossipStore) Apply(diff GossipDiff) {
 	}
 }
 
-func (s *TestGossipStore) GetDisplayData() []NodeDisplayData {
+func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 

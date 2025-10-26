@@ -18,31 +18,31 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type GossipClient struct {
+type GossipClient[T SerializableAndStringable] struct {
 	peers []string
 
 	gossipFactor   int
 	gossipInterval time.Duration
-	store          GossipStore
+	store          GossipStore[T]
 	listener       *net.Listener
 	listenerPort   string
 }
 
-type GossipClientOption func(*GossipClient)
+type GossipClientOption[T SerializableAndStringable] func(*GossipClient[T])
 
-func WithGossipFactor(gossipFactor int) GossipClientOption {
-	return func(c *GossipClient) { c.gossipFactor = gossipFactor }
+func WithGossipFactor[T SerializableAndStringable](gossipFactor int) GossipClientOption[T] {
+	return func(c *GossipClient[T]) { c.gossipFactor = gossipFactor }
 }
 
-func WithGossipInterval(gossipInterval time.Duration) GossipClientOption {
-	return func(c *GossipClient) { c.gossipInterval = gossipInterval }
+func WithGossipInterval[T SerializableAndStringable](gossipInterval time.Duration) GossipClientOption[T] {
+	return func(c *GossipClient[T]) { c.gossipInterval = gossipInterval }
 }
 
-func WithPeer(peers ...string) GossipClientOption {
-	return func(c *GossipClient) { c.peers = append(c.peers, peers...) }
+func WithPeer[T SerializableAndStringable](peers ...string) GossipClientOption[T] {
+	return func(c *GossipClient[T]) { c.peers = append(c.peers, peers...) }
 }
 
-func NewGossipClient(store GossipStore, listener *net.Listener, opts ...GossipClientOption) *GossipClient {
+func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener *net.Listener, opts ...GossipClientOption[T]) *GossipClient[T] {
 	listenerAddr := (*listener).Addr().String()
 	_, port, err := net.SplitHostPort(listenerAddr)
 	if err != nil {
@@ -50,7 +50,7 @@ func NewGossipClient(store GossipStore, listener *net.Listener, opts ...GossipCl
 		return nil
 	}
 
-	c := &GossipClient{
+	c := &GossipClient[T]{
 		gossipFactor:   3,
 		gossipInterval: 1 * time.Second,
 		peers:          make([]string, 0),
@@ -65,7 +65,7 @@ func NewGossipClient(store GossipStore, listener *net.Listener, opts ...GossipCl
 	return c
 }
 
-func (c *GossipClient) Start(ctx context.Context) {
+func (c *GossipClient[T]) Start(ctx context.Context) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -75,7 +75,7 @@ func (c *GossipClient) Start(ctx context.Context) {
 	wg.Wait()
 }
 
-func (c *GossipClient) gossipListener(ctx context.Context) {
+func (c *GossipClient[T]) gossipListener(ctx context.Context) {
 	if c.listener == nil {
 		otelzap.L().Sugar().Error("Gossip listener not set")
 		return
@@ -91,7 +91,7 @@ func (c *GossipClient) gossipListener(ctx context.Context) {
 	}
 }
 
-func (c *GossipClient) gossip(ctx context.Context) {
+func (c *GossipClient[T]) gossip(ctx context.Context) {
 	// startDealy := rand.Int64() % c.gossipInterval.Milliseconds()
 	// Sleep for a random amount of time before starting the gossip
 	// time.Sleep(time.Millisecond * time.Duration(startDealy))
@@ -112,7 +112,7 @@ func (c *GossipClient) gossip(ctx context.Context) {
 	}
 }
 
-func (c *GossipClient) gossipSender(ctx context.Context) {
+func (c *GossipClient[T]) gossipSender(ctx context.Context) {
 	// copy the peer slice to avoid modifying the original slice
 	peers := c.peers
 
@@ -158,7 +158,7 @@ func (c *GossipClient) gossipSender(ctx context.Context) {
 
 const varintLenBytes = 10
 
-func (c *GossipClient) gossipWithPeer(ctx context.Context, peer string, msg *messages.GossipMessage) humane.Error {
+func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *messages.GossipMessage) humane.Error {
 	// send a gossip message to the peer
 	conn, err := net.Dial("tcp", peer)
 	if err != nil {
@@ -190,7 +190,7 @@ func (c *GossipClient) gossipWithPeer(ctx context.Context, peer string, msg *mes
 	return nil
 }
 
-func (c *GossipClient) handleGossipPeer(ctx context.Context, conn net.Conn) {
+func (c *GossipClient[T]) handleGossipPeer(ctx context.Context, conn net.Conn) {
 	defer func() { _ = conn.Close() }()
 
 	// read the gossip message from the connection

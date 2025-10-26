@@ -5,14 +5,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spechtlabs/tka/pkg/cluster"
 )
 
 // TUI model for displaying gossip state
 type gossipModel struct {
-	store       cluster.GossipStore
+	store       cluster.GossipStore[cluster.SerializableString]
 	lastData    []cluster.NodeDisplayData
 	highlighted map[string]time.Time
 	width       int
@@ -53,7 +53,7 @@ var (
 			Foreground(lipgloss.Color("#626262"))
 )
 
-func newGossipModel(store cluster.GossipStore) *gossipModel {
+func newGossipModel(store cluster.GossipStore[cluster.SerializableString]) *gossipModel {
 	return &gossipModel{
 		store:       store,
 		lastData:    make([]cluster.NodeDisplayData, 0),
@@ -181,7 +181,7 @@ func tickCmd() tea.Cmd {
 func (m gossipModel) updateStateCmd() tea.Cmd {
 	return func() tea.Msg {
 		// Cast to TestGossipStore to access GetDisplayData method
-		if testStore, ok := m.store.(*cluster.TestGossipStore); ok {
+		if testStore, ok := m.store.(*cluster.TestGossipStore[cluster.SerializableString]); ok {
 			return stateUpdateMsg{data: testStore.GetDisplayData()}
 		}
 		return stateUpdateMsg{data: []cluster.NodeDisplayData{}}
