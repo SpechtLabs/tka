@@ -118,6 +118,11 @@ func (s *TestGossipStore[T]) Digest() GossipDigest {
 			continue
 		}
 
+		// If this is the local node and not in peers, create a peer entry for it
+		if !ok && peerId == s.GetId() {
+			peer = NewGossipNode(peerId, s.address)
+		}
+
 		digestEntry, err := NewDigestEntry(uint64(peerState.GetVersion()), &peer)
 		if err != nil {
 			otelzap.L().WithError(err).Error("Failed to create digest entry")
@@ -301,8 +306,13 @@ func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
 	for _, peerId := range keys {
 		peer, ok := s.peers[peerId]
 		if !ok {
-			otelzap.L().Error("Peer not found in peers map, how is this possible?", zap.String("peerId", peerId))
-			continue
+			// If this is the local node, create a peer entry for it
+			if peerId == s.GetId() {
+				peer = NewGossipNode(peerId, s.address)
+			} else {
+				otelzap.L().Error("Peer not found in peers map, how is this possible?", zap.String("peerId", peerId))
+				continue
+			}
 		}
 
 		state, ok := s.state[peerId]

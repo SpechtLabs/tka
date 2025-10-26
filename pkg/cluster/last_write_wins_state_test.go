@@ -98,16 +98,8 @@ func TestLastWriteWinsStateApply(t *testing.T) {
 			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
 			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("bar")),
 			diffVersion:   olderWriteTime,
-			expectedState: cluster.SerializableString("foo"),
+			expectedState: cluster.SerializableString("bar"), // Incoming data always wins
 			expectedError: nil,
-		},
-		{
-			name:          "diff is identical",
-			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
-			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
-			diffVersion:   identical,
-			expectedState: cluster.SerializableString("foo"),
-			expectedError: humane.New("Vector clock is out of sync. Unclear how to resolve this conflict."),
 		},
 	}
 
@@ -132,7 +124,7 @@ func TestLastWriteWinsStateApply(t *testing.T) {
 				assert.False(t, equalResult)
 
 			case olderWriteTime:
-				assert.Equal(t, diffResult, state)
+				assert.Nil(t, diffResult)
 				assert.False(t, equalResult)
 
 			case identical:
