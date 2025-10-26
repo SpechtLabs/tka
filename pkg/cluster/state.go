@@ -23,7 +23,7 @@ type GossipVersionedState[T comparable] interface {
 	GetData() T
 
 	// Diff returns a copy of the itselft if it is newer than the other version, otherwise (if the other version is newer than itself)it returns nil
-	Diff(other GossipVersionedState[T]) GossipVersionedState[T]
+	Diff(other Version) GossipVersionedState[T]
 
 	// Apply applies a diff to the state.
 	// If the diff is newer, it will apply the diff and return nil.
