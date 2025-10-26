@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testState cluster.GossipVersionedState[string]
+type testState cluster.GossipVersionedState[cluster.SerializableString]
 
 type versionCondition string
 
@@ -66,47 +66,47 @@ func TestLastWriteWinsStateApply(t *testing.T) {
 		state         testState
 		diff          testState
 		diffVersion   versionCondition
-		expectedState string
+		expectedState cluster.SerializableString
 		expectedError humane.Error
 	}{
 		{
 			name:          "diff is newer",
-			state:         cluster.NewLastWriteWinsState("foo"),
-			diff:          cluster.NewLastWriteWinsState("bar"),
+			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
+			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("bar")),
 			diffVersion:   newerVersion,
-			expectedState: "bar",
+			expectedState: cluster.SerializableString("bar"),
 			expectedError: nil,
 		},
 		{
 			name:          "diff is older",
-			state:         cluster.NewLastWriteWinsState("foo"),
-			diff:          cluster.NewLastWriteWinsState("bar"),
+			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
+			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("bar")),
 			diffVersion:   olderVersion,
-			expectedState: "foo",
+			expectedState: cluster.SerializableString("foo"),
 			expectedError: nil,
 		},
 		{
 			name:          "diff is equal (diff wins)",
-			state:         cluster.NewLastWriteWinsState("foo"),
-			diff:          cluster.NewLastWriteWinsState("bar"),
+			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
+			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("bar")),
 			diffVersion:   newerWriteTime,
-			expectedState: "bar",
+			expectedState: cluster.SerializableString("bar"),
 			expectedError: nil,
 		},
 		{
 			name:          "diff is equal (state wins)",
-			state:         cluster.NewLastWriteWinsState("foo"),
-			diff:          cluster.NewLastWriteWinsState("bar"),
+			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
+			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("bar")),
 			diffVersion:   olderWriteTime,
-			expectedState: "foo",
+			expectedState: cluster.SerializableString("foo"),
 			expectedError: nil,
 		},
 		{
 			name:          "diff is identical",
-			state:         cluster.NewLastWriteWinsState("foo"),
-			diff:          cluster.NewLastWriteWinsState("foo"),
+			state:         cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
+			diff:          cluster.NewLastWriteWinsState(cluster.SerializableString("foo")),
 			diffVersion:   identical,
-			expectedState: "foo",
+			expectedState: cluster.SerializableString("foo"),
 			expectedError: humane.New("Vector clock is out of sync. Unclear how to resolve this conflict."),
 		},
 	}

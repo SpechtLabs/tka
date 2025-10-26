@@ -1,14 +1,27 @@
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/sierrasoftworks/humane-errors-go"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Version is a uint64 that is used to track the version of a state.
 type Version uint64
 
+// SerializableAndStringable is a constraint interface that combines msgpack serialization and string representation requirements.
+// Any type used with GossipVersionedState must implement both interfaces to ensure it can be serialized and displayed.
+// The type must also be comparable for equality checks.
+type SerializableAndStringable interface {
+	fmt.Stringer
+	msgpack.Marshaler
+	comparable
+}
+
 // GossipVersionedState is a vector clock implementation of the gossip state that allows for diffing and applying of states and resolving conflicts.
-type GossipVersionedState[T comparable] interface {
+// T must implement SerializableAndStringable to ensure it can be serialized to msgpack and converted to a string representation.
+type GossipVersionedState[T SerializableAndStringable] interface {
 	// Equal checks if the state is the same as another state.
 	// To check if the state is equal, the version and and the data must be the same.
 	Equal(other GossipVersionedState[T]) bool

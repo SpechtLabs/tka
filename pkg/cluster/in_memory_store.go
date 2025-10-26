@@ -15,7 +15,7 @@ type TestGossipStore struct {
 	peersLock sync.RWMutex
 	peers     map[string]GossipNode
 	stateLock sync.RWMutex
-	state     map[string]GossipVersionedState[string]
+	state     map[string]GossipVersionedState[SerializableString]
 	address   string
 }
 
@@ -30,9 +30,9 @@ func WithLocalState(state string) TestGossipStoreOption {
 
 		localState, ok := s.state[s.GetId()]
 		if !ok {
-			localState = NewLastWriteWinsState[string](state)
+			localState = NewLastWriteWinsState(SerializableString(state))
 		} else {
-			localState.SetData(state)
+			localState.SetData(SerializableString(state))
 		}
 
 		s.state[s.GetId()] = localState
@@ -46,7 +46,7 @@ func NewTestGossipStore(address string, opts ...TestGossipStoreOption) GossipSto
 		id:      id,
 		address: address,
 		peers:   make(map[string]GossipNode),
-		state:   make(map[string]GossipVersionedState[string]),
+		state:   make(map[string]GossipVersionedState[SerializableString]),
 	}
 
 	for _, opt := range opts {
@@ -167,9 +167,16 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 				continue
 			}
 
+			data := diffState.GetData()
+			serializedData, marshalErr := data.MarshalMsgpack()
+			if marshalErr != nil {
+				otelzap.L().WithError(marshalErr).Error("Failed to marshal state data")
+				continue
+			}
+
 			diff[peerId] = &messages.GossipVersionedState{
 				DigestEntry: digestEntry,
-				Data:        []byte(diffState.GetData()),
+				Data:        serializedData,
 			}
 		}
 	}
@@ -193,9 +200,16 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 				continue
 			}
 
+			data := peerState.GetData()
+			serializedData, marshalErr := data.MarshalMsgpack()
+			if marshalErr != nil {
+				otelzap.L().WithError(marshalErr).Error("Failed to marshal state data")
+				continue
+			}
+
 			diff[peerId] = &messages.GossipVersionedState{
 				DigestEntry: digestEntry,
-				Data:        []byte(peerState.GetData()),
+				Data:        serializedData,
 			}
 		}
 	}
@@ -212,9 +226,15 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 	if err != nil {
 		otelzap.L().WithError(err).Error("Failed to create digest entry for local node")
 	} else {
-		diff[s.GetId()] = &messages.GossipVersionedState{
-			DigestEntry: digestEntry,
-			Data:        []byte(localState.GetData()),
+		data := localState.GetData()
+		serializedData, marshalErr := data.MarshalMsgpack()
+		if marshalErr != nil {
+			otelzap.L().WithError(marshalErr).Error("Failed to marshal local state data")
+		} else {
+			diff[s.GetId()] = &messages.GossipVersionedState{
+				DigestEntry: digestEntry,
+				Data:        serializedData,
+			}
 		}
 	}
 
@@ -240,18 +260,31 @@ func (s *TestGossipStore) Apply(diff GossipDiff) {
 		if !ok && peerId != s.GetId() {
 			// Peer is not in the peers map, we need to add it
 			s.peers[peerId] = NewGossipNode(peerId, versionState.DigestEntry.Address)
-			s.state[peerId] = &LastWriteWinsState[string]{
+
+			data, err := UnmarshalSerializableString(versionState.Data)
+			if err != nil {
+				otelzap.L().WithError(err).Error("Failed to unmarshal state data")
+				continue
+			}
+
+			s.state[peerId] = &LastWriteWinsState[SerializableString]{
 				version: Version(versionState.DigestEntry.Version),
-				data:    string(versionState.Data),
+				data:    data,
 			}
 			continue
 		}
 
 		peer.Heartbeat(versionState.DigestEntry.Address)
 
-		s.state[peerId] = &LastWriteWinsState[string]{
+		data, err := UnmarshalSerializableString(versionState.Data)
+		if err != nil {
+			otelzap.L().WithError(err).Error("Failed to unmarshal state data")
+			continue
+		}
+
+		s.state[peerId] = &LastWriteWinsState[SerializableString]{
 			version: Version(versionState.DigestEntry.Version),
-			data:    string(versionState.Data),
+			data:    data,
 		}
 	}
 }
@@ -284,12 +317,13 @@ func (s *TestGossipStore) GetDisplayData() []NodeDisplayData {
 			continue
 		}
 
+		stateData := state.GetData()
 		data = append(data, NodeDisplayData{
 			ID:          peerId,
 			Address:     peer.GetAddress(),
 			LastSeen:    peer.GetLastSeen(),
 			Version:     state.GetVersion(),
-			State:       state.GetData(),
+			State:       stateData.String(),
 			LastUpdated: time.Now(),
 			IsLocal:     peerId == s.GetId(),
 		})
