@@ -50,7 +50,7 @@ It is not meant to be used in production.`,
 		if err != nil {
 			return err
 		}
-		defer listener.Close()
+		defer func() { _ = listener.Close() }()
 
 		gossiper := cluster.NewGossipClient[cluster.SerializableString](
 			store,

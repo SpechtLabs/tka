@@ -164,7 +164,7 @@ func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *
 	if err != nil {
 		return humane.Wrap(err, "failed to dial peer")
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	writer := bufio.NewWriter(conn)
 
