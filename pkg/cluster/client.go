@@ -143,7 +143,7 @@ func (c *GossipClient) gossipSender(ctx context.Context) {
 				AnswerPort: c.listenerPort,
 			},
 			Message: &messages.GossipMessage_HeartbeatMessage{
-				HeartbeatMessage: &messages.HeartbeatMessage{
+				HeartbeatMessage: &messages.GossipHeartbeatMessage{
 					TsUnixNano:       time.Now().UnixNano(),
 					VersionMapDigest: c.store.Digest(),
 				},
@@ -276,17 +276,17 @@ func (c *GossipClient) handleGossipPeer(ctx context.Context, conn net.Conn) {
 		gossipMsg := gossipMsgType.GossipDiffMessage
 		c.store.Heartbeat(msg.Envelope.SrcId, fmt.Sprintf("%s:%s", host, msg.Envelope.AnswerPort))
 
+		// Generate the delta of the local state and the remote state
 		delta := c.store.Diff(gossipMsg.VersionMapDigest)
-		// fmt.Println("Diff:\n", delta.ToString())
 
-		if err := c.store.Apply(gossipMsg.StateDelta); err != nil {
-			fmt.Println("Error applying diff:", err.Display())
-		}
+		// Apply the remote state to the local state
+		c.store.Apply(gossipMsg.StateDelta)
 
+		// If there is no delta, we don't need to send anything
 		if len(delta) == 0 {
 			return
 		}
-
+		// Generate the delta message to send to the peer
 		msg := &messages.GossipMessage{
 			Envelope: &messages.GossipMessageEnvelope{
 				SrcId:      c.store.GetId(),
@@ -306,10 +306,7 @@ func (c *GossipClient) handleGossipPeer(ctx context.Context, conn net.Conn) {
 	case *messages.GossipMessage_GossipDeltaMessage:
 		gossipMsg := gossipMsgType.GossipDeltaMessage
 		c.store.Heartbeat(msg.Envelope.SrcId, fmt.Sprintf("%s:%s", host, msg.Envelope.AnswerPort))
-
-		if err := c.store.Apply(gossipMsg.StateDelta); err != nil {
-			fmt.Println("Error applying delta:", err.Display())
-		}
+		c.store.Apply(gossipMsg.StateDelta)
 
 	default:
 		fmt.Println("Unknown message type:", gossipMsgType)

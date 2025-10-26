@@ -15,6 +15,14 @@ type GossipNode struct {
 	lastSeen time.Time
 }
 
+func NewGossipNode(id string, address string) GossipNode {
+	return GossipNode{
+		id:       id,
+		address:  address,
+		lastSeen: time.Now(),
+	}
+}
+
 func (n *GossipNode) ID() string {
 	return n.id
 }
