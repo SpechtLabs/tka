@@ -10,13 +10,13 @@ message GossipMessageEnvelope {
 message GossipMessage {
     GossipMessageEnvelope envelope = 1;
     oneof message {
-        HeartbeatMessage heartbeat_message = 2;
+        GossipHeartbeatMessage heartbeat_message = 2;
         GossipDiffMessage gossip_diff_message = 3;
         GossipDeltaMessage gossip_delta_message = 4;
     }
 }
 
-message HeartbeatMessage {
+message GossipHeartbeatMessage {
     int64 ts_unix_nano = 1;
     map<string, DigestEntry> version_map_digest = 2;
 }
