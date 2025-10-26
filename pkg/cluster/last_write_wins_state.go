@@ -58,7 +58,8 @@ func (s *LastWriteWinsState[T]) Diff(other Version) GossipVersionedState[T] {
 		return nil
 	}
 
-	// If we are the same version, we return no copy of ourselves to minimize the amount of data we send
+	// If we are the same version, we return no copy to minimize data transfer
+	// The recipient will still apply updates based on lastWriteTime comparison
 	return nil
 }
 
@@ -83,5 +84,4 @@ func (s *LastWriteWinsState[T]) Apply(diff GossipVersionedState[T]) humane.Error
 	}
 
 	return nil
-
 }
