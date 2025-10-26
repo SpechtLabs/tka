@@ -47,7 +47,7 @@ func (d GossipDiff) ToString() string {
 	return strings.Join(lines, "\n")
 }
 
-type GossipStore interface {
+type GossipStore[T SerializableAndStringable] interface {
 	// GetId returns the unique id of the local node
 	GetId() string
 
@@ -67,7 +67,7 @@ type GossipStore interface {
 	Apply(diff GossipDiff)
 
 	// SetData sets the status of the local node
-	SetData(data string)
+	SetData(data T)
 
 	// GetDisplayData returns the display data for the local node and all connected peer nodes
 	GetDisplayData() []NodeDisplayData

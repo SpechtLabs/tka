@@ -44,8 +44,8 @@ It is not meant to be used in production.`,
 			return err
 		}
 
-		store := cluster.NewTestGossipStore(listenAddr,
-			cluster.WithLocalState(args[0]),
+		store := cluster.NewTestGossipStore[cluster.SerializableString](listenAddr,
+			cluster.WithLocalState(cluster.SerializableString(args[0])),
 		)
 
 		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", listenPortInt))
@@ -54,11 +54,11 @@ It is not meant to be used in production.`,
 		}
 		defer listener.Close()
 
-		gossiper := cluster.NewGossipClient(
+		gossiper := cluster.NewGossipClient[cluster.SerializableString](
 			store,
 			&listener,
-			cluster.WithGossipFactor(gossipFactorInt),
-			cluster.WithGossipInterval(gossipIntervalDuration),
+			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
+			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
 		)
 
 		// Start the gossip client in a goroutine
