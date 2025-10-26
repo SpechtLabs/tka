@@ -7,11 +7,12 @@
 package messages
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -130,7 +131,7 @@ func (x *GossipMessage) GetMessage() isGossipMessage_Message {
 	return nil
 }
 
-func (x *GossipMessage) GetHeartbeatMessage() *HeartbeatMessage {
+func (x *GossipMessage) GetHeartbeatMessage() *GossipHeartbeatMessage {
 	if x != nil {
 		if x, ok := x.Message.(*GossipMessage_HeartbeatMessage); ok {
 			return x.HeartbeatMessage
@@ -162,7 +163,7 @@ type isGossipMessage_Message interface {
 }
 
 type GossipMessage_HeartbeatMessage struct {
-	HeartbeatMessage *HeartbeatMessage `protobuf:"bytes,2,opt,name=heartbeat_message,json=heartbeatMessage,proto3,oneof"`
+	HeartbeatMessage *GossipHeartbeatMessage `protobuf:"bytes,2,opt,name=heartbeat_message,json=heartbeatMessage,proto3,oneof"`
 }
 
 type GossipMessage_GossipDiffMessage struct {
@@ -179,7 +180,7 @@ func (*GossipMessage_GossipDiffMessage) isGossipMessage_Message() {}
 
 func (*GossipMessage_GossipDeltaMessage) isGossipMessage_Message() {}
 
-type HeartbeatMessage struct {
+type GossipHeartbeatMessage struct {
 	state            protoimpl.MessageState  `protogen:"open.v1"`
 	TsUnixNano       int64                   `protobuf:"varint,1,opt,name=ts_unix_nano,json=tsUnixNano,proto3" json:"ts_unix_nano,omitempty"`
 	VersionMapDigest map[string]*DigestEntry `protobuf:"bytes,2,rep,name=version_map_digest,json=versionMapDigest,proto3" json:"version_map_digest,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -187,20 +188,20 @@ type HeartbeatMessage struct {
 	sizeCache        protoimpl.SizeCache
 }
 
-func (x *HeartbeatMessage) Reset() {
-	*x = HeartbeatMessage{}
+func (x *GossipHeartbeatMessage) Reset() {
+	*x = GossipHeartbeatMessage{}
 	mi := &file_pkg_cluster_messages_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HeartbeatMessage) String() string {
+func (x *GossipHeartbeatMessage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HeartbeatMessage) ProtoMessage() {}
+func (*GossipHeartbeatMessage) ProtoMessage() {}
 
-func (x *HeartbeatMessage) ProtoReflect() protoreflect.Message {
+func (x *GossipHeartbeatMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_pkg_cluster_messages_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -212,19 +213,19 @@ func (x *HeartbeatMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HeartbeatMessage.ProtoReflect.Descriptor instead.
-func (*HeartbeatMessage) Descriptor() ([]byte, []int) {
+// Deprecated: Use GossipHeartbeatMessage.ProtoReflect.Descriptor instead.
+func (*GossipHeartbeatMessage) Descriptor() ([]byte, []int) {
 	return file_pkg_cluster_messages_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *HeartbeatMessage) GetTsUnixNano() int64 {
+func (x *GossipHeartbeatMessage) GetTsUnixNano() int64 {
 	if x != nil {
 		return x.TsUnixNano
 	}
 	return 0
 }
 
-func (x *HeartbeatMessage) GetVersionMapDigest() map[string]*DigestEntry {
+func (x *GossipHeartbeatMessage) GetVersionMapDigest() map[string]*DigestEntry {
 	if x != nil {
 		return x.VersionMapDigest
 	}
@@ -448,17 +449,17 @@ const file_pkg_cluster_messages_proto_rawDesc = "" +
 	"\x05srcId\x18\x01 \x01(\tR\x05srcId\x12\x1e\n" +
 	"\n" +
 	"answerPort\x18\x02 \x01(\tR\n" +
-	"answerPort\"\x9f\x02\n" +
+	"answerPort\"\xa5\x02\n" +
 	"\rGossipMessage\x122\n" +
-	"\benvelope\x18\x01 \x01(\v2\x16.GossipMessageEnvelopeR\benvelope\x12@\n" +
-	"\x11heartbeat_message\x18\x02 \x01(\v2\x11.HeartbeatMessageH\x00R\x10heartbeatMessage\x12D\n" +
+	"\benvelope\x18\x01 \x01(\v2\x16.GossipMessageEnvelopeR\benvelope\x12F\n" +
+	"\x11heartbeat_message\x18\x02 \x01(\v2\x17.GossipHeartbeatMessageH\x00R\x10heartbeatMessage\x12D\n" +
 	"\x13gossip_diff_message\x18\x03 \x01(\v2\x12.GossipDiffMessageH\x00R\x11gossipDiffMessage\x12G\n" +
 	"\x14gossip_delta_message\x18\x04 \x01(\v2\x13.GossipDeltaMessageH\x00R\x12gossipDeltaMessageB\t\n" +
-	"\amessage\"\xde\x01\n" +
-	"\x10HeartbeatMessage\x12 \n" +
+	"\amessage\"\xea\x01\n" +
+	"\x16GossipHeartbeatMessage\x12 \n" +
 	"\fts_unix_nano\x18\x01 \x01(\x03R\n" +
-	"tsUnixNano\x12U\n" +
-	"\x12version_map_digest\x18\x02 \x03(\v2'.HeartbeatMessage.VersionMapDigestEntryR\x10versionMapDigest\x1aQ\n" +
+	"tsUnixNano\x12[\n" +
+	"\x12version_map_digest\x18\x02 \x03(\v2-.GossipHeartbeatMessage.VersionMapDigestEntryR\x10versionMapDigest\x1aQ\n" +
 	"\x15VersionMapDigestEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\"\n" +
 	"\x05value\x18\x02 \x01(\v2\f.DigestEntryR\x05value:\x028\x01\"\xd9\x02\n" +
@@ -500,29 +501,29 @@ func file_pkg_cluster_messages_proto_rawDescGZIP() []byte {
 
 var file_pkg_cluster_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_pkg_cluster_messages_proto_goTypes = []any{
-	(*GossipMessageEnvelope)(nil), // 0: GossipMessageEnvelope
-	(*GossipMessage)(nil),         // 1: GossipMessage
-	(*HeartbeatMessage)(nil),      // 2: HeartbeatMessage
-	(*GossipDiffMessage)(nil),     // 3: GossipDiffMessage
-	(*GossipDeltaMessage)(nil),    // 4: GossipDeltaMessage
-	(*GossipVersionedState)(nil),  // 5: GossipVersionedState
-	(*DigestEntry)(nil),           // 6: DigestEntry
-	nil,                           // 7: HeartbeatMessage.VersionMapDigestEntry
-	nil,                           // 8: GossipDiffMessage.StateDeltaEntry
-	nil,                           // 9: GossipDiffMessage.VersionMapDigestEntry
-	nil,                           // 10: GossipDeltaMessage.StateDeltaEntry
+	(*GossipMessageEnvelope)(nil),  // 0: GossipMessageEnvelope
+	(*GossipMessage)(nil),          // 1: GossipMessage
+	(*GossipHeartbeatMessage)(nil), // 2: GossipHeartbeatMessage
+	(*GossipDiffMessage)(nil),      // 3: GossipDiffMessage
+	(*GossipDeltaMessage)(nil),     // 4: GossipDeltaMessage
+	(*GossipVersionedState)(nil),   // 5: GossipVersionedState
+	(*DigestEntry)(nil),            // 6: DigestEntry
+	nil,                            // 7: GossipHeartbeatMessage.VersionMapDigestEntry
+	nil,                            // 8: GossipDiffMessage.StateDeltaEntry
+	nil,                            // 9: GossipDiffMessage.VersionMapDigestEntry
+	nil,                            // 10: GossipDeltaMessage.StateDeltaEntry
 }
 var file_pkg_cluster_messages_proto_depIdxs = []int32{
 	0,  // 0: GossipMessage.envelope:type_name -> GossipMessageEnvelope
-	2,  // 1: GossipMessage.heartbeat_message:type_name -> HeartbeatMessage
+	2,  // 1: GossipMessage.heartbeat_message:type_name -> GossipHeartbeatMessage
 	3,  // 2: GossipMessage.gossip_diff_message:type_name -> GossipDiffMessage
 	4,  // 3: GossipMessage.gossip_delta_message:type_name -> GossipDeltaMessage
-	7,  // 4: HeartbeatMessage.version_map_digest:type_name -> HeartbeatMessage.VersionMapDigestEntry
+	7,  // 4: GossipHeartbeatMessage.version_map_digest:type_name -> GossipHeartbeatMessage.VersionMapDigestEntry
 	8,  // 5: GossipDiffMessage.state_delta:type_name -> GossipDiffMessage.StateDeltaEntry
 	9,  // 6: GossipDiffMessage.version_map_digest:type_name -> GossipDiffMessage.VersionMapDigestEntry
 	10, // 7: GossipDeltaMessage.state_delta:type_name -> GossipDeltaMessage.StateDeltaEntry
 	6,  // 8: GossipVersionedState.digest_entry:type_name -> DigestEntry
-	6,  // 9: HeartbeatMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
+	6,  // 9: GossipHeartbeatMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
 	5,  // 10: GossipDiffMessage.StateDeltaEntry.value:type_name -> GossipVersionedState
 	6,  // 11: GossipDiffMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
 	5,  // 12: GossipDeltaMessage.StateDeltaEntry.value:type_name -> GossipVersionedState

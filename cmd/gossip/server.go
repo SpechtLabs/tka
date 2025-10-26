@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spechtlabs/tka/pkg/cluster"
 	"github.com/spf13/cobra"
 )
@@ -29,6 +29,10 @@ It is not meant to be used in production.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		listenPort := cmd.Flag("listen-port").Value.String()
 		listenAddr := fmt.Sprintf(":%s", listenPort)
+		listenPortInt, err := strconv.Atoi(listenPort)
+		if err != nil {
+			return err
+		}
 		gossipInterval := cmd.Flag("gossip-interval").Value.String()
 		gossipIntervalDuration, err := time.ParseDuration(gossipInterval)
 		if err != nil {
@@ -44,7 +48,7 @@ It is not meant to be used in production.`,
 			cluster.WithLocalState(args[0]),
 		)
 
-		listener, err := net.Listen("tcp", listenAddr)
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", listenPortInt))
 		if err != nil {
 			return err
 		}
@@ -63,7 +67,7 @@ It is not meant to be used in production.`,
 		// Create and start the TUI
 		model := newGossipModel(store)
 		p := tea.NewProgram(model, tea.WithAltScreen())
-		
+
 		if _, err := p.Run(); err != nil {
 			return err
 		}

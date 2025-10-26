@@ -13,6 +13,30 @@ import (
 
 type GossipDigest map[string]*messages.DigestEntry
 
+func NewDigestEntry(version uint64, peer *GossipNode) (*messages.DigestEntry, humane.Error) {
+	if peer == nil {
+		return nil, humane.New("peer is nil", "pass in a valid peer")
+	}
+
+	return &messages.DigestEntry{
+		Version:          version,
+		Address:          peer.GetAddress(),
+		LastSeenUnixNano: peer.GetLastSeen().UnixNano(),
+	}, nil
+}
+
+func NewDigestEntryFromPeerDigest(version uint64, peer *messages.DigestEntry) (*messages.DigestEntry, humane.Error) {
+	if peer == nil {
+		return nil, humane.New("peer is nil", "pass in a valid peer")
+	}
+
+	return &messages.DigestEntry{
+		Version:          version,
+		Address:          peer.Address,
+		LastSeenUnixNano: peer.LastSeenUnixNano,
+	}, nil
+}
+
 type GossipDiff map[string]*messages.GossipVersionedState
 
 func (d GossipDiff) ToString() string {
@@ -34,39 +58,19 @@ type GossipStore interface {
 	Digest() GossipDigest
 
 	// Heartbeat updates the last seen time of the node
-	Heartbeat(peerId string, address string) humane.Error
+	Heartbeat(peerId string, address string)
 
 	// Diff returns the difference between the local node's digest and another digest
 	Diff(other GossipDigest) GossipDiff
 
 	// Apply applies a diff to the local node's state
-	Apply(diff GossipDiff) humane.Error
+	Apply(diff GossipDiff)
 
 	// SetData sets the status of the local node
-	SetData(data string) humane.Error
+	SetData(data string)
 
 	// GetDisplayData returns the display data for the local node and all connected peer nodes
 	GetDisplayData() []NodeDisplayData
-}
-
-type GossipNodeState struct {
-	node        GossipNode
-	state       GossipVersionedState[string]
-	lastUpdated time.Time
-}
-
-func (s *GossipNodeState) SetData(data string) {
-	s.node.lastSeen = time.Now()
-	s.state.SetData(data)
-	s.lastUpdated = time.Now()
-}
-
-func (s *GossipNodeState) GetData() string {
-	return s.state.GetData()
-}
-
-func (s *GossipNodeState) GetVersion() Version {
-	return s.state.GetVersion()
 }
 
 type NodeDisplayData struct {
