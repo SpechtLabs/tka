@@ -6,7 +6,6 @@ import (
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/cluster"
-	"github.com/spechtlabs/tka/pkg/cluster/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,22 +86,6 @@ func TestLastWriteWinsStateApply(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:          "diff is newer with different diff type",
-			state:         cluster.NewLastWriteWinsState("foo"),
-			diff:          mock.NewMockVersionedState("bar"),
-			diffVersion:   newerVersion,
-			expectedState: "bar",
-			expectedError: nil,
-		},
-		{
-			name:          "diff is older with different state type",
-			state:         mock.NewMockVersionedState("foo"),
-			diff:          cluster.NewLastWriteWinsState("bar"),
-			diffVersion:   olderVersion,
-			expectedState: "foo",
-			expectedError: nil,
-		},
-		{
 			name:          "diff is equal (diff wins)",
 			state:         cluster.NewLastWriteWinsState("foo"),
 			diff:          cluster.NewLastWriteWinsState("bar"),
@@ -132,7 +115,7 @@ func TestLastWriteWinsStateApply(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			state, diff := setupStates(t, tt.state, tt.diff, tt.diffVersion)
 
-			diffResult := state.Diff(diff)
+			diffResult := state.Diff(diff.GetVersion())
 			equalResult := state.Equal(diff)
 
 			switch tt.diffVersion {

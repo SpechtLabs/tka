@@ -4,30 +4,41 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sierrasoftworks/humane-errors-go"
+	"github.com/spechtlabs/go-otel-utils/otelzap"
 )
 
-type GossipNode interface {
-	fmt.Stringer
-	ID() string
-	GetAddress() string
-	GetLastSeen() time.Time
+type GossipNodeStateMap[T comparable] map[string]GossipVersionedState[T]
+
+type GossipNode struct {
+	id       string
+	address  string
+	lastSeen time.Time
 }
 
-// GossipNodeState is a GossipVersionedState that is additionally associated with a GossipNode.
-type GossipNodeState[T comparable] interface {
-	// GossipVersionedState is the underlying state that is versioned and can be diffed and applied.
-	GossipVersionedState[T]
+func (n *GossipNode) ID() string {
+	return n.id
+}
 
-	// GetLastSeen returns the last seen time of the node.
-	GetLastSeen() time.Time
+func (n *GossipNode) GetAddress() string {
+	return n.address
+}
 
-	// GetPeerState returns the state of the peer.
-	GetPeerState() string
+func (n *GossipNode) GetLastSeen() time.Time {
+	return n.lastSeen
+}
 
-	// GetGossipNode returns the gossip node that is associated with the state.
-	GetGossipNode() GossipNode
+func (n *GossipNode) String() string {
+	return fmt.Sprintf("%s (%s)", n.id, n.address)
+}
 
-	// Heartbeat updates the last seen time of the node.
-	Heartbeat(peer GossipNode) humane.Error
+func (n *GossipNode) Heartbeat(address string) {
+	if n.address != address {
+		otelzap.L().Sugar().With(
+			"old_address", n.address,
+			"new_address", address,
+		).Debug("Heartbeat: Node address changed")
+
+		n.address = address
+	}
+	n.lastSeen = time.Now()
 }
