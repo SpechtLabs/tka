@@ -168,15 +168,13 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 			}
 
 			data := diffState.GetData()
-			serializedData, marshalErr := data.MarshalMsgpack()
-			if marshalErr != nil {
-				otelzap.L().WithError(marshalErr).Error("Failed to marshal state data")
-				continue
-			}
-
-			diff[peerId] = &messages.GossipVersionedState{
-				DigestEntry: digestEntry,
-				Data:        serializedData,
+			if serializedData, err := data.Marshal(); err != nil {
+				otelzap.L().WithError(err).Error("Failed to marshal state data")
+			} else {
+				diff[peerId] = &messages.GossipVersionedState{
+					DigestEntry: digestEntry,
+					Data:        serializedData,
+				}
 			}
 		}
 	}
@@ -201,15 +199,13 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 			}
 
 			data := peerState.GetData()
-			serializedData, marshalErr := data.MarshalMsgpack()
-			if marshalErr != nil {
-				otelzap.L().WithError(marshalErr).Error("Failed to marshal state data")
-				continue
-			}
-
-			diff[peerId] = &messages.GossipVersionedState{
-				DigestEntry: digestEntry,
-				Data:        serializedData,
+			if serializedData, err := data.Marshal(); err != nil {
+				otelzap.L().WithError(err).Error("Failed to marshal state data")
+			} else {
+				diff[peerId] = &messages.GossipVersionedState{
+					DigestEntry: digestEntry,
+					Data:        serializedData,
+				}
 			}
 		}
 	}
@@ -227,9 +223,8 @@ func (s *TestGossipStore) Diff(other GossipDigest) GossipDiff {
 		otelzap.L().WithError(err).Error("Failed to create digest entry for local node")
 	} else {
 		data := localState.GetData()
-		serializedData, marshalErr := data.MarshalMsgpack()
-		if marshalErr != nil {
-			otelzap.L().WithError(marshalErr).Error("Failed to marshal local state data")
+		if serializedData, err := data.Marshal(); err != nil {
+			otelzap.L().WithError(err).Error("Failed to marshal local state data")
 		} else {
 			diff[s.GetId()] = &messages.GossipVersionedState{
 				DigestEntry: digestEntry,
@@ -261,30 +256,29 @@ func (s *TestGossipStore) Apply(diff GossipDiff) {
 			// Peer is not in the peers map, we need to add it
 			s.peers[peerId] = NewGossipNode(peerId, versionState.DigestEntry.Address)
 
-			data, err := UnmarshalSerializableString(versionState.Data)
-			if err != nil {
+			var data SerializableString
+			if err := data.Unmarshal(versionState.Data, &data); err != nil {
 				otelzap.L().WithError(err).Error("Failed to unmarshal state data")
-				continue
+			} else {
+				s.state[peerId] = &LastWriteWinsState[SerializableString]{
+					version: Version(versionState.DigestEntry.Version),
+					data:    data,
+				}
 			}
 
-			s.state[peerId] = &LastWriteWinsState[SerializableString]{
-				version: Version(versionState.DigestEntry.Version),
-				data:    data,
-			}
 			continue
 		}
 
 		peer.Heartbeat(versionState.DigestEntry.Address)
 
-		data, err := UnmarshalSerializableString(versionState.Data)
-		if err != nil {
+		var data SerializableString
+		if err := data.Unmarshal(versionState.Data, &data); err != nil {
 			otelzap.L().WithError(err).Error("Failed to unmarshal state data")
-			continue
-		}
-
-		s.state[peerId] = &LastWriteWinsState[SerializableString]{
-			version: Version(versionState.DigestEntry.Version),
-			data:    data,
+		} else {
+			s.state[peerId] = &LastWriteWinsState[SerializableString]{
+				version: Version(versionState.DigestEntry.Version),
+				data:    data,
+			}
 		}
 	}
 }

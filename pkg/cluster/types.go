@@ -1,8 +1,7 @@
 package cluster
 
 import (
-	"fmt"
-
+	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -11,30 +10,24 @@ import (
 type SerializableString string
 
 // MarshalMsgpack marshals the string to msgpack format.
-func (s SerializableString) MarshalMsgpack() ([]byte, error) {
-	return msgpack.Marshal(string(s))
+func (s SerializableString) Marshal() ([]byte, humane.Error) {
+	data, err := msgpack.Marshal(string(s))
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to marshal SerializableString")
+	}
+	return data, nil
+}
+
+func (s SerializableString) Unmarshal(data []byte, v interface{}) humane.Error {
+	var str string
+	if err := msgpack.Unmarshal(data, &str); err != nil {
+		return humane.Wrap(err, "failed to unmarshal SerializableString")
+	}
+	*v.(*SerializableString) = SerializableString(str)
+	return nil
 }
 
 // String implements fmt.Stringer interface.
 func (s SerializableString) String() string {
 	return string(s)
-}
-
-// UnmarshalMsgpack unmarshals a SerializableString from msgpack format.
-// Note: This method is required by msgpack.Unmarshaler interface, but msgpack
-// will actually call it on a pointer receiver. The value receiver here is only
-// for interface satisfaction purposes.
-func (s SerializableString) UnmarshalMsgpack(b []byte) error {
-	// This method is not used directly by msgpack for value types.
-	// msgpack will automatically convert to pointer and call the pointer version if needed.
-	// However, since we're using UnmarshalSerializableString helper, this should not be called.
-	return fmt.Errorf("UnmarshalMsgpack should not be called on value receiver - use UnmarshalSerializableString instead")
-}
-
-func UnmarshalSerializableString(b []byte) (SerializableString, error) {
-	var str string
-	if err := msgpack.Unmarshal(b, &str); err != nil {
-		return "", fmt.Errorf("failed to unmarshal SerializableString: %w", err)
-	}
-	return SerializableString(str), nil
 }
