@@ -7,7 +7,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 )
 
-type GossipNodeStateMap[T comparable] map[string]GossipVersionedState[T]
+type GossipNodeStateMap[T SerializableAndStringable] map[string]GossipVersionedState[T]
 
 type GossipNode struct {
 	id       string

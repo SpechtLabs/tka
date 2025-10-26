@@ -93,7 +93,7 @@ arch-verbose: ## Run arch-go with verbose output
 
 .PHONY: install-arch-go
 install-arch-go: ## Install arch-go tool
-	go install github.com/fdaines/arch-go@latest
+	go install github.com/arch-go/arch-go@latest
 
 ##@ Analyzer Development
 
