@@ -79,6 +79,8 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         id: release-please
+        with:
+          config-file: .release-please-config.json
 
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
