@@ -16,3 +16,4 @@ ignores:
   - "docs/node_modules/**"
   - ".git/**"
   - "vendor/**"
+  - CHANGELOG.md
