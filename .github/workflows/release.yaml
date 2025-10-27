@@ -79,11 +79,6 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         id: release-please
-        with:
-          release-type: simple
-          package-name: tailscale-k8s-auth
-          bump-minor-pre-major: true
-          bump-patch-for-minor-pre-major: true
 
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
