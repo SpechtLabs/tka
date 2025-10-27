@@ -1,0 +1,100 @@
+# Changelog
+
+## [0.2.0](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.1.3...tailscale-k8s-auth-v0.2.0) (2025-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* Import path changed from pkg/tailscale to pkg/tshttp
+* Major package reorganization with new service layer abstraction
+
+### Features
+
+* **api:** add read and write timeout configurations for the server to enhance performance and reliability ([3604793](https://github.com/SpechtLabs/tka/commit/3604793751f958404a117553c572b0eb8c7c94fd))
+* **api:** add retryAfterSeconds option to TKAServer for configurable API behavior ([7585ea9](https://github.com/SpechtLabs/tka/commit/7585ea995bfcb7dd46d6b29118193be4b8fbb490))
+* **api:** define ApiRouteV1Alpha1 constant for API versioning and improve route setup ([46a75b8](https://github.com/SpechtLabs/tka/commit/46a75b851732341e927d514c218b42dc5a3f8623))
+* **auth:** enhance ginAuthMiddleware to support options for tagged nodes and funnel requests ([7ecb669](https://github.com/SpechtLabs/tka/commit/7ecb66959c820cc451534937d1fbe54ba8d30868))
+* **cli:** add configuration and flags management for CLI commands ([febc455](https://github.com/SpechtLabs/tka/commit/febc4557a01e563ae8f7536604dfc643ad74645c))
+* **cli:** add integration command for shell integration and enhance shell command for temporary Kubernetes access ([c02f099](https://github.com/SpechtLabs/tka/commit/c02f099aab80c3ec91fe9c3f71126132b536ea01))
+* **cli:** add PrintInfoIcon function to log informational messages with icons for better user feedback ([46a75b8](https://github.com/SpechtLabs/tka/commit/46a75b851732341e927d514c218b42dc5a3f8623))
+* **cli:** add set command to allow users to set resources in TKA for better resource management ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **cli:** add signal forwarding and terminal resize support to `tka shell` ([9214ee1](https://github.com/SpechtLabs/tka/commit/9214ee1f10310e5a4c32216ed13ac4e7635187f5))
+* **cli:** add support for Unix build tag and refactor shell command initialization ([feda95a](https://github.com/SpechtLabs/tka/commit/feda95a8be0a36ba05a495dff52d7cc8ab93cfd6))
+* **cli:** enhance command help functionality with custom error messages and usage formatting ([37e4fa8](https://github.com/SpechtLabs/tka/commit/37e4fa83903afc0957b970c1b18dbf1cf04b0246))
+* **cli:** enhance shell command support with instructions for bash, zsh, fish, and PowerShell ([5613810](https://github.com/SpechtLabs/tka/commit/56138108a50e3c03c54f5150f8b4a8b4219de20b))
+* **cli:** enhance shell command with context handling and signal management for better cleanup ([b686fa6](https://github.com/SpechtLabs/tka/commit/b686fa67af965ce614e2562ea8632adf70fd7e20))
+* **cli:** introduce generate command to create resources in TKA for enhanced functionality ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **cmd:** implement root command structure for Tailscale Kubernetes Auth CLI with version command ([46a75b8](https://github.com/SpechtLabs/tka/commit/46a75b851732341e927d514c218b42dc5a3f8623))
+* **colors.go:** add NoTTYStyle to support non-TTY environments for better user experience ([f20a05f](https://github.com/SpechtLabs/tka/commit/f20a05f64ae9a15c5885ddbc06a0c5b32d160660))
+* **config:** add configuration file for Tailscale and server settings ([5be2f14](https://github.com/SpechtLabs/tka/commit/5be2f14627dffcea15149c7a666f018099690702))
+* **configuration:** Fix search path ([b7a8f08](https://github.com/SpechtLabs/tka/commit/b7a8f084c320e566a896aabb206e5b5f265c52fa))
+* **docs:** add "Configure Settings" section to documentation for TKA CLI settings management ([c35bbec](https://github.com/SpechtLabs/tka/commit/c35bbecff6fae531953b5e74de88f2c12fb7e7e1))
+* **docs:** add new getting started guide and CLI reference ([9188776](https://github.com/SpechtLabs/tka/commit/9188776aeea8d4bccefb641020ec1f3130dc90b3))
+* **docs:** add support for swagger.json in documentation workflow to ensure API documentation is up-to-date ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **docs:** enhance CLI documentation generation with front matter options ([c73e54d](https://github.com/SpechtLabs/tka/commit/c73e54ddc8231dc7c2223ba79d79927e13a64511))
+* **docs:** enhance documentation command to fix markdownlint errors for improved documentation quality ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **docs:** enhance README and architecture documentation with new fe… ([#26](https://github.com/SpechtLabs/tka/issues/26)) ([9188776](https://github.com/SpechtLabs/tka/commit/9188776aeea8d4bccefb641020ec1f3130dc90b3))
+* **docs:** enhance README and architecture documentation with new features and guides ([37e4fa8](https://github.com/SpechtLabs/tka/commit/37e4fa83903afc0957b970c1b18dbf1cf04b0246))
+* **docs:** implement config command to get and set configuration values in TKA configuration file for better user experience ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **o11y:** add better o11y ([200a965](https://github.com/SpechtLabs/tka/commit/200a965c7e126f101aef679ad9ce9f752b59622d))
+* **operator:** refactor operator configuration to use OperatorOptions struct for better organization and flexibility ([7585ea9](https://github.com/SpechtLabs/tka/commit/7585ea995bfcb7dd46d6b29118193be4b8fbb490))
+* **orchestrator:** Add stubs for orchestrator ([a799479](https://github.com/SpechtLabs/tka/commit/a79947918ff49c1934d803e10057be5618dbed32))
+* **tailscale.Server:** add support for TLS and Funnel protocols in Tailecale server ([#67](https://github.com/SpechtLabs/tka/issues/67)) ([1526960](https://github.com/SpechtLabs/tka/commit/1526960f9035f8074e028b8f0b386db483a2e4d4))
+* **tailscale:** make Server http.Server-compatible and decouple auth ([450b9cc](https://github.com/SpechtLabs/tka/commit/450b9cceb59405a7486e4e9ff40cd02428d0794a))
+* **tailscale:** split generic listener-backed http.Server ([5676951](https://github.com/SpechtLabs/tka/commit/567695146faee659bbdde877b87b7933f19d417e))
+* **utils:** add InitObservability function to initialize logging and tracing for better observability in the application ([46a75b8](https://github.com/SpechtLabs/tka/commit/46a75b851732341e927d514c218b42dc5a3f8623))
+
+
+### Bug Fixes
+
+* **api:** enforce minimum validity period for Kubernetes tokens in login.go ([7585ea9](https://github.com/SpechtLabs/tka/commit/7585ea995bfcb7dd46d6b29118193be4b8fbb490))
+* **api:** improve error handling in login and logout handlers to provide clearer feedback on failures ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **api:** update Retry-After header to use configurable retryAfterSeconds value ([7585ea9](https://github.com/SpechtLabs/tka/commit/7585ea995bfcb7dd46d6b29118193be4b8fbb490))
+* auth only a sub-group of the API ([197d12d](https://github.com/SpechtLabs/tka/commit/197d12def698fb93a1b8299ff819c0642828a6cf))
+* **build.yaml:** update artifact paths for ARM and AMD builds to reflect correct directory structure ([b102a30](https://github.com/SpechtLabs/tka/commit/b102a30d54294ec223fd5b205f1495557da5afa6))
+* **cli:** update kubeconfig command to detect shell type and generate appropriate export statements for better usability ([bb7e734](https://github.com/SpechtLabs/tka/commit/bb7e734a1b2a652d4f9e21767355c859c06e17d4))
+* **colors.go:** improve IsTerminal function to handle "dumb" terminal case correctly ([f20a05f](https://github.com/SpechtLabs/tka/commit/f20a05f64ae9a15c5885ddbc06a0c5b32d160660))
+* **deps:** update dependency swagger-ui-dist to v5.29.0 ([#58](https://github.com/SpechtLabs/tka/issues/58)) ([eaa7475](https://github.com/SpechtLabs/tka/commit/eaa74754cc260dee85c819cdd5d9056a84037ac8))
+* **deps:** update github.com/sierrasoftworks/humane-errors-go digest to 2224f06 ([#40](https://github.com/SpechtLabs/tka/issues/40)) ([e2ca494](https://github.com/SpechtLabs/tka/commit/e2ca49425d3a1446bc802ee830aa75928fba0799))
+* **deps:** update github.com/sierrasoftworks/humane-errors-go digest to 431bf8b ([#38](https://github.com/SpechtLabs/tka/issues/38)) ([5d5c0ed](https://github.com/SpechtLabs/tka/commit/5d5c0edfde9c491477d05cb6760485c17f2bd33f))
+* **deps:** update kubernetes packages to v0.34.1 ([#63](https://github.com/SpechtLabs/tka/issues/63)) ([a789665](https://github.com/SpechtLabs/tka/commit/a789665a92799257315c8e83d023ff377da0de5a))
+* **deps:** update module github.com/charmbracelet/bubbletea to v1.3.10 ([#55](https://github.com/SpechtLabs/tka/issues/55)) ([9b7105d](https://github.com/SpechtLabs/tka/commit/9b7105d69afd324802c3f8c091349337c337034e))
+* **deps:** update module github.com/gin-gonic/gin to v1.11.0 ([#66](https://github.com/SpechtLabs/tka/issues/66)) ([c24481f](https://github.com/SpechtLabs/tka/commit/c24481f6b6b4c7eaa6a64807c6bf0e1f5d7141d6))
+* **deps:** update module github.com/spechtlabs/go-otel-utils/otelzap to v0.0.15 ([#57](https://github.com/SpechtLabs/tka/issues/57)) ([343c831](https://github.com/SpechtLabs/tka/commit/343c8314d99739b4984d951756b27277c0606b68))
+* **deps:** update module github.com/spf13/pflag to v1.0.7 ([#33](https://github.com/SpechtLabs/tka/issues/33)) ([a8cc0a5](https://github.com/SpechtLabs/tka/commit/a8cc0a5badd8bbfb0ed3da4e1243a381c0649456))
+* **deps:** update module github.com/spf13/viper to v1.21.0 ([#54](https://github.com/SpechtLabs/tka/issues/54)) ([35f5d2b](https://github.com/SpechtLabs/tka/commit/35f5d2b91e95d1669efe64cb8c4919a8f79ee0a2))
+* **deps:** update module github.com/swaggo/files to v2 ([#29](https://github.com/SpechtLabs/tka/issues/29)) ([135c51f](https://github.com/SpechtLabs/tka/commit/135c51fd1b554f1bf214028e59729ecfaf42e44d))
+* **deps:** update module github.com/swaggo/files to v2 ([#51](https://github.com/SpechtLabs/tka/issues/51)) ([adc24e2](https://github.com/SpechtLabs/tka/commit/adc24e2153148dffcdd150db2e286792bc7a9a9a))
+* **deps:** update module golang.org/x/sys to v0.37.0 ([#85](https://github.com/SpechtLabs/tka/issues/85)) ([9bc89a8](https://github.com/SpechtLabs/tka/commit/9bc89a88c5859e8209d1d302451ac68419c373e4))
+* **deps:** update module golang.org/x/term to v0.35.0 ([#52](https://github.com/SpechtLabs/tka/issues/52)) ([5793c51](https://github.com/SpechtLabs/tka/commit/5793c51cd154526fcdb8416dbf1a43b9607b0615))
+* **deps:** update module golang.org/x/term to v0.36.0 ([#91](https://github.com/SpechtLabs/tka/issues/91)) ([e418857](https://github.com/SpechtLabs/tka/commit/e418857f9700755901db2ec2c6f908ba9603078d))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.22.1 ([#53](https://github.com/SpechtLabs/tka/issues/53)) ([aa83a74](https://github.com/SpechtLabs/tka/commit/aa83a74e4f5b556b1e6b0bf1d375d5ab05ac41de))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.22.2 ([#83](https://github.com/SpechtLabs/tka/issues/83)) ([02bd469](https://github.com/SpechtLabs/tka/commit/02bd4695d6960b93bff45da079d4a690d5b240b8))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.22.3 ([#89](https://github.com/SpechtLabs/tka/issues/89)) ([13ccbee](https://github.com/SpechtLabs/tka/commit/13ccbeec416285452d36c5fdef621205b2a5807a))
+* **deps:** update module sigs.k8s.io/yaml to v1.6.0 ([#37](https://github.com/SpechtLabs/tka/issues/37)) ([a32e3bc](https://github.com/SpechtLabs/tka/commit/a32e3bc2dd617797094c98590c30750e8b8f2aa9))
+* **deps:** update module tailscale.com to v1.88.3 ([#59](https://github.com/SpechtLabs/tka/issues/59)) ([4da3333](https://github.com/SpechtLabs/tka/commit/4da33332c828232e5c10c99ecac2739c23cc1a42))
+* **deps:** update module tailscale.com to v1.88.4 ([#95](https://github.com/SpechtLabs/tka/issues/95)) ([a35934b](https://github.com/SpechtLabs/tka/commit/a35934b27784d72d17c70c0631b2ec6e00ecf3d6))
+* **deps:** update module tailscale.com to v1.90.0 ([#99](https://github.com/SpechtLabs/tka/issues/99)) ([ed618b7](https://github.com/SpechtLabs/tka/commit/ed618b7a735d7d4d06215bc4873f0c78d96365e9))
+* **deps:** update module tailscale.com to v1.90.2 ([#100](https://github.com/SpechtLabs/tka/issues/100)) ([96d6169](https://github.com/SpechtLabs/tka/commit/96d6169ae29b147b80ef4e159fd2591b5a20eb3c))
+* **docs:** correct command references in shell integration and troubleshooting guides ([c35bbec](https://github.com/SpechtLabs/tka/commit/c35bbecff6fae531953b5e74de88f2c12fb7e7e1))
+* **docs:** fix urls in navbar ([9c82333](https://github.com/SpechtLabs/tka/commit/9c82333daaf698e8caf98f071b7f24b8c650a7dc))
+* **docs:** update autocompletion documentation to reflect command changes ([c35bbec](https://github.com/SpechtLabs/tka/commit/c35bbecff6fae531953b5e74de88f2c12fb7e7e1))
+* GitHub Action didn't run on main anymroe ([06010ba](https://github.com/SpechtLabs/tka/commit/06010bac58a3425a7804d8ab4bad3a74103fb9e9))
+* **goreleaser:** fix goreleaser build ([f93facd](https://github.com/SpechtLabs/tka/commit/f93facd411ac86608e3cadeeb4b98d61a4384513))
+* **goreleaser:** fix goreleaser build ([0d6a2a9](https://github.com/SpechtLabs/tka/commit/0d6a2a9e88956d153c22df01b32c33e4a6846ddc))
+* health endpoint ([86bd54b](https://github.com/SpechtLabs/tka/commit/86bd54b9673246d5091074864cccdf49e359f4bf))
+* health endpoint ([44b4339](https://github.com/SpechtLabs/tka/commit/44b4339a837e5889dbf3742afd301e79f97f4f07))
+* **options.go:** auto-detect NoColor option based on NO_COLOR environment variable or non-TTY ([f20a05f](https://github.com/SpechtLabs/tka/commit/f20a05f64ae9a15c5885ddbc06a0c5b32d160660))
+* **options.go:** update DefaultOptions to use NoTTYStyle when not in a TTY ([f20a05f](https://github.com/SpechtLabs/tka/commit/f20a05f64ae9a15c5885ddbc06a0c5b32d160660))
+* **pretty_helptext.go:** correct typo in markdown alert replacement from IMORTANT to IMPORTANT ([f20a05f](https://github.com/SpechtLabs/tka/commit/f20a05f64ae9a15c5885ddbc06a0c5b32d160660))
+* **pretty_helptext.go:** handle template parsing errors gracefully instead of panicking ([f20a05f](https://github.com/SpechtLabs/tka/commit/f20a05f64ae9a15c5885ddbc06a0c5b32d160660))
+* **pretty_print:** ensure error messages are printed to stderr for visibility ([7592648](https://github.com/SpechtLabs/tka/commit/75926484b8e294e678f51af350a536fff4733f8c))
+* publish workflow ([77827ef](https://github.com/SpechtLabs/tka/commit/77827efbadc7c97399db7ec105cea7ad57fcc15f))
+* **tailscale/server.go:** update address assignment to use HTTPS for port 443 ([3db24e1](https://github.com/SpechtLabs/tka/commit/3db24e110d482bc5d261674e54751c3bc614e66c))
+* try to resolve the real public cluster address ([ec8b753](https://github.com/SpechtLabs/tka/commit/ec8b7535f8c0b3b6174d0f35315f12c47c4c9ff3))
+
+
+### Code Refactoring
+
+* rename tailscale package to tshttp ([11c1ae9](https://github.com/SpechtLabs/tka/commit/11c1ae93ee8d1e4807ed04487f68fbe1a0ded1c1))
+* restructure pkg/ architecture with clean layered design ([d90dbe0](https://github.com/SpechtLabs/tka/commit/d90dbe0f4d7fc95eef3e1d439825619b98166a27))
