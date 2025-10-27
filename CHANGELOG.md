@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.0...tailscale-k8s-auth-v0.2.1) (2025-10-27)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/swaggo/files to v2 ([#71](https://github.com/SpechtLabs/tka/issues/71)) ([4585e22](https://github.com/SpechtLabs/tka/commit/4585e2289764e09241480753a5b56710863d4874))
+* **markdownlint-cli2:** exclude CHANGELOG.md from md linting ([58d4c51](https://github.com/SpechtLabs/tka/commit/58d4c51a8f0db12ae95bb3ac8aa5ff0548441f53))
+
 ## [0.2.0](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.1.3...tailscale-k8s-auth-v0.2.0) (2025-10-27)
 
 
