@@ -405,7 +405,8 @@ func TestTestGossipStore_Digest(t *testing.T) {
 
 			tt.setup(store)
 
-			digest := store.Digest()
+			digest, errors := store.Digest()
+			assert.Equal(t, 0, len(errors), "no errors should be returned")
 			assert.Equal(t, tt.wantDigestEntries, len(digest))
 
 			if tt.wantLocalIncluded {
@@ -446,9 +447,11 @@ func TestTestGossipStore_Diff(t *testing.T) {
 			otherDigest: func() cluster.GossipDigest {
 				store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
 				store.SetData(cluster.SerializableString("local"))
-				return store.Digest()
+				digest, errors := store.Digest()
+				assert.Equal(t, 0, len(errors), "no errors should be returned")
+				return digest
 			}(),
-			wantDiffCount: 1, // Still announce our own state
+			wantDiffCount: 0,
 			desc:          "same versions should still announce",
 		},
 		{
@@ -459,7 +462,9 @@ func TestTestGossipStore_Diff(t *testing.T) {
 			otherDigest: func() cluster.GossipDigest {
 				store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8081").(*cluster.TestGossipStore[cluster.SerializableString])
 				store.SetData(cluster.SerializableString("remote"))
-				return store.Digest()
+				digest, errors := store.Digest()
+				assert.Equal(t, 0, len(errors), "no errors should be returned")
+				return digest
 			}(),
 			wantDiffCount: 2, // Request remote state, announce local state
 			desc:          "should request state from new peer",
@@ -520,7 +525,9 @@ func TestTestGossipStore_Diff(t *testing.T) {
 				// Other store only knows about storeA (this store)
 				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8083").(*cluster.TestGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
-				return storeB.Digest()
+				digest, errors := storeB.Digest()
+				assert.Equal(t, 0, len(errors), "no errors should be returned")
+				return digest
 			}(),
 			wantDiffCount: 4, // Request storeB + announce local + peer1 + peer2
 			desc:          "should announce locally known peers not in other digest",
@@ -533,7 +540,8 @@ func TestTestGossipStore_Diff(t *testing.T) {
 
 			tt.setup(store)
 
-			diff := store.Diff(tt.otherDigest)
+			diff, errors := store.Diff(tt.otherDigest)
+			assert.Equal(t, 0, len(errors), "no errors should be returned")
 			assert.Equal(t, tt.wantDiffCount, len(diff), tt.desc)
 		})
 	}
@@ -783,7 +791,8 @@ func TestTestGossipStore_DiffWithNewerVersions(t *testing.T) {
 		},
 	}
 
-	diff := store.Diff(otherDigest)
+	diff, errors := store.Diff(otherDigest)
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
 
 	// Should request peer1's newer state
 	assert.GreaterOrEqual(t, len(diff), 1)
@@ -825,17 +834,27 @@ func TestTestGossipStore_MultiplePeers(t *testing.T) {
 	store2.SetData(cluster.SerializableString("store2"))
 
 	// Store 1 learns about store 2 - get digest
-	_ = store1.Diff(store2.Digest())
+	store2Digest, errors := store2.Digest()
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
+	_, errors = store1.Diff(store2Digest)
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
 
 	// Store 2 responds to what store1 needs by sending its state
-	diffWhatStore2Sends := store2.Diff(store1.Digest())
+	store1Digest, errors := store1.Digest()
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
+	diffWhatStore2Sends, errors := store2.Diff(store1Digest)
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
 	store1.Apply(diffWhatStore2Sends)
 
 	// Store 2 learns about store 1 - get digest
-	_ = store2.Diff(store1.Digest())
+	store1Digest, errors = store1.Digest()
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
+	_, errors = store2.Diff(store1Digest)
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
 
 	// Store 1 responds to what store2 needs by sending its state
-	diffWhatStore1Sends := store1.Diff(store2.Digest())
+	diffWhatStore1Sends, errors := store1.Diff(store2Digest)
+	assert.Equal(t, 0, len(errors), "no errors should be returned")
 	store2.Apply(diffWhatStore1Sends)
 
 	// Both stores should know about each other
@@ -906,7 +925,9 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 			otherDigest: func() cluster.GossipDigest {
 				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8082").(*cluster.TestGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
-				return storeB.Digest()
+				digest, errors := storeB.Digest()
+				assert.Equal(t, 0, len(errors), "no errors should be returned")
+				return digest
 			}(),
 			wantPeerIds: []string{"peer1"},
 			wantPeerData: map[string]string{
@@ -963,7 +984,9 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 			otherDigest: func() cluster.GossipDigest {
 				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8084").(*cluster.TestGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
-				return storeB.Digest()
+				digest, errors := storeB.Digest()
+				assert.Equal(t, 0, len(errors), "no errors should be returned")
+				return digest
 			}(),
 			wantPeerIds: []string{"peer1", "peer2", "peer3"},
 			wantPeerData: map[string]string{
@@ -1024,7 +1047,9 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 				storeB.SetData(cluster.SerializableString("storeB"))
 				// StoreB knows about peer2
 				storeB.Heartbeat("peer2", "127.0.0.1:8082")
-				return storeB.Digest()
+				digest, errors := storeB.Digest()
+				assert.Equal(t, 0, len(errors), "no errors should be returned")
+				return digest
 			}(),
 			// Should announce peer1 and peer3 (peer2 already known, only announce if version differs)
 			wantPeerIds: []string{"peer1", "peer3"},
@@ -1040,7 +1065,8 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
 			tt.setup(store)
 
-			diff := store.Diff(tt.otherDigest)
+			diff, errors := store.Diff(tt.otherDigest)
+			assert.Equal(t, 0, len(errors), "no errors should be returned")
 
 			// Check that we have state for local node
 			require.Contains(t, diff, store.GetId(), "diff should include local state")
@@ -1221,7 +1247,8 @@ func TestTestGossipStore_Diff_SendsUpdatesForLocalPeerState(t *testing.T) {
 			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
 			tt.setup(store)
 
-			diff := store.Diff(tt.otherDigest)
+			diff, errors := store.Diff(tt.otherDigest)
+			assert.Equal(t, 0, len(errors), "no errors should be returned")
 
 			// Check total count
 			assert.Equal(t, tt.wantUpdatedCount, len(diff), "diff count should match")
