@@ -25,6 +25,7 @@ type GossipMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SrcId         string                 `protobuf:"bytes,1,opt,name=srcId,proto3" json:"srcId,omitempty"`
 	AnswerPort    string                 `protobuf:"bytes,2,opt,name=answerPort,proto3" json:"answerPort,omitempty"`
+	Traceparent   string                 `protobuf:"bytes,3,opt,name=traceparent,proto3" json:"traceparent,omitempty"` // W3C Trace Context traceparent header for distributed tracing
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -69,6 +70,13 @@ func (x *GossipMessageEnvelope) GetSrcId() string {
 func (x *GossipMessageEnvelope) GetAnswerPort() string {
 	if x != nil {
 		return x.AnswerPort
+	}
+	return ""
+}
+
+func (x *GossipMessageEnvelope) GetTraceparent() string {
+	if x != nil {
+		return x.Traceparent
 	}
 	return ""
 }
@@ -443,12 +451,13 @@ var File_pkg_cluster_messages_proto protoreflect.FileDescriptor
 
 const file_pkg_cluster_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x1apkg/cluster/messages.proto\"M\n" +
+	"\x1apkg/cluster/messages.proto\"o\n" +
 	"\x15GossipMessageEnvelope\x12\x14\n" +
 	"\x05srcId\x18\x01 \x01(\tR\x05srcId\x12\x1e\n" +
 	"\n" +
 	"answerPort\x18\x02 \x01(\tR\n" +
-	"answerPort\"\xa5\x02\n" +
+	"answerPort\x12 \n" +
+	"\vtraceparent\x18\x03 \x01(\tR\vtraceparent\"\xa5\x02\n" +
 	"\rGossipMessage\x122\n" +
 	"\benvelope\x18\x01 \x01(\v2\x16.GossipMessageEnvelopeR\benvelope\x12F\n" +
 	"\x11heartbeat_message\x18\x02 \x01(\v2\x17.GossipHeartbeatMessageH\x00R\x10heartbeatMessage\x12D\n" +
