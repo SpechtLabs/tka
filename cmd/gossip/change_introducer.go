@@ -56,7 +56,7 @@ It is not meant to be used in production.`,
 			&listener,
 			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
 			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
-			cluster.WithPeer[cluster.SerializableString](serverAddr),
+			cluster.WithBootstrapPeer[cluster.SerializableString](serverAddr),
 		)
 
 		// Start the gossip client in a goroutine
