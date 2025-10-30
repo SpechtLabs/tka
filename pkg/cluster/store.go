@@ -54,17 +54,17 @@ type GossipStore[T SerializableAndStringable] interface {
 	// GetPeers returns all the gossip nodes in the cluster
 	GetPeers() []GossipNode
 
-	// Digest returns the version map of the local node (all connected peer nodes and their state versions)
-	Digest() GossipDigest
-
 	// Heartbeat updates the last seen time of the node
 	Heartbeat(peerId string, address string)
 
+	// Digest returns the version map of the local node (all connected peer nodes and their state versions)
+	Digest() (GossipDigest, []humane.Error)
+
 	// Diff returns the difference between the local node's digest and another digest
-	Diff(other GossipDigest) GossipDiff
+	Diff(other GossipDigest) (GossipDiff, []humane.Error)
 
 	// Apply applies a diff to the local node's state
-	Apply(diff GossipDiff)
+	Apply(diff GossipDiff) []humane.Error
 
 	// SetData sets the status of the local node
 	SetData(data T)
