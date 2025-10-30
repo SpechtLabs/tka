@@ -15,11 +15,20 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/pkg/cluster/messages"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
 
 const varintLenBytes = 10
+
+var (
+	tracer = otel.Tracer("github.com/spechtlabs/tka/pkg/cluster")
+)
 
 type GossipClient[T SerializableAndStringable] struct {
 	peersMu        sync.RWMutex
@@ -127,6 +136,14 @@ func (c *GossipClient[T]) gossipSendLoop(ctx context.Context) {
 }
 
 func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "gossip.gossipToPeers",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.Int("gossip.factor", c.gossipFactor),
+		),
+	)
+	defer span.End()
+
 	// copy the peer slice to avoid modifying the original slice
 	c.peersMu.RLock()
 	peers := c.bootstrapPeers
@@ -151,6 +168,11 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 	// select the first n peers to gossip with where n is the gossip factor
 	peers = peers[:gossipFactor]
 
+	span.SetAttributes(
+		attribute.Int("gossip.total_peers", len(peers)),
+		attribute.StringSlice("gossip.target_peers", peers),
+	)
+
 	// Gossip with the selected peers
 	var wg sync.WaitGroup
 	wg.Add(len(peers))
@@ -159,7 +181,7 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 		digest, errors := c.store.Digest()
 		if len(errors) > 0 {
 			for _, err := range errors {
-				otelzap.L().WithError(err).Error("failed to get digest")
+				otelzap.L().WithError(err).Ctx(ctx).Error("failed to get digest")
 			}
 
 			continue
@@ -190,9 +212,28 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 }
 
 func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *messages.GossipMessage) humane.Error {
+	ctx, span := tracer.Start(ctx, "gossip.gossipWithPeer",
+		trace.WithAttributes(
+			attribute.String("gossip.peer", peer),
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.message_type", fmt.Sprintf("%T", msg.Message)),
+		),
+	)
+	defer span.End()
+
+	// Inject trace context into the message envelope using W3C Trace Context format
+	propagator := otel.GetTextMapPropagator()
+	carrier := propagation.MapCarrier{}
+	propagator.Inject(ctx, carrier)
+	if traceparent, ok := carrier["traceparent"]; ok {
+		msg.Envelope.Traceparent = traceparent
+	}
+
 	// send a gossip message to the peer
 	conn, err := net.Dial("tcp", peer)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to dial peer")
 		return humane.Wrap(err, "failed to dial peer")
 	}
 	defer func() { _ = conn.Close() }()
@@ -201,23 +242,34 @@ func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *
 
 	msgBytes, err := proto.Marshal(msg)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to marshal gossip message")
 		return humane.Wrap(err, "failed to marshal gossip message")
 	}
+
+	span.SetAttributes(attribute.Int("gossip.message_size_bytes", len(msgBytes)))
 
 	var hdr [varintLenBytes]byte
 	hdrLen := binary.PutUvarint(hdr[:], uint64(len(msgBytes)))
 	if _, err := writer.Write(hdr[:hdrLen]); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to write header")
 		return humane.Wrap(err, "failed to write header")
 	}
 
 	if _, err := writer.Write(msgBytes); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to write message")
 		return humane.Wrap(err, "failed to write message")
 	}
 
 	if err := writer.Flush(); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to flush writer")
 		return humane.Wrap(err, "failed to flush writer")
 	}
 
+	span.SetStatus(codes.Ok, "message sent successfully")
 	return nil
 }
 
@@ -237,17 +289,41 @@ func (c *GossipClient[T]) handleGossipPeer(ctx context.Context, conn net.Conn) h
 		return nil
 	}
 
+	// Extract trace context from the message envelope
+	if msg.Envelope.Traceparent != "" {
+		propagator := otel.GetTextMapPropagator()
+		carrier := propagation.MapCarrier{"traceparent": msg.Envelope.Traceparent}
+		ctx = propagator.Extract(ctx, carrier)
+	}
+
+	ctx, span := tracer.Start(ctx, "gossip.handleGossipPeer",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.remote_addr", conn.RemoteAddr().String()),
+			attribute.String("gossip.src_id", msg.Envelope.SrcId),
+			attribute.String("gossip.message_type", fmt.Sprintf("%T", msg.Message)),
+		),
+	)
+	defer span.End()
+
 	returnAddr, herr := extractAnswerAddress(conn, msg.Envelope.AnswerPort)
 	if herr != nil {
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to extract answer address")
 		return humane.Wrap(herr, "failed to extract answer address")
 	}
 
-	otelzap.L().DebugContext(ctx, "Received message", zap.String("message", msg.String()))
+	span.SetAttributes(attribute.String("gossip.return_addr", returnAddr))
+
+	otelzap.Ctx(ctx).Debug("Received message", zap.String("message", msg.String()))
 
 	if err := c.handleMessage(ctx, returnAddr, msg.Envelope, msg); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to handle message")
 		return humane.Wrap(err, "failed to handle message")
 	}
 
+	span.SetStatus(codes.Ok, "message handled successfully")
 	return nil
 }
 
@@ -277,6 +353,16 @@ func (c *GossipClient[T]) handleMessage(ctx context.Context, returnAddr string, 
 }
 
 func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipHeartbeatMessage) humane.Error {
+	ctx, span := tracer.Start(ctx, "gossip.handleHeartbeatMessage",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.src_id", envelope.SrcId),
+			attribute.String("gossip.return_addr", returnAddr),
+			attribute.Int("gossip.remote_version_map_size", len(msg.VersionMapDigest)),
+		),
+	)
+	defer span.End()
+
 	c.store.Heartbeat(envelope.SrcId, returnAddr)
 
 	digest, errors := c.store.Digest()
@@ -287,6 +373,8 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 				herr = humane.Wrap(herr, err.Display())
 			}
 		}
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to get digest")
 		return humane.Wrap(herr, "failed to get digest")
 	}
 
@@ -300,8 +388,12 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 			}
 		}
 
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to diff store")
 		return humane.Wrap(herr, "failed to diff store")
 	}
+
+	span.SetAttributes(attribute.Int("gossip.delta_size", len(delta)))
 
 	diffMsg := &messages.GossipMessage{
 		Envelope: &messages.GossipMessageEnvelope{
@@ -317,13 +409,27 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 	}
 
 	if err := c.gossipWithPeer(ctx, returnAddr, diffMsg); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to gossip diff message with peer")
 		return humane.Wrap(err, "failed to gossip diff message with peer")
 	}
 
+	span.SetStatus(codes.Ok, "heartbeat handled and diff sent")
 	return nil
 }
 
 func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipDiffMessage) humane.Error {
+	ctx, span := tracer.Start(ctx, "gossip.handleDiffMessage",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.src_id", envelope.SrcId),
+			attribute.String("gossip.return_addr", returnAddr),
+			attribute.Int("gossip.state_delta_size", len(msg.StateDelta)),
+			attribute.Int("gossip.remote_version_map_size", len(msg.VersionMapDigest)),
+		),
+	)
+	defer span.End()
+
 	c.store.Heartbeat(envelope.SrcId, returnAddr)
 
 	// Apply the remote state to the local state
@@ -335,8 +441,12 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 				herr = humane.Wrap(herr, err.Display())
 			}
 		}
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to apply diff message to local state")
 		return humane.Wrap(herr, "failed to apply diff message to local state")
 	}
+
+	span.AddEvent("gossip.state_applied")
 
 	// Generate the delta of the local state and the remote state
 	delta, errors := c.store.Diff(msg.VersionMapDigest)
@@ -349,13 +459,18 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 			}
 		}
 
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to generate delta")
 		return humane.Wrap(herr, "failed to generate delta")
 	}
 
 	// If there is no delta, we don't need to send anything
 	if len(delta) == 0 {
+		span.SetStatus(codes.Ok, "diff handled, no delta to send")
 		return nil
 	}
+
+	span.SetAttributes(attribute.Int("gossip.outgoing_delta_size", len(delta)))
 
 	// Generate the delta message to send to the peer
 	deltaMsg := &messages.GossipMessage{
@@ -371,13 +486,26 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 	}
 
 	if err := c.gossipWithPeer(ctx, returnAddr, deltaMsg); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to gossip delta message with peer")
 		return humane.Wrap(err, "failed to gossip delta message with peer")
 	}
 
+	span.SetStatus(codes.Ok, "diff handled and delta sent")
 	return nil
 }
 
 func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipDeltaMessage) humane.Error {
+	_, span := tracer.Start(ctx, "gossip.handleDeltaMessage",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.src_id", envelope.SrcId),
+			attribute.String("gossip.return_addr", returnAddr),
+			attribute.Int("gossip.state_delta_size", len(msg.StateDelta)),
+		),
+	)
+	defer span.End()
+
 	c.store.Heartbeat(envelope.SrcId, returnAddr)
 
 	// Apply the remote state to the local state
@@ -389,9 +517,13 @@ func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr str
 				herr = humane.Wrap(herr, err.Display())
 			}
 		}
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to apply delta message to local state")
 		return humane.Wrap(herr, "failed to apply delta message to local state")
 	}
 
+	span.AddEvent("gossip.state_applied")
+	span.SetStatus(codes.Ok, "delta applied successfully")
 	return nil
 }
 
