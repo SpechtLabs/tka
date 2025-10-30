@@ -5,6 +5,7 @@ option go_package = "pkg/cluster/messages";
 message GossipMessageEnvelope {
     string srcId = 1;
     string answerPort = 2;
+    string traceparent = 3; // W3C Trace Context traceparent header for distributed tracing
 }
 
 message GossipMessage {
