@@ -15,6 +15,7 @@ message GossipMessage {
         GossipDiffMessage gossip_diff_message = 3;
         GossipDeltaMessage gossip_delta_message = 4;
     }
+    string hash = 5;
 }
 
 message GossipHeartbeatMessage {
