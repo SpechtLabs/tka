@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.1...tailscale-k8s-auth-v0.2.2) (2025-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update module tailscale.com to v1.90.4 ([#110](https://github.com/SpechtLabs/tka/issues/110)) ([f248317](https://github.com/SpechtLabs/tka/commit/f24831750369143a0b07eba1a3f2860a61f3f8cd))
+
 ## [0.2.1](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.0...tailscale-k8s-auth-v0.2.1) (2025-10-27)
 
 
