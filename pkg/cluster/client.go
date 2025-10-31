@@ -114,8 +114,8 @@ func (c *GossipClient[T]) gossipReceiveLoop(ctx context.Context) {
 
 func (c *GossipClient[T]) gossipSendLoop(ctx context.Context) {
 	// Sleep for a random amount of time before starting the gossip sender to avoid all nodes gossiping at the same time
-	startDealy := rand.Int64() % c.gossipInterval.Milliseconds()
-	time.Sleep(time.Millisecond * time.Duration(startDealy))
+	startDealy := rand.Int64N(c.gossipInterval.Milliseconds())
+	<-time.After(time.Millisecond * time.Duration(startDealy))
 
 	// run it one before the ticker starts
 	c.gossipToPeers(ctx)
@@ -174,24 +174,24 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 	)
 
 	// Gossip with the selected peers
-	var wg sync.WaitGroup
-	wg.Add(len(peers))
-	for _, peer := range peers {
 
+	gossipEnvelope := &messages.GossipMessageEnvelope{
+		SrcId:      c.store.GetId(),
+		AnswerPort: c.listenerPort,
+	}
+
+	var wg sync.WaitGroup
+	for _, peer := range peers {
 		digest, errors := c.store.Digest()
 		if len(errors) > 0 {
 			for _, err := range errors {
 				otelzap.L().WithError(err).Ctx(ctx).Error("failed to get digest")
 			}
-
 			continue
 		}
 
 		msg := &messages.GossipMessage{
-			Envelope: &messages.GossipMessageEnvelope{
-				SrcId:      c.store.GetId(),
-				AnswerPort: c.listenerPort,
-			},
+			Envelope: gossipEnvelope,
 			Message: &messages.GossipMessage_HeartbeatMessage{
 				HeartbeatMessage: &messages.GossipHeartbeatMessage{
 					TsUnixNano:       time.Now().UnixNano(),
@@ -200,10 +200,15 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 			},
 		}
 
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			// Add a random jitter up to 150ms to avoid all nodes gossiping at the same time
+			<-time.After(time.Duration(rand.Uint32N(150)) * time.Millisecond)
+
+			// send the gossip message
 			if err := c.gossipWithPeer(ctx, peer, msg); err != nil {
-				fmt.Println("Error gossiping with peer:", err.Display())
+				otelzap.L().WithError(err).Ctx(ctx).Error("failed to gossip with peer")
 			}
 		}()
 	}
@@ -212,6 +217,9 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 }
 
 func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *messages.GossipMessage) humane.Error {
+	ctx, cancel := context.WithTimeout(ctx, c.gossipInterval)
+	defer cancel()
+
 	ctx, span := tracer.Start(ctx, "gossip.gossipWithPeer",
 		trace.WithAttributes(
 			attribute.String("gossip.peer", peer),
@@ -240,6 +248,8 @@ func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *
 
 	writer := bufio.NewWriter(conn)
 
+	// hash the message before sending it
+	msg.Hash = shaHashString(msg.String())
 	msgBytes, err := proto.Marshal(msg)
 	if err != nil {
 		span.RecordError(err)
@@ -279,6 +289,9 @@ func (c *GossipClient[T]) handleGossipPeer(ctx context.Context, conn net.Conn) h
 	// read the gossip message from the connection
 	reader := bufio.NewReader(conn)
 
+	if err := conn.SetReadDeadline(time.Now().Add(c.gossipInterval)); err != nil {
+		return humane.Wrap(err, "failed to set read deadline")
+	}
 	msg, herr := readMessage(reader)
 	if herr != nil {
 		return humane.Wrap(herr, "failed to read gossip message from peer")
@@ -328,6 +341,23 @@ func (c *GossipClient[T]) handleGossipPeer(ctx context.Context, conn net.Conn) h
 }
 
 func (c *GossipClient[T]) handleMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipMessage) humane.Error {
+	// validate if the message hash is present and correct
+	msgHash := msg.Hash
+
+	// Must be present for us to consider the message
+	if msg.Hash == "" {
+		return humane.New("message hash is empty")
+	}
+
+	// Remove the hash from the message so we don't hash the message including the hash
+	msg.Hash = ""
+
+	// Hash the message again to validate the hash is correct
+	realHash := shaHashString(msg.String())
+	if realHash != msgHash {
+		return humane.New("message hash is invalid")
+	}
+
 	switch gossipMsgType := msg.Message.(type) {
 	case *messages.GossipMessage_HeartbeatMessage:
 		if err := c.handleHeartbeatMessage(ctx, returnAddr, msg.Envelope, gossipMsgType.HeartbeatMessage); err != nil {

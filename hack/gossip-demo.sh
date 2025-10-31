@@ -62,20 +62,25 @@ echo "Starting gossip nodes..."
 # Get the absolute path to the project root
 PROJECT_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
+# Helper function to set up environment variables for a pane
+setup_node_env() {
+  local pane=$1
+  tmux send-keys -t "$SESSION_NAME:gossip.$pane" "set -x OTEL_ENVIRONMENT \"dev\"" Enter
+  tmux send-keys -t "$SESSION_NAME:gossip.$pane" "set -x OTEL_EXPORTER_OTLP_ENDPOINT \"localhost:4317\"" Enter
+  tmux send-keys -t "$SESSION_NAME:gossip.$pane" "set -x OTEL_EXPORTER_OTLP_INSECURE \"true\"" Enter
+  tmux send-keys -t "$SESSION_NAME:gossip.$pane" "set -x OTEL_LOG_LEVEL \"debug\"" Enter
+  sleep 0.5
+  tmux send-keys -t "$SESSION_NAME:gossip.$pane" "cd '$PROJECT_ROOT'" Enter
+  sleep 0.5
+}
+
 # Start each node in its respective pane
 echo "Starting server node on port 8080 (pane 1)..."
 echo "Project root: $PROJECT_ROOT"
 
 # Pane 1: Server
 tmux select-pane -t "$SESSION_NAME:gossip.1"
-
-tmux send-keys -t "$SESSION_NAME:gossip.1" "set -x OTEL_ENVIRONMENT \"dev\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.1" "set -x OTEL_EXPORTER_OTLP_ENDPOINT \"localhost:4317\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.1" "set -x OTEL_EXPORTER_OTLP_INSECURE \"true\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.1" "set -x OTEL_LOG_LEVEL \"debug\"" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.1" "cd '$PROJECT_ROOT'" Enter
-sleep 0.5
+setup_node_env 1
 tmux send-keys -t "$SESSION_NAME:gossip.1" "go run ./cmd/gossip serve 'server' --listen-port 8080 --gossip-interval 5s --gossip-factor 2" Enter
 
 echo "Waiting for server to start up..."
@@ -90,55 +95,23 @@ else
   echo "Check pane 1 for errors."
 fi
 
-# Pane 2: Client 1
-echo "Starting client 1 on port 8081 (pane 2)..."
-tmux select-pane -t "$SESSION_NAME:gossip.2"
-tmux send-keys -t "$SESSION_NAME:gossip.2" "set -x OTEL_ENVIRONMENT \"dev\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.2" "set -x OTEL_EXPORTER_OTLP_ENDPOINT \"localhost:4317\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.2" "set -x OTEL_EXPORTER_OTLP_INSECURE \"true\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.2" "set -x OTEL_LOG_LEVEL \"debug\"" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.2" "cd '$PROJECT_ROOT'" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.2" "go run ./cmd/gossip client 'client-1' --listen-port 8081 --server-addr localhost:8080 --gossip-interval 5s --gossip-factor 2" Enter
-sleep 2
+# Start clients in a loop (panes 2-4)
+for i in 1 2 3; do
+  pane_num=$((i + 1))
+  port=$((8080 + i))
+  client_name="client-$i"
 
-# Pane 3: Client 2
-echo "Starting client 2 on port 8082 (pane 3)..."
-tmux select-pane -t "$SESSION_NAME:gossip.3"
-tmux send-keys -t "$SESSION_NAME:gossip.3" "set -x OTEL_ENVIRONMENT \"dev\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.3" "set -x OTEL_EXPORTER_OTLP_ENDPOINT \"localhost:4317\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.3" "set -x OTEL_EXPORTER_OTLP_INSECURE \"true\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.3" "set -x OTEL_LOG_LEVEL \"debug\"" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.3" "cd '$PROJECT_ROOT'" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.3" "go run ./cmd/gossip client 'client-2' --listen-port 8082 --server-addr localhost:8080 --gossip-interval 5s --gossip-factor 2" Enter
-sleep 2
-
-# Pane 4: Client 3
-echo "Starting client 3 on port 8083 (pane 4)..."
-tmux select-pane -t "$SESSION_NAME:gossip.4"
-tmux send-keys -t "$SESSION_NAME:gossip.4" "set -x OTEL_ENVIRONMENT \"dev\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.4" "set -x OTEL_EXPORTER_OTLP_ENDPOINT \"localhost:4317\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.4" "set -x OTEL_EXPORTER_OTLP_INSECURE \"true\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.4" "set -x OTEL_LOG_LEVEL \"debug\"" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.4" "cd '$PROJECT_ROOT'" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.4" "go run ./cmd/gossip client 'client-3' --listen-port 8083 --server-addr localhost:8080 --gossip-interval 5s --gossip-factor 2" Enter
-sleep 2
+  echo "Starting $client_name on port $port (pane $pane_num)..."
+  tmux select-pane -t "$SESSION_NAME:gossip.$pane_num"
+  setup_node_env "$pane_num"
+  tmux send-keys -t "$SESSION_NAME:gossip.$pane_num" "go run ./cmd/gossip client '$client_name' --listen-port $port --server-addr localhost:8080 --gossip-interval 5s --gossip-factor 2" Enter
+  sleep 2
+done
 
 # Pane 5: Change Introducer
 echo "Starting change introducer on port 8089 (pane 5)..."
 tmux select-pane -t "$SESSION_NAME:gossip.5"
-tmux send-keys -t "$SESSION_NAME:gossip.5" "set -x OTEL_ENVIRONMENT \"dev\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.5" "set -x OTEL_EXPORTER_OTLP_ENDPOINT \"localhost:4317\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.5" "set -x OTEL_EXPORTER_OTLP_INSECURE \"true\"" Enter
-tmux send-keys -t "$SESSION_NAME:gossip.5" "set -x OTEL_LOG_LEVEL \"debug\"" Enter
-sleep 0.5
-tmux send-keys -t "$SESSION_NAME:gossip.5" "cd '$PROJECT_ROOT'" Enter
-sleep 0.5
+setup_node_env 5
 tmux send-keys -t "$SESSION_NAME:gossip.5" "go run ./cmd/gossip change-introducer --listen-port 8089 --server-addr localhost:8080 --gossip-interval 5s --gossip-factor 2 --status-change-interval 15s" Enter
 sleep 2
 

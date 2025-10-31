@@ -176,6 +176,12 @@ func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 			continue
 		}
 
+		// Skip nil versionState entries
+		if versionState == nil {
+			errors = append(errors, humane.New(fmt.Sprintf("versionState is nil for peer %s", peerId)))
+			continue
+		}
+
 		_, peerExists := s.peers[peerId]
 
 		var err humane.Error
@@ -295,6 +301,11 @@ func (s *TestGossipStore[T]) createGossipVersionedStateFromPeerState(peerId stri
 // For each peer, it either requests their state (if we don't have it) or sends our version (if we have a newer one).
 func (s *TestGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
 	for peerId, digest := range other {
+		if digest == nil {
+			errors = append(errors, humane.New(fmt.Sprintf("digest is nil for peer %s", peerId)))
+			continue
+		}
+
 		peerState, ok := s.state[peerId]
 		if !ok {
 			// Peer is not in local state yet so we need to request it
@@ -377,6 +388,13 @@ func (s *TestGossipStore[T]) announceLocalState(other GossipDigest, diff GossipD
 
 // unmarshalAndCreateState unmarshals the data from a GossipVersionedState and creates a LastWriteWinsState.
 func (s *TestGossipStore[T]) unmarshalAndCreateState(versionState *messages.GossipVersionedState) (*LastWriteWinsState[T], humane.Error) {
+	if versionState == nil {
+		return nil, humane.New("versionState is nil")
+	}
+	if versionState.DigestEntry == nil {
+		return nil, humane.New("versionState.DigestEntry is nil")
+	}
+
 	var data T
 	if err := data.Unmarshal(versionState.Data, &data); err != nil {
 		return nil, humane.Wrap(err, "failed to unmarshal state data")
@@ -391,6 +409,13 @@ func (s *TestGossipStore[T]) unmarshalAndCreateState(versionState *messages.Goss
 // applyNewPeerState handles applying state for a peer we haven't seen before.
 // It adds the peer to our peers map and initializes their state.
 func (s *TestGossipStore[T]) applyNewPeerState(peerId string, versionState *messages.GossipVersionedState) humane.Error {
+	if versionState == nil {
+		return humane.New("versionState is nil")
+	}
+	if versionState.DigestEntry == nil {
+		return humane.New("versionState.DigestEntry is nil")
+	}
+
 	// Add the peer to our peers map
 	s.peers[peerId] = NewGossipNode(peerId, versionState.DigestEntry.Address)
 
@@ -407,6 +432,13 @@ func (s *TestGossipStore[T]) applyNewPeerState(peerId string, versionState *mess
 // applyExistingPeerState handles applying state for a peer we already know about.
 // It updates the peer's heartbeat and their state.
 func (s *TestGossipStore[T]) applyExistingPeerState(peerId string, versionState *messages.GossipVersionedState) humane.Error {
+	if versionState == nil {
+		return humane.New("versionState is nil")
+	}
+	if versionState.DigestEntry == nil {
+		return humane.New("versionState.DigestEntry is nil")
+	}
+
 	peer := s.peers[peerId]
 	peer.Heartbeat(versionState.DigestEntry.Address)
 
@@ -414,6 +446,23 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerId string, versionState 
 	state, err := s.unmarshalAndCreateState(versionState)
 	if err != nil {
 		return err
+	}
+
+	currentState := s.state[peerId]
+
+	// If we don't have a current state for this peer, just set it
+	if currentState == nil {
+		s.state[peerId] = state
+		return nil
+	}
+
+	// Validate version monotonicity
+	if currentState.GetVersion() > state.GetVersion() {
+		return humane.New("version counter must be monotonically increasing")
+	} else if currentState.GetVersion() == state.GetVersion() {
+		if currentState.GetData() != state.GetData() {
+			return humane.New("current state and new state are the same version but have different data")
+		}
 	}
 
 	s.state[peerId] = state

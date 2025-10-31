@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"hash/fnv"
@@ -85,6 +86,12 @@ type NodeDisplayData struct {
 
 func hashString(s string) string {
 	hasher := fnv.New128()
+	hasher.Write([]byte(s))
+	return base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+}
+
+func shaHashString(s string) string {
+	hasher := sha1.New()
 	hasher.Write([]byte(s))
 	return base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 }

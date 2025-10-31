@@ -90,6 +90,7 @@ type GossipMessage struct {
 	//	*GossipMessage_GossipDiffMessage
 	//	*GossipMessage_GossipDeltaMessage
 	Message       isGossipMessage_Message `protobuf_oneof:"message"`
+	Hash          string                  `protobuf:"bytes,5,opt,name=hash,proto3" json:"hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -163,6 +164,13 @@ func (x *GossipMessage) GetGossipDeltaMessage() *GossipDeltaMessage {
 		}
 	}
 	return nil
+}
+
+func (x *GossipMessage) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
 }
 
 type isGossipMessage_Message interface {
@@ -457,12 +465,13 @@ const file_pkg_cluster_messages_proto_rawDesc = "" +
 	"\n" +
 	"answerPort\x18\x02 \x01(\tR\n" +
 	"answerPort\x12 \n" +
-	"\vtraceparent\x18\x03 \x01(\tR\vtraceparent\"\xa5\x02\n" +
+	"\vtraceparent\x18\x03 \x01(\tR\vtraceparent\"\xb9\x02\n" +
 	"\rGossipMessage\x122\n" +
 	"\benvelope\x18\x01 \x01(\v2\x16.GossipMessageEnvelopeR\benvelope\x12F\n" +
 	"\x11heartbeat_message\x18\x02 \x01(\v2\x17.GossipHeartbeatMessageH\x00R\x10heartbeatMessage\x12D\n" +
 	"\x13gossip_diff_message\x18\x03 \x01(\v2\x12.GossipDiffMessageH\x00R\x11gossipDiffMessage\x12G\n" +
-	"\x14gossip_delta_message\x18\x04 \x01(\v2\x13.GossipDeltaMessageH\x00R\x12gossipDeltaMessageB\t\n" +
+	"\x14gossip_delta_message\x18\x04 \x01(\v2\x13.GossipDeltaMessageH\x00R\x12gossipDeltaMessage\x12\x12\n" +
+	"\x04hash\x18\x05 \x01(\tR\x04hashB\t\n" +
 	"\amessage\"\xea\x01\n" +
 	"\x16GossipHeartbeatMessage\x12 \n" +
 	"\fts_unix_nano\x18\x01 \x01(\x03R\n" +
