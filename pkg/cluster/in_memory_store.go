@@ -62,17 +62,17 @@ func (s *TestGossipStore[T]) GetId() string {
 	return s.id
 }
 
-func (s *TestGossipStore[T]) Heartbeat(peerId string, address string) {
+func (s *TestGossipStore[T]) Heartbeat(peerID string, address string) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
-	node, ok := s.peers[peerId]
+	node, ok := s.peers[peerID]
 	if !ok {
-		node = NewGossipNode(peerId, address)
+		node = NewGossipNode(peerID, address)
 	}
 
 	node.Heartbeat(address)
-	s.peers[peerId] = node
+	s.peers[peerID] = node
 }
 
 func (s *TestGossipStore[T]) SetData(status T) {
@@ -92,11 +92,11 @@ func (s *TestGossipStore[T]) GetPeers() []GossipNode {
 	return peers
 }
 
-func (s *TestGossipStore[T]) GetPeer(peerId string) *GossipNode {
+func (s *TestGossipStore[T]) GetPeer(peerID string) *GossipNode {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
-	if peer, ok := s.peers[peerId]; ok {
+	if peer, ok := s.peers[peerID]; ok {
 		return &peer
 	}
 
@@ -112,18 +112,18 @@ func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 
 	digest := make(GossipDigest)
 	errors := make([]humane.Error, 0)
-	for peerId, peerState := range s.state {
+	for peerID, peerState := range s.state {
 
-		peer, ok := s.peers[peerId]
+		peer, ok := s.peers[peerID]
 		// If we don't have the peer in the peers map, and it's not the local node, we skip it
-		if !ok && peerId != s.GetId() {
-			otelzap.L().Warn("Peer not found in peers map", zap.String("peerId", peerId))
+		if !ok && peerID != s.GetId() {
+			otelzap.L().Warn("Peer not found in peers map", zap.String("peerID", peerID))
 			continue
 		}
 
 		// If this is the local node and not in peers, create a peer entry for it
-		if !ok && peerId == s.GetId() {
-			peer = NewGossipNode(peerId, s.address)
+		if !ok && peerID == s.GetId() {
+			peer = NewGossipNode(peerID, s.address)
 		}
 
 		digestEntry, err := NewDigestEntry(uint64(peerState.GetVersion()), &peer)
@@ -132,7 +132,7 @@ func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 			continue
 		}
 
-		digest[peerId] = digestEntry
+		digest[peerID] = digestEntry
 	}
 
 	return digest, errors
@@ -170,27 +170,27 @@ func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 	errors := make([]humane.Error, 0)
 
 	// Apply each peer's state from the diff to our local state
-	for peerId, versionState := range diff {
+	for peerID, versionState := range diff {
 		// Skip if this is our own peer ID - we don't apply updates to ourselves because we are the authorative source
-		if peerId == s.GetId() {
+		if peerID == s.GetId() {
 			continue
 		}
 
 		// Skip nil versionState entries
 		if versionState == nil {
-			errors = append(errors, humane.New(fmt.Sprintf("versionState is nil for peer %s", peerId)))
+			errors = append(errors, humane.New(fmt.Sprintf("versionState is nil for peer %s", peerID)))
 			continue
 		}
 
-		_, peerExists := s.peers[peerId]
+		_, peerExists := s.peers[peerID]
 
 		var err humane.Error
 		if !peerExists {
 			// Handle new peer we haven't seen before
-			err = s.applyNewPeerState(peerId, versionState)
+			err = s.applyNewPeerState(peerID, versionState)
 		} else {
 			// Handle existing peer with updated state
-			err = s.applyExistingPeerState(peerId, versionState)
+			err = s.applyExistingPeerState(peerID, versionState)
 		}
 
 		if err != nil {
@@ -216,33 +216,33 @@ func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
 
 	slices.Sort(keys)
 
-	for _, peerId := range keys {
-		peer, ok := s.peers[peerId]
+	for _, peerID := range keys {
+		peer, ok := s.peers[peerID]
 		if !ok {
 			// If this is the local node, create a peer entry for it
-			if peerId == s.GetId() {
-				peer = NewGossipNode(peerId, s.address)
+			if peerID == s.GetId() {
+				peer = NewGossipNode(peerID, s.address)
 			} else {
-				otelzap.L().Error("Peer not found in peers map, how is this possible?", zap.String("peerId", peerId))
+				otelzap.L().Error("Peer not found in peers map, how is this possible?", zap.String("peerID", peerID))
 				continue
 			}
 		}
 
-		state, ok := s.state[peerId]
+		state, ok := s.state[peerID]
 		if !ok {
-			otelzap.L().Error("State not found in state map, how is this possible?", zap.String("peerId", peerId))
+			otelzap.L().Error("State not found in state map, how is this possible?", zap.String("peerID", peerID))
 			continue
 		}
 
 		stateData := state.GetData()
 		data = append(data, NodeDisplayData{
-			ID:          peerId,
+			ID:          peerID,
 			Address:     peer.GetAddress(),
 			LastSeen:    peer.GetLastSeen(),
 			Version:     state.GetVersion(),
 			State:       stateData.String(),
 			LastUpdated: time.Now(),
-			IsLocal:     peerId == s.GetId(),
+			IsLocal:     peerID == s.GetId(),
 		})
 	}
 
@@ -279,7 +279,7 @@ func gossipVersionedStateMessageFromState[T SerializableAndStringable](diffState
 }
 
 // createGossipVersionedStateFromPeerState creates a GossipVersionedState message from local peer state and peer info.
-func (s *TestGossipStore[T]) createGossipVersionedStateFromPeerState(peerId string, peerState GossipVersionedState[T], peer *GossipNode) (*messages.GossipVersionedState, humane.Error) {
+func (s *TestGossipStore[T]) createGossipVersionedStateFromPeerState(peerID string, peerState GossipVersionedState[T], peer *GossipNode) (*messages.GossipVersionedState, humane.Error) {
 	digestEntry, err := NewDigestEntry(uint64(peerState.GetVersion()), peer)
 	if err != nil {
 		return nil, humane.Wrap(err, "failed to create digest entry")
@@ -300,30 +300,34 @@ func (s *TestGossipStore[T]) createGossipVersionedStateFromPeerState(peerId stri
 // processPeersInRemoteDigest handles peers that exist in the remote digest.
 // For each peer, it either requests their state (if we don't have it) or sends our version (if we have a newer one).
 func (s *TestGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
-	for peerId, digest := range other {
+	for peerID, digest := range other {
 		if digest == nil {
-			errors = append(errors, humane.New(fmt.Sprintf("digest is nil for peer %s", peerId)))
+			errors = append(errors, humane.New(fmt.Sprintf("digest is nil for peer %s", peerID)))
 			continue
 		}
 
-		peerState, ok := s.state[peerId]
+		peerState, ok := s.state[peerID]
 		if !ok {
 			// Peer is not in local state yet so we need to request it
-			// Add it to diff with empty data to indicate we need this peer's state
-			diff[peerId] = gossipVersionedStateMessageFromDigest(digest)
+			// Add it to diff with empty data (Version 0). resulting in the peer sending us his state data in the
+			// apply response
+			diff[peerID] = gossipVersionedStateMessageFromDigest(digest)
 			continue
 		}
 
 		// Compare the local state of the peer with the version of the state of the peer in the digest we received
-		if diffState := peerState.Diff(Version(digest.Version)); diffState != nil {
-			gossipVersionedState, err := gossipVersionedStateMessageFromState(diffState, digest)
-			if err != nil {
-				errors = append(errors, humane.Wrap(err, "failed to create gossip versioned state message"))
-				continue
-			}
-
-			diff[peerId] = gossipVersionedState
+		diffState := peerState.Diff(Version(digest.Version))
+		if diffState == nil {
+			continue
 		}
+
+		gossipVersionedState, err := gossipVersionedStateMessageFromState(diffState, digest)
+		if err != nil {
+			errors = append(errors, humane.Wrap(err, "failed to create gossip versioned state message"))
+			continue
+		}
+
+		diff[peerID] = gossipVersionedState
 	}
 
 	return errors
@@ -332,26 +336,26 @@ func (s *TestGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff
 // announcePeersOnlyKnownLocally announces peers that we know about but the remote node doesn't.
 // This ensures both nodes eventually learn about all peers in the cluster.
 func (s *TestGossipStore[T]) announcePeersOnlyKnownLocally(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
-	for peerId, peer := range s.peers {
-		if _, existsInOther := other[peerId]; existsInOther {
+	for peerID, peer := range s.peers {
+		if _, existsInOther := other[peerID]; existsInOther {
 			continue
 		}
 
-		peerState, ok := s.state[peerId]
+		peerState, ok := s.state[peerID]
 		if !ok {
-			errors = append(errors, humane.New(fmt.Sprintf("peer (%s) not found in local state, how is this possible?", peerId)))
+			errors = append(errors, humane.New(fmt.Sprintf("peer (%s) not found in local state, how is this possible?", peerID)))
 			continue
 		}
 
 		// This peer exists locally but not in the other digest
 		// Add it to diff so the other node learns about it
-		gossipVersionedState, err := s.createGossipVersionedStateFromPeerState(peerId, peerState, &peer)
+		gossipVersionedState, err := s.createGossipVersionedStateFromPeerState(peerID, peerState, &peer)
 		if err != nil {
 			errors = append(errors, humane.Wrap(err, "failed to create gossip versioned state"))
 			continue
 		}
 
-		diff[peerId] = gossipVersionedState
+		diff[peerID] = gossipVersionedState
 	}
 
 	return errors
@@ -371,7 +375,7 @@ func (s *TestGossipStore[T]) announceLocalState(other GossipDigest, diff GossipD
 
 	localState, ok := s.state[s.GetId()]
 	if !ok {
-		otelzap.L().Error("Local state not found in state map, how is this possible?", zap.String("peerId", s.GetId()))
+		otelzap.L().Error("Local state not found in state map, how is this possible?", zap.String("peerID", s.GetId()))
 		return errors
 	}
 
@@ -408,7 +412,7 @@ func (s *TestGossipStore[T]) unmarshalAndCreateState(versionState *messages.Goss
 
 // applyNewPeerState handles applying state for a peer we haven't seen before.
 // It adds the peer to our peers map and initializes their state.
-func (s *TestGossipStore[T]) applyNewPeerState(peerId string, versionState *messages.GossipVersionedState) humane.Error {
+func (s *TestGossipStore[T]) applyNewPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
 	if versionState == nil {
 		return humane.New("versionState is nil")
 	}
@@ -417,7 +421,7 @@ func (s *TestGossipStore[T]) applyNewPeerState(peerId string, versionState *mess
 	}
 
 	// Add the peer to our peers map
-	s.peers[peerId] = NewGossipNode(peerId, versionState.DigestEntry.Address)
+	s.peers[peerID] = NewGossipNode(peerID, versionState.DigestEntry.Address)
 
 	// Unmarshal and store the peer's state
 	state, err := s.unmarshalAndCreateState(versionState)
@@ -425,13 +429,18 @@ func (s *TestGossipStore[T]) applyNewPeerState(peerId string, versionState *mess
 		return err
 	}
 
-	s.state[peerId] = state
+	s.state[peerID] = state
 	return nil
 }
 
+var (
+	ErrorVersionedStateFork                = humane.New("warning: current state and new state are the same version but have different data.", "this conflict will be automatically resolved by using the node-id as the tie-breaker. The node announcing the smaller node-id wins")
+	ErrorVersionedStateMonotonicIncreasing = humane.New("rejected peer version", "ensure versions are monotonically increasing")
+)
+
 // applyExistingPeerState handles applying state for a peer we already know about.
 // It updates the peer's heartbeat and their state.
-func (s *TestGossipStore[T]) applyExistingPeerState(peerId string, versionState *messages.GossipVersionedState) humane.Error {
+func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
 	if versionState == nil {
 		return humane.New("versionState is nil")
 	}
@@ -439,7 +448,7 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerId string, versionState 
 		return humane.New("versionState.DigestEntry is nil")
 	}
 
-	peer := s.peers[peerId]
+	peer := s.peers[peerID]
 	peer.Heartbeat(versionState.DigestEntry.Address)
 
 	// Unmarshal and update the peer's state
@@ -448,23 +457,30 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerId string, versionState 
 		return err
 	}
 
-	currentState := s.state[peerId]
+	currentState := s.state[peerID]
 
 	// If we don't have a current state for this peer, just set it
 	if currentState == nil {
-		s.state[peerId] = state
+		s.state[peerID] = state
 		return nil
 	}
 
 	// Validate version monotonicity
 	if currentState.GetVersion() > state.GetVersion() {
-		return humane.New("version counter must be monotonically increasing")
-	} else if currentState.GetVersion() == state.GetVersion() {
-		if currentState.GetData() != state.GetData() {
-			return humane.New("current state and new state are the same version but have different data")
-		}
+		return ErrorVersionedStateMonotonicIncreasing
 	}
 
-	s.state[peerId] = state
+	if currentState.GetVersion() == state.GetVersion() && currentState.GetData() != state.GetData() {
+		// conflict resolution: if the peer is "lexically smaller" than us, we just apply the peers state
+		if peerID < s.GetId() {
+			// however, if we do this, we also bump the state version so it's re-announced to the network
+			// on the next gossip iteration
+			state.SetData(state.GetData())
+			s.state[peerID] = state
+		}
+		return ErrorVersionedStateFork
+	}
+
+	s.state[peerID] = state
 	return nil
 }

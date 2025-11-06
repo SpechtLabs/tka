@@ -63,3 +63,4 @@ src/bin
 bin/
 *.out
 **/__debug_bin*
+*.log
