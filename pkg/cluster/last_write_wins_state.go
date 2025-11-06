@@ -58,9 +58,10 @@ func (s *LastWriteWinsState[T]) Diff(other Version) GossipVersionedState[T] {
 		return nil
 	}
 
-	// If we are the same version, we return no copy to minimize data transfer
-	// The recipient will still apply updates based on lastWriteTime comparison
-	return nil
+	// If we are the same version, we return a copy of ourselves as this gives the
+	// recipient the possibility to do conflict resolution of forks by using the
+	// smaller node-id as the tie-breaker for a conflict.
+	return s.Copy()
 }
 
 func (s *LastWriteWinsState[T]) Apply(diff GossipVersionedState[T]) humane.Error {
