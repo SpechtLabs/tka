@@ -34,13 +34,22 @@ func main() {
 	debug := os.Getenv("OTEL_LOG_LEVEL") == "debug"
 	var zapLogger *zap.Logger
 	var err error
+	zapLevel := zap.WarnLevel
+	ginLevel := gin.ReleaseMode
 	if debug {
-		zapLogger, err = zap.NewDevelopment()
-		gin.SetMode(gin.DebugMode)
-	} else {
-		zapLogger, err = zap.NewProduction()
-		gin.SetMode(gin.ReleaseMode)
+		zapLevel = zap.DebugLevel
+		ginLevel = gin.DebugMode
 	}
+	zapCfg := zap.Config{
+		Level:            zap.NewAtomicLevelAt(zapLevel),
+		Development:      true,
+		Encoding:         "console",
+		EncoderConfig:    zap.NewDevelopmentEncoderConfig(),
+		OutputPaths:      []string{"log.log"},
+		ErrorOutputPaths: []string{"error.log"},
+	}
+	gin.SetMode(ginLevel)
+	zapLogger, err = zapCfg.Build()
 	if err != nil {
 		fmt.Printf("failed to initialize logger: %v", err)
 		os.Exit(1)
