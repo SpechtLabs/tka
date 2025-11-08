@@ -18,6 +18,8 @@ func init() {
 	clientCmd.Flags().Int("listen-port", 8081, "The port to listen on for incoming gossip messages")
 	clientCmd.Flags().Duration("gossip-interval", 1*time.Second, "The interval at which to gossip messages to peers")
 	clientCmd.Flags().Int("gossip-factor", 3, "The factor at which to gossip messages to peers")
+	clientCmd.Flags().Int("staleness-threshold", 2, "The number of consecutive failed cycles before marking a peer as suspected dead")
+	clientCmd.Flags().Int("dead-threshold", 4, "The number of consecutive failed cycles before marking a peer as dead and removing it")
 }
 
 var clientCmd = &cobra.Command{
@@ -41,6 +43,16 @@ It is not meant to be used in production.`,
 		if err != nil {
 			return err
 		}
+		stalenessThreshold := cmd.Flag("staleness-threshold").Value.String()
+		stalenessThresholdInt, err := strconv.Atoi(stalenessThreshold)
+		if err != nil {
+			return err
+		}
+		deadThreshold := cmd.Flag("dead-threshold").Value.String()
+		deadThresholdInt, err := strconv.Atoi(deadThreshold)
+		if err != nil {
+			return err
+		}
 
 		store := cluster.NewTestGossipStore(listenAddr,
 			cluster.WithLocalState(cluster.SerializableString(args[0])),
@@ -57,6 +69,8 @@ It is not meant to be used in production.`,
 			&listener,
 			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
 			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
+			cluster.WithStalenessThreshold[cluster.SerializableString](stalenessThresholdInt),
+			cluster.WithDeadThreshold[cluster.SerializableString](deadThresholdInt),
 			cluster.WithBootstrapPeer[cluster.SerializableString](serverAddr),
 		)
 

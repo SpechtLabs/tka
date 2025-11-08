@@ -34,11 +34,14 @@ type GossipClient[T SerializableAndStringable] struct {
 	peersMu        sync.RWMutex
 	bootstrapPeers []string
 
-	gossipFactor   int
-	gossipInterval time.Duration
-	store          GossipStore[T]
-	listener       *net.Listener
-	listenerPort   string
+	gossipFactor          int
+	gossipInterval        time.Duration
+	stalenessThreshold    int // Number of consecutive failed cycles before considering a peer as suspected dead
+	deadThreshold         int // Number of consecutive failed cycles before considering a peer as dead (requires to be N > stalenessThreshold)
+	resurrectionThreshold int // Number of gossipIntervals which the peer must be in the healthy state from another node to be considered resurrected
+	store                 GossipStore[T]
+	listener              *net.Listener
+	listenerPort          string
 }
 
 type GossipClientOption[T SerializableAndStringable] func(*GossipClient[T])
@@ -59,6 +62,14 @@ func WithBootstrapPeer[T SerializableAndStringable](peers ...string) GossipClien
 	}
 }
 
+func WithStalenessThreshold[T SerializableAndStringable](threshold int) GossipClientOption[T] {
+	return func(c *GossipClient[T]) { c.stalenessThreshold = threshold }
+}
+
+func WithDeadThreshold[T SerializableAndStringable](threshold int) GossipClientOption[T] {
+	return func(c *GossipClient[T]) { c.deadThreshold = threshold }
+}
+
 func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener *net.Listener, opts ...GossipClientOption[T]) *GossipClient[T] {
 	listenerAddr := (*listener).Addr().String()
 	_, port, err := net.SplitHostPort(listenerAddr)
@@ -68,17 +79,25 @@ func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener
 	}
 
 	c := &GossipClient[T]{
-		gossipFactor:   3,
-		gossipInterval: 1 * time.Second,
-		bootstrapPeers: make([]string, 0),
-		store:          store,
-		listener:       listener,
-		listenerPort:   port,
+		gossipFactor:       3,
+		gossipInterval:     1 * time.Second,
+		stalenessThreshold: 5,  // Default: 5 consecutive failed cycles
+		deadThreshold:      10, // Default: 10 consecutive failed cycles
+		bootstrapPeers:     make([]string, 0),
+		store:              store,
+		listener:           listener,
+		listenerPort:       port,
 	}
 
 	for _, opt := range opts {
 		opt(c)
 	}
+
+	if c.deadThreshold <= c.stalenessThreshold {
+		otelzap.L().Sugar().Error("deadThreshold must be greater than stalenessThreshold")
+		return nil
+	}
+
 	return c
 }
 
@@ -150,7 +169,10 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 	c.peersMu.RUnlock()
 
 	// Get an up to date list of all our peers and add them to the peers slice if they are not already in it
+	// Create a map to track peer address to peer ID
+	peerAddressToID := make(map[string]string)
 	for _, peer := range c.store.GetPeers() {
+		peerAddressToID[peer.GetAddress()] = peer.ID()
 		if slices.Contains(peers, peer.GetAddress()) {
 			continue
 		}
@@ -201,19 +223,37 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 		}
 
 		wg.Add(1)
-		go func() {
+		go func(peerAddr string) {
 			defer wg.Done()
 			// Add a random jitter up to 150ms to avoid all nodes gossiping at the same time
 			<-time.After(time.Duration(rand.Uint32N(150)) * time.Millisecond)
 
 			// send the gossip message
-			if err := c.gossipWithPeer(ctx, peer, msg); err != nil {
+			if err := c.gossipWithPeer(ctx, peerAddr, msg); err != nil {
 				otelzap.L().WithError(err).Ctx(ctx).Error("failed to gossip with peer")
+
+				// Increment failure count for this peer if we know its ID
+				if peerID, ok := peerAddressToID[peerAddr]; ok {
+					c.store.IncrementPeerFailure(peerID, c.stalenessThreshold)
+				}
 			}
-		}()
+		}(peer)
 	}
 
 	wg.Wait()
+
+	// After gossiping, remove stale peers that have exceeded the threshold
+	removedPeers := c.store.RemoveStalePeers(c.deadThreshold)
+	if len(removedPeers) > 0 {
+		span.SetAttributes(
+			attribute.Int("gossip.removed_stale_peers", len(removedPeers)),
+			attribute.StringSlice("gossip.removed_peer_ids", removedPeers),
+		)
+		otelzap.Ctx(ctx).Info("Removed stale peers",
+			zap.Int("count", len(removedPeers)),
+			zap.Strings("peer_ids", removedPeers),
+		)
+	}
 }
 
 func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *messages.GossipMessage) humane.Error {
@@ -395,6 +435,28 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 
 	c.store.Heartbeat(envelope.SrcId, returnAddr)
 
+	// Check if the remote peer thinks we are suspected dead
+	if localDigest, exists := msg.VersionMapDigest[c.store.GetId()]; exists {
+		if localDigest.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
+			otelzap.Ctx(ctx).Info("Remote peer suspects we are dead, announcing we are alive",
+				zap.String("remotePeerID", envelope.SrcId),
+			)
+			// The local node's state will be announced as healthy in the response
+		}
+	}
+
+	// Handle peer state information from remote digest
+	for peerID, digestEntry := range msg.VersionMapDigest {
+		if peerID == c.store.GetId() {
+			continue // Skip our own entry
+		}
+
+		if digestEntry.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
+			// Remote node suspects this peer is dead
+			c.store.MarkPeerSuspectedDead(peerID)
+		}
+	}
+
 	digest, errors := c.store.Digest()
 	if len(errors) > 0 {
 		var herr = errors[0]
@@ -462,6 +524,27 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 
 	c.store.Heartbeat(envelope.SrcId, returnAddr)
 
+	// Check if the remote peer thinks we are suspected dead
+	if localDigest, exists := msg.VersionMapDigest[c.store.GetId()]; exists {
+		if localDigest.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
+			otelzap.Ctx(ctx).Info("Remote peer suspects we are dead, announcing we are alive via diff response",
+				zap.String("remotePeerID", envelope.SrcId),
+			)
+		}
+	}
+
+	// Handle peer state information from remote digest
+	for peerID, digestEntry := range msg.VersionMapDigest {
+		if peerID == c.store.GetId() {
+			continue // Skip our own entry
+		}
+
+		if digestEntry.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
+			// Remote node suspects this peer is dead
+			c.store.MarkPeerSuspectedDead(peerID)
+		}
+	}
+
 	// Apply the remote state to the local state
 	errors := c.store.Apply(msg.StateDelta)
 	if len(errors) > 0 {
@@ -526,7 +609,7 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 }
 
 func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipDeltaMessage) humane.Error {
-	_, span := tracer.Start(ctx, "gossip.handleDeltaMessage",
+	ctx, span := tracer.Start(ctx, "gossip.handleDeltaMessage",
 		trace.WithAttributes(
 			attribute.String("gossip.node_id", c.store.GetId()),
 			attribute.String("gossip.src_id", envelope.SrcId),
@@ -537,6 +620,17 @@ func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr str
 	defer span.End()
 
 	c.store.Heartbeat(envelope.SrcId, returnAddr)
+
+	// Check if the sending peer was marked as suspected dead locally
+	if peer := c.store.GetPeer(envelope.SrcId); peer != nil {
+		if peer.IsSuspectedDead() || peer.IsDead() {
+			// Peer is alive and sending us data, resurrect it
+			c.store.ResurrectPeer(envelope.SrcId)
+			otelzap.Ctx(ctx).Info("Suspected dead peer responded, resurrecting",
+				zap.String("peerID", envelope.SrcId),
+			)
+		}
+	}
 
 	// Apply the remote state to the local state
 	errors := c.store.Apply(msg.StateDelta)
