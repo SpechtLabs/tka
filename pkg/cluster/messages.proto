@@ -1,6 +1,12 @@
 syntax = "proto3";
 option go_package = "pkg/cluster/messages";
 
+enum PeerState {
+    PEER_STATE_UNSPECIFIED = 0;
+    PEER_STATE_HEALTHY = 1;
+    PEER_STATE_SUSPECTED_DEAD = 2;
+    PEER_STATE_DEAD = 3;
+}
 
 message GossipMessageEnvelope {
     string srcId = 1;
@@ -41,4 +47,5 @@ message DigestEntry {
     uint64 version = 1;
     string address = 2;
     int64 last_seen_unix_nano = 3;
+    PeerState peer_state = 4;
 }

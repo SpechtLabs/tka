@@ -13,12 +13,13 @@ import (
 )
 
 type TestGossipStore[T SerializableAndStringable] struct {
-	id        string
-	peersLock sync.RWMutex
-	peers     map[string]GossipNode
-	stateLock sync.RWMutex
-	state     map[string]GossipVersionedState[T]
-	address   string
+	id                    string
+	peersLock             sync.RWMutex
+	peers                 map[string]GossipNode
+	stateLock             sync.RWMutex
+	state                 map[string]GossipVersionedState[T]
+	address               string
+	resurrectionThreshold time.Duration // How much newer remote info must be for resurrection
 }
 
 type TestGossipStoreOption[T SerializableAndStringable] func(*TestGossipStore[T])
@@ -41,14 +42,23 @@ func WithLocalState[T SerializableAndStringable](state T) TestGossipStoreOption[
 	}
 }
 
+// WithResurrectionThreshold sets how much newer remote information must be
+// before allowing a peer to be resurrected from SUSPECTED_DEAD or DEAD state.
+func WithResurrectionThreshold[T SerializableAndStringable](threshold time.Duration) TestGossipStoreOption[T] {
+	return func(s *TestGossipStore[T]) {
+		s.resurrectionThreshold = threshold
+	}
+}
+
 func NewTestGossipStore[T SerializableAndStringable](address string, opts ...TestGossipStoreOption[T]) GossipStore[T] {
 	id := hashString(address)
 
 	s := &TestGossipStore[T]{
-		id:      id,
-		address: address,
-		peers:   make(map[string]GossipNode),
-		state:   make(map[string]GossipVersionedState[T]),
+		id:                    id,
+		address:               address,
+		peers:                 make(map[string]GossipNode),
+		state:                 make(map[string]GossipVersionedState[T]),
+		resurrectionThreshold: 5 * time.Second, // Default: remote info must be 5s newer for resurrection
 	}
 
 	for _, opt := range opts {
@@ -103,6 +113,145 @@ func (s *TestGossipStore[T]) GetPeer(peerID string) *GossipNode {
 	return nil
 }
 
+func (s *TestGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) {
+	s.peersLock.Lock()
+	defer s.peersLock.Unlock()
+
+	peer, ok := s.peers[peerID]
+	if !ok {
+		otelzap.L().Warn("Attempted to increment failure count for unknown peer", zap.String("peerID", peerID))
+		return
+	}
+
+	peer.IncrementFailureCount()
+
+	// Transition to suspected dead if threshold reached and currently healthy
+	if peer.IsStale(threshold) && peer.IsHealthy() {
+		peer.MarkSuspectedDead()
+		otelzap.L().Info("Peer marked as suspected dead",
+			zap.String("peerID", peerID),
+			zap.String("address", peer.GetAddress()),
+		)
+	}
+
+	s.peers[peerID] = peer
+
+	otelzap.L().Debug("Incremented peer failure count",
+		zap.String("peerID", peerID),
+		zap.Int("consecutiveFails", peer.GetConsecutiveFails()),
+		zap.String("state", peer.GetState().String()),
+	)
+}
+
+func (s *TestGossipStore[T]) MarkPeerSuspectedDead(peerID string) {
+	s.peersLock.Lock()
+	defer s.peersLock.Unlock()
+
+	peer, ok := s.peers[peerID]
+	if !ok {
+		otelzap.L().Warn("Attempted to mark unknown peer as suspected dead", zap.String("peerID", peerID))
+		return
+	}
+
+	peer.MarkSuspectedDead()
+	s.peers[peerID] = peer
+
+	otelzap.L().Info("Peer marked as suspected dead",
+		zap.String("peerID", peerID),
+		zap.String("address", peer.GetAddress()),
+	)
+}
+
+func (s *TestGossipStore[T]) MarkPeerDead(peerID string) {
+	s.peersLock.Lock()
+	defer s.peersLock.Unlock()
+
+	peer, ok := s.peers[peerID]
+	if !ok {
+		otelzap.L().Warn("Attempted to mark unknown peer as dead", zap.String("peerID", peerID))
+		return
+	}
+
+	peer.MarkDead()
+	s.peers[peerID] = peer
+
+	otelzap.L().Info("Peer marked as dead",
+		zap.String("peerID", peerID),
+		zap.String("address", peer.GetAddress()),
+	)
+}
+
+func (s *TestGossipStore[T]) ResurrectPeer(peerID string) {
+	s.peersLock.Lock()
+	defer s.peersLock.Unlock()
+
+	peer, ok := s.peers[peerID]
+	if !ok {
+		otelzap.L().Warn("Attempted to resurrect unknown peer", zap.String("peerID", peerID))
+		return
+	}
+
+	oldState := peer.GetState()
+	peer.MarkHealthy()
+	s.peers[peerID] = peer
+
+	otelzap.L().Info("Peer resurrected",
+		zap.String("peerID", peerID),
+		zap.String("address", peer.GetAddress()),
+		zap.String("previousState", oldState.String()),
+	)
+}
+
+func (s *TestGossipStore[T]) RemoveStalePeers(threshold int) []string {
+	s.peersLock.Lock()
+	defer s.peersLock.Unlock()
+
+	s.stateLock.Lock()
+	defer s.stateLock.Unlock()
+
+	removed := make([]string, 0)
+
+	for peerID, peer := range s.peers {
+		// Never remove the local node
+		if peerID == s.GetId() {
+			continue
+		}
+
+		// Remove peers that are marked as dead
+		if peer.IsDead() {
+			otelzap.L().Info("Removing dead peer",
+				zap.String("peerID", peerID),
+				zap.String("address", peer.GetAddress()),
+				zap.String("state", peer.GetState().String()),
+			)
+
+			// Remove from peers map
+			delete(s.peers, peerID)
+
+			// Remove from state map
+			delete(s.state, peerID)
+
+			removed = append(removed, peerID)
+			continue
+		}
+
+		// Mark suspected dead peers as dead if they exceed the threshold
+		if peer.IsSuspectedDead() && peer.IsStale(threshold) {
+			peer.MarkDead()
+			s.peers[peerID] = peer
+
+			otelzap.L().Info("Suspected dead peer exceeded threshold, marking as dead",
+				zap.String("peerID", peerID),
+				zap.String("address", peer.GetAddress()),
+				zap.Int("consecutiveFails", peer.GetConsecutiveFails()),
+				zap.Int("threshold", threshold),
+			)
+		}
+	}
+
+	return removed
+}
+
 func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
@@ -124,6 +273,16 @@ func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 		// If this is the local node and not in peers, create a peer entry for it
 		if !ok && peerID == s.GetId() {
 			peer = NewGossipNode(peerID, s.address)
+		}
+
+		// Skip suspected dead and dead peers in the digest - they should not be re-announced
+		// unless they resurrect themselves
+		if peer.IsSuspectedDead() || peer.IsDead() {
+			otelzap.L().Debug("Skipping non-healthy peer in digest",
+				zap.String("peerID", peerID),
+				zap.String("state", peer.GetState().String()),
+			)
+			continue
 		}
 
 		digestEntry, err := NewDigestEntry(uint64(peerState.GetVersion()), &peer)
@@ -184,6 +343,9 @@ func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 
 		_, peerExists := s.peers[peerID]
 
+		// Note: State transition logic is handled in applyNewPeerState and applyExistingPeerState
+		// based on timestamp comparisons and resurrection thresholds
+
 		var err humane.Error
 		if !peerExists {
 			// Handle new peer we haven't seen before
@@ -243,6 +405,7 @@ func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
 			State:       stateData.String(),
 			LastUpdated: time.Now(),
 			IsLocal:     peerID == s.GetId(),
+			PeerState:   peer.GetState(),
 		})
 	}
 
@@ -255,6 +418,7 @@ func gossipVersionedStateMessageFromDigest(digest *messages.DigestEntry) *messag
 			Version:          0, // We don't have this peer's state yet
 			Address:          digest.Address,
 			LastSeenUnixNano: digest.LastSeenUnixNano,
+			PeerState:        digest.PeerState,
 		},
 		Data: []byte(""), // Empty data indicates we need this peer's state
 	}
@@ -412,6 +576,8 @@ func (s *TestGossipStore[T]) unmarshalAndCreateState(versionState *messages.Goss
 
 // applyNewPeerState handles applying state for a peer we haven't seen before.
 // It adds the peer to our peers map and initializes their state.
+// IMPORTANT: We only accept new peers that are HEALTHY. If a peer is marked as
+// SUSPECTED_DEAD or DEAD, we reject it to prevent re-adding peers we've already removed.
 func (s *TestGossipStore[T]) applyNewPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
 	if versionState == nil {
 		return humane.New("versionState is nil")
@@ -420,8 +586,34 @@ func (s *TestGossipStore[T]) applyNewPeerState(peerID string, versionState *mess
 		return humane.New("versionState.DigestEntry is nil")
 	}
 
+	// Only accept new peers that are healthy
+	// If another node is gossiping about a suspected dead or dead peer, don't add it
+	// This prevents re-adding peers we've already removed from our database
+	if versionState.DigestEntry.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD ||
+		versionState.DigestEntry.PeerState == messages.PeerState_PEER_STATE_DEAD {
+		otelzap.L().Debug("Rejecting new peer with non-healthy state",
+			zap.String("peerID", peerID),
+			zap.String("peerState", versionState.DigestEntry.PeerState.String()),
+			zap.String("address", versionState.DigestEntry.Address),
+		)
+		return nil // Not an error, just skip adding this peer
+	}
+
 	// Add the peer to our peers map
-	s.peers[peerID] = NewGossipNode(peerID, versionState.DigestEntry.Address)
+	newNode := NewGossipNode(peerID, versionState.DigestEntry.Address)
+
+	// Set the peer state from the digest entry (should be HEALTHY or UNSPECIFIED)
+	if versionState.DigestEntry.PeerState != messages.PeerState_PEER_STATE_UNSPECIFIED {
+		newNode.SetState(versionState.DigestEntry.PeerState)
+	}
+
+	s.peers[peerID] = newNode
+
+	otelzap.L().Debug("Added new peer to database",
+		zap.String("peerID", peerID),
+		zap.String("address", versionState.DigestEntry.Address),
+		zap.String("state", newNode.GetState().String()),
+	)
 
 	// Unmarshal and store the peer's state
 	state, err := s.unmarshalAndCreateState(versionState)
@@ -439,7 +631,9 @@ var (
 )
 
 // applyExistingPeerState handles applying state for a peer we already know about.
-// It updates the peer's heartbeat and their state.
+// It updates the peer's state based on remote information.
+// Note: We do NOT call Heartbeat here because this is indirect information from gossip.
+// Direct heartbeats are handled separately in the message handlers.
 func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
 	if versionState == nil {
 		return humane.New("versionState is nil")
@@ -449,7 +643,70 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState 
 	}
 
 	peer := s.peers[peerID]
-	peer.Heartbeat(versionState.DigestEntry.Address)
+
+	// Update peer state from digest entry if provided
+	// We apply different rules for state transitions:
+	// - Health degradation (HEALTHY -> SUSPECTED/DEAD): Always apply (fast failure detection)
+	// - Health improvement (SUSPECTED/DEAD -> HEALTHY): Only if remote has SIGNIFICANTLY newer info (prevent stale resurrections)
+	if versionState.DigestEntry.PeerState != messages.PeerState_PEER_STATE_UNSPECIFIED {
+		remoteState := versionState.DigestEntry.PeerState
+		localState := peer.GetState()
+
+		// Compare timestamps to determine who has fresher information
+		remoteLastSeen := time.Unix(0, versionState.DigestEntry.LastSeenUnixNano)
+		localLastSeen := peer.GetLastSeen()
+
+		// For resurrection, we require remote info to be SIGNIFICANTLY newer (at least resurrectionThreshold)
+		// This prevents flapping where nodes keep resurrecting each other based on slightly different timestamps
+		resurrectionCutoff := localLastSeen.Add(s.resurrectionThreshold)
+		remoteIsSignificantlyNewer := remoteLastSeen.After(resurrectionCutoff)
+
+		// Handle state transitions based on remote state
+		switch remoteState {
+		case messages.PeerState_PEER_STATE_HEALTHY:
+			// Only resurrect if the remote has SIGNIFICANTLY more recent information
+			// This prevents stale "healthy" states from resurrecting dead peers
+			if !peer.IsHealthy() && remoteIsSignificantlyNewer {
+				peer.MarkHealthy()
+				// Update last seen time to match remote's fresher info
+				peer.SetLastSeen(remoteLastSeen)
+				otelzap.L().Info("Peer resurrected based on remote info",
+					zap.String("peerID", peerID),
+					zap.String("previousState", localState.String()),
+					zap.Time("remoteLastSeen", remoteLastSeen),
+					zap.Time("localLastSeen", localLastSeen),
+					zap.Duration("resurrectionThreshold", s.resurrectionThreshold),
+				)
+			} else if !peer.IsHealthy() && !remoteIsSignificantlyNewer {
+				otelzap.L().Debug("Ignoring remote healthy state (not significantly newer)",
+					zap.String("peerID", peerID),
+					zap.Time("remoteLastSeen", remoteLastSeen),
+					zap.Time("localLastSeen", localLastSeen),
+					zap.Time("resurrectionCutoff", resurrectionCutoff),
+					zap.Duration("resurrectionThreshold", s.resurrectionThreshold),
+				)
+			}
+		case messages.PeerState_PEER_STATE_SUSPECTED_DEAD:
+			// Always apply suspected dead state for fast failure detection
+			// Even if our info is newer, if another node suspects it's dead, we should too
+			if localState == messages.PeerState_PEER_STATE_HEALTHY {
+				peer.MarkSuspectedDead()
+				otelzap.L().Info("Peer marked suspected dead via gossip",
+					zap.String("peerID", peerID),
+				)
+			}
+		case messages.PeerState_PEER_STATE_DEAD:
+			// Always apply dead state for fast failure detection
+			if !peer.IsDead() {
+				peer.MarkDead()
+				otelzap.L().Info("Peer marked dead via gossip",
+					zap.String("peerID", peerID),
+				)
+			}
+		}
+	}
+
+	s.peers[peerID] = peer
 
 	// Unmarshal and update the peer's state
 	state, err := s.unmarshalAndCreateState(versionState)

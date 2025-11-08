@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spechtlabs/tka/pkg/cluster"
+	"github.com/spechtlabs/tka/pkg/cluster/messages"
 )
 
 // TUI model for displaying gossip state
@@ -48,6 +49,15 @@ var (
 	localNodeStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#00FF00")).
 			Bold(true)
+
+	healthyStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF00"))
+
+	suspectedDeadStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFA500"))
+
+	deadStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FF0000"))
 
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#626262"))
@@ -120,8 +130,8 @@ func (m gossipModel) View() string {
 	sb.WriteString("\n\n")
 
 	// Header
-	header := fmt.Sprintf("%-12s %-20s %-8s %-20s %-25s",
-		"ID", "Address", "Version", "State", "Last Seen")
+	header := fmt.Sprintf("%-12s %-20s %-8s %-20s %-18s %-25s",
+		"ID", "Address", "Version", "State", "Health", "Last Seen")
 	sb.WriteString(headerStyle.Render(header))
 	sb.WriteString("\n")
 
@@ -151,15 +161,35 @@ func (m gossipModel) View() string {
 			style = normalStyle
 		}
 
-		// Format the node data
-		nodeLine := fmt.Sprintf("%-12s %-20s %-8d %-20s %-25s",
+		// Get peer health status string with color
+		healthStatus := getPeerStateString(node.PeerState)
+		var healthStyle lipgloss.Style
+		switch node.PeerState {
+		case messages.PeerState_PEER_STATE_HEALTHY:
+			healthStyle = healthyStyle
+		case messages.PeerState_PEER_STATE_SUSPECTED_DEAD:
+			healthStyle = suspectedDeadStyle
+		case messages.PeerState_PEER_STATE_DEAD:
+			healthStyle = deadStyle
+		default:
+			healthStyle = normalStyle
+		}
+
+		// Format the node data (without health status for now)
+		nodeLine := fmt.Sprintf("%-12s %-20s %-8d %-20s ",
 			truncateString(node.ID, 12),
 			truncateString(node.Address, 20),
 			node.Version,
-			truncateString(node.State, 20),
-			node.LastSeen.Format("2006-01-02 15:04:05"))
+			truncateString(node.State, 20))
 
 		sb.WriteString(style.Render(nodeLine))
+		
+		// Add health status with its own color
+		sb.WriteString(healthStyle.Render(fmt.Sprintf("%-18s", healthStatus)))
+		
+		// Add last seen
+		lastSeenLine := fmt.Sprintf(" %-25s", node.LastSeen.Format("2006-01-02 15:04:05"))
+		sb.WriteString(style.Render(lastSeenLine))
 		sb.WriteString("\n")
 	}
 
@@ -193,4 +223,17 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+func getPeerStateString(state messages.PeerState) string {
+	switch state {
+	case messages.PeerState_PEER_STATE_HEALTHY:
+		return "✓ Healthy"
+	case messages.PeerState_PEER_STATE_SUSPECTED_DEAD:
+		return "⚠ Suspected Dead"
+	case messages.PeerState_PEER_STATE_DEAD:
+		return "✗ Dead"
+	default:
+		return "? Unknown"
+	}
 }
