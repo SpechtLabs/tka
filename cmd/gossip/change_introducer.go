@@ -19,6 +19,8 @@ func init() {
 	changeIntroducerCmd.Flags().Int("listen-port", 8081, "The port to listen on for incoming gossip messages")
 	changeIntroducerCmd.Flags().Duration("gossip-interval", 1*time.Second, "The interval at which to gossip messages to peers")
 	changeIntroducerCmd.Flags().Int("gossip-factor", 3, "The factor at which to gossip messages to peers")
+	changeIntroducerCmd.Flags().Int("staleness-threshold", 2, "The number of consecutive failed cycles before marking a peer as suspected dead")
+	changeIntroducerCmd.Flags().Int("dead-threshold", 4, "The number of consecutive failed cycles before marking a peer as dead and removing it")
 	changeIntroducerCmd.Flags().Duration("status-change-interval", 3*time.Second, "The interval at which to change the status of the local node")
 }
 
@@ -42,7 +44,16 @@ It is not meant to be used in production.`,
 		if err != nil {
 			return err
 		}
-
+		stalenessThreshold := cmd.Flag("staleness-threshold").Value.String()
+		stalenessThresholdInt, err := strconv.Atoi(stalenessThreshold)
+		if err != nil {
+			return err
+		}
+		deadThreshold := cmd.Flag("dead-threshold").Value.String()
+		deadThresholdInt, err := strconv.Atoi(deadThreshold)
+		if err != nil {
+			return err
+		}
 		store := cluster.NewTestGossipStore[cluster.SerializableString](listenAddr, cluster.WithLocalState(cluster.SerializableString("initial-state")))
 
 		listener, err := net.Listen("tcp", listenAddr)
@@ -57,6 +68,8 @@ It is not meant to be used in production.`,
 			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
 			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
 			cluster.WithBootstrapPeer[cluster.SerializableString](serverAddr),
+			cluster.WithStalenessThreshold[cluster.SerializableString](stalenessThresholdInt),
+			cluster.WithDeadThreshold[cluster.SerializableString](deadThresholdInt),
 		)
 
 		// Start the gossip client in a goroutine

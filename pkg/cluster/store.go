@@ -23,6 +23,7 @@ func NewDigestEntry(version uint64, peer *GossipNode) (*messages.DigestEntry, hu
 		Version:          version,
 		Address:          peer.GetAddress(),
 		LastSeenUnixNano: peer.GetLastSeen().UnixNano(),
+		PeerState:        peer.GetState(),
 	}, nil
 }
 
@@ -35,6 +36,7 @@ func NewDigestEntryFromPeerDigest(version uint64, peer *messages.DigestEntry) (*
 		Version:          version,
 		Address:          peer.Address,
 		LastSeenUnixNano: peer.LastSeenUnixNano,
+		PeerState:        peer.PeerState,
 	}, nil
 }
 
@@ -55,8 +57,26 @@ type GossipStore[T SerializableAndStringable] interface {
 	// GetPeers returns all the gossip nodes in the cluster
 	GetPeers() []GossipNode
 
+	// GetPeer returns a specific peer by id
+	GetPeer(peerID string) *GossipNode
+
 	// Heartbeat updates the last seen time of the node
 	Heartbeat(peerId string, address string)
+
+	// IncrementPeerFailure increments the consecutive failure count for a peer
+	IncrementPeerFailure(peerID string, threshold int)
+
+	// MarkPeerSuspectedDead marks a peer as suspected dead
+	MarkPeerSuspectedDead(peerID string)
+
+	// MarkPeerDead marks a peer as dead
+	MarkPeerDead(peerID string)
+
+	// ResurrectPeer marks a peer as healthy (used when a suspected dead peer responds)
+	ResurrectPeer(peerID string)
+
+	// RemoveStalePeers removes peers that have exceeded the staleness threshold
+	RemoveStalePeers(threshold int) []string
 
 	// Digest returns the version map of the local node (all connected peer nodes and their state versions)
 	Digest() (GossipDigest, []humane.Error)
@@ -82,6 +102,7 @@ type NodeDisplayData struct {
 	State       string
 	LastUpdated time.Time
 	IsLocal     bool
+	PeerState   messages.PeerState
 }
 
 func hashString(s string) string {

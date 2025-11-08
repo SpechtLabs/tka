@@ -21,6 +21,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PeerState int32
+
+const (
+	PeerState_PEER_STATE_UNSPECIFIED    PeerState = 0
+	PeerState_PEER_STATE_HEALTHY        PeerState = 1
+	PeerState_PEER_STATE_SUSPECTED_DEAD PeerState = 2
+	PeerState_PEER_STATE_DEAD           PeerState = 3
+)
+
+// Enum value maps for PeerState.
+var (
+	PeerState_name = map[int32]string{
+		0: "PEER_STATE_UNSPECIFIED",
+		1: "PEER_STATE_HEALTHY",
+		2: "PEER_STATE_SUSPECTED_DEAD",
+		3: "PEER_STATE_DEAD",
+	}
+	PeerState_value = map[string]int32{
+		"PEER_STATE_UNSPECIFIED":    0,
+		"PEER_STATE_HEALTHY":        1,
+		"PEER_STATE_SUSPECTED_DEAD": 2,
+		"PEER_STATE_DEAD":           3,
+	}
+)
+
+func (x PeerState) Enum() *PeerState {
+	p := new(PeerState)
+	*p = x
+	return p
+}
+
+func (x PeerState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PeerState) Descriptor() protoreflect.EnumDescriptor {
+	return file_pkg_cluster_messages_proto_enumTypes[0].Descriptor()
+}
+
+func (PeerState) Type() protoreflect.EnumType {
+	return &file_pkg_cluster_messages_proto_enumTypes[0]
+}
+
+func (x PeerState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PeerState.Descriptor instead.
+func (PeerState) EnumDescriptor() ([]byte, []int) {
+	return file_pkg_cluster_messages_proto_rawDescGZIP(), []int{0}
+}
+
 type GossipMessageEnvelope struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SrcId         string                 `protobuf:"bytes,1,opt,name=srcId,proto3" json:"srcId,omitempty"`
@@ -400,6 +452,7 @@ type DigestEntry struct {
 	Version          uint64                 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Address          string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	LastSeenUnixNano int64                  `protobuf:"varint,3,opt,name=last_seen_unix_nano,json=lastSeenUnixNano,proto3" json:"last_seen_unix_nano,omitempty"`
+	PeerState        PeerState              `protobuf:"varint,4,opt,name=peer_state,json=peerState,proto3,enum=PeerState" json:"peer_state,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -455,6 +508,13 @@ func (x *DigestEntry) GetLastSeenUnixNano() int64 {
 	return 0
 }
 
+func (x *DigestEntry) GetPeerState() PeerState {
+	if x != nil {
+		return x.PeerState
+	}
+	return PeerState_PEER_STATE_UNSPECIFIED
+}
+
 var File_pkg_cluster_messages_proto protoreflect.FileDescriptor
 
 const file_pkg_cluster_messages_proto_rawDesc = "" +
@@ -498,11 +558,19 @@ const file_pkg_cluster_messages_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x15.GossipVersionedStateR\x05value:\x028\x01\"[\n" +
 	"\x14GossipVersionedState\x12/\n" +
 	"\fdigest_entry\x18\x01 \x01(\v2\f.DigestEntryR\vdigestEntry\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\fR\x04data\"p\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\"\x9b\x01\n" +
 	"\vDigestEntry\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x04R\aversion\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12-\n" +
-	"\x13last_seen_unix_nano\x18\x03 \x01(\x03R\x10lastSeenUnixNanoB\x16Z\x14pkg/cluster/messagesb\x06proto3"
+	"\x13last_seen_unix_nano\x18\x03 \x01(\x03R\x10lastSeenUnixNano\x12)\n" +
+	"\n" +
+	"peer_state\x18\x04 \x01(\x0e2\n" +
+	".PeerStateR\tpeerState*s\n" +
+	"\tPeerState\x12\x1a\n" +
+	"\x16PEER_STATE_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12PEER_STATE_HEALTHY\x10\x01\x12\x1d\n" +
+	"\x19PEER_STATE_SUSPECTED_DEAD\x10\x02\x12\x13\n" +
+	"\x0fPEER_STATE_DEAD\x10\x03B\x16Z\x14pkg/cluster/messagesb\x06proto3"
 
 var (
 	file_pkg_cluster_messages_proto_rawDescOnce sync.Once
@@ -516,39 +584,42 @@ func file_pkg_cluster_messages_proto_rawDescGZIP() []byte {
 	return file_pkg_cluster_messages_proto_rawDescData
 }
 
+var file_pkg_cluster_messages_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_pkg_cluster_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_pkg_cluster_messages_proto_goTypes = []any{
-	(*GossipMessageEnvelope)(nil),  // 0: GossipMessageEnvelope
-	(*GossipMessage)(nil),          // 1: GossipMessage
-	(*GossipHeartbeatMessage)(nil), // 2: GossipHeartbeatMessage
-	(*GossipDiffMessage)(nil),      // 3: GossipDiffMessage
-	(*GossipDeltaMessage)(nil),     // 4: GossipDeltaMessage
-	(*GossipVersionedState)(nil),   // 5: GossipVersionedState
-	(*DigestEntry)(nil),            // 6: DigestEntry
-	nil,                            // 7: GossipHeartbeatMessage.VersionMapDigestEntry
-	nil,                            // 8: GossipDiffMessage.StateDeltaEntry
-	nil,                            // 9: GossipDiffMessage.VersionMapDigestEntry
-	nil,                            // 10: GossipDeltaMessage.StateDeltaEntry
+	(PeerState)(0),                 // 0: PeerState
+	(*GossipMessageEnvelope)(nil),  // 1: GossipMessageEnvelope
+	(*GossipMessage)(nil),          // 2: GossipMessage
+	(*GossipHeartbeatMessage)(nil), // 3: GossipHeartbeatMessage
+	(*GossipDiffMessage)(nil),      // 4: GossipDiffMessage
+	(*GossipDeltaMessage)(nil),     // 5: GossipDeltaMessage
+	(*GossipVersionedState)(nil),   // 6: GossipVersionedState
+	(*DigestEntry)(nil),            // 7: DigestEntry
+	nil,                            // 8: GossipHeartbeatMessage.VersionMapDigestEntry
+	nil,                            // 9: GossipDiffMessage.StateDeltaEntry
+	nil,                            // 10: GossipDiffMessage.VersionMapDigestEntry
+	nil,                            // 11: GossipDeltaMessage.StateDeltaEntry
 }
 var file_pkg_cluster_messages_proto_depIdxs = []int32{
-	0,  // 0: GossipMessage.envelope:type_name -> GossipMessageEnvelope
-	2,  // 1: GossipMessage.heartbeat_message:type_name -> GossipHeartbeatMessage
-	3,  // 2: GossipMessage.gossip_diff_message:type_name -> GossipDiffMessage
-	4,  // 3: GossipMessage.gossip_delta_message:type_name -> GossipDeltaMessage
-	7,  // 4: GossipHeartbeatMessage.version_map_digest:type_name -> GossipHeartbeatMessage.VersionMapDigestEntry
-	8,  // 5: GossipDiffMessage.state_delta:type_name -> GossipDiffMessage.StateDeltaEntry
-	9,  // 6: GossipDiffMessage.version_map_digest:type_name -> GossipDiffMessage.VersionMapDigestEntry
-	10, // 7: GossipDeltaMessage.state_delta:type_name -> GossipDeltaMessage.StateDeltaEntry
-	6,  // 8: GossipVersionedState.digest_entry:type_name -> DigestEntry
-	6,  // 9: GossipHeartbeatMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
-	5,  // 10: GossipDiffMessage.StateDeltaEntry.value:type_name -> GossipVersionedState
-	6,  // 11: GossipDiffMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
-	5,  // 12: GossipDeltaMessage.StateDeltaEntry.value:type_name -> GossipVersionedState
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	1,  // 0: GossipMessage.envelope:type_name -> GossipMessageEnvelope
+	3,  // 1: GossipMessage.heartbeat_message:type_name -> GossipHeartbeatMessage
+	4,  // 2: GossipMessage.gossip_diff_message:type_name -> GossipDiffMessage
+	5,  // 3: GossipMessage.gossip_delta_message:type_name -> GossipDeltaMessage
+	8,  // 4: GossipHeartbeatMessage.version_map_digest:type_name -> GossipHeartbeatMessage.VersionMapDigestEntry
+	9,  // 5: GossipDiffMessage.state_delta:type_name -> GossipDiffMessage.StateDeltaEntry
+	10, // 6: GossipDiffMessage.version_map_digest:type_name -> GossipDiffMessage.VersionMapDigestEntry
+	11, // 7: GossipDeltaMessage.state_delta:type_name -> GossipDeltaMessage.StateDeltaEntry
+	7,  // 8: GossipVersionedState.digest_entry:type_name -> DigestEntry
+	0,  // 9: DigestEntry.peer_state:type_name -> PeerState
+	7,  // 10: GossipHeartbeatMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
+	6,  // 11: GossipDiffMessage.StateDeltaEntry.value:type_name -> GossipVersionedState
+	7,  // 12: GossipDiffMessage.VersionMapDigestEntry.value:type_name -> DigestEntry
+	6,  // 13: GossipDeltaMessage.StateDeltaEntry.value:type_name -> GossipVersionedState
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_pkg_cluster_messages_proto_init() }
@@ -566,13 +637,14 @@ func file_pkg_cluster_messages_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_cluster_messages_proto_rawDesc), len(file_pkg_cluster_messages_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_pkg_cluster_messages_proto_goTypes,
 		DependencyIndexes: file_pkg_cluster_messages_proto_depIdxs,
+		EnumInfos:         file_pkg_cluster_messages_proto_enumTypes,
 		MessageInfos:      file_pkg_cluster_messages_proto_msgTypes,
 	}.Build()
 	File_pkg_cluster_messages_proto = out.File
