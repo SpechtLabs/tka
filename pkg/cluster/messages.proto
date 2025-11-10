@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "pkg/cluster/messages";
+option go_package = "github.com/spechtlabs/tka/pkg/cluster/messages";
 
 enum PeerState {
     PEER_STATE_UNSPECIFIED = 0;
@@ -12,16 +12,6 @@ message GossipMessageEnvelope {
     string srcId = 1;
     string answerPort = 2;
     string traceparent = 3; // W3C Trace Context traceparent header for distributed tracing
-}
-
-message GossipMessage {
-    GossipMessageEnvelope envelope = 1;
-    oneof message {
-        GossipHeartbeatMessage heartbeat_message = 2;
-        GossipDiffMessage gossip_diff_message = 3;
-        GossipDeltaMessage gossip_delta_message = 4;
-    }
-    string hash = 5;
 }
 
 message GossipHeartbeatMessage {
@@ -48,4 +38,54 @@ message DigestEntry {
     string address = 2;
     int64 last_seen_unix_nano = 3;
     PeerState peer_state = 4;
+}
+
+// Request/Response wrappers that include envelope metadata and hash
+message GossipHeartbeatRequest {
+    GossipMessageEnvelope envelope = 1;
+    GossipHeartbeatMessage heartbeat_message = 2;
+    string hash = 3; // Message integrity hash
+}
+
+message GossipDiffResponse {
+    GossipMessageEnvelope envelope = 1;
+    GossipDiffMessage gossip_diff_message = 2;
+    string hash = 3; // Message integrity hash
+}
+
+message GossipDiffRequest {
+    GossipMessageEnvelope envelope = 1;
+    GossipDiffMessage gossip_diff_message = 2;
+    string hash = 3; // Message integrity hash
+}
+
+message GossipDeltaResponse {
+    GossipMessageEnvelope envelope = 1;
+    GossipDeltaMessage gossip_delta_message = 2; // Optional: only present if delta exists
+    string hash = 3; // Message integrity hash (only present if gossip_delta_message is present)
+    bool has_delta = 4; // Indicates whether gossip_delta_message contains data
+}
+
+message GossipDeltaRequest {
+    GossipMessageEnvelope envelope = 1;
+    GossipDeltaMessage gossip_delta_message = 2;
+    string hash = 3; // Message integrity hash
+}
+
+message GossipEmptyResponse {
+    // Empty response for operations that don't return data
+}
+
+service GossipService {
+    // SendHeartbeat: Client sends heartbeat, server responds with diff
+    // Flow: Heartbeat → Diff
+    rpc SendHeartbeat(GossipHeartbeatRequest) returns (GossipDiffResponse);
+
+    // SendDiff: Client sends diff, server responds with delta (if any) or empty
+    // Flow: Diff → Delta (or empty)
+    rpc SendDiff(GossipDiffRequest) returns (GossipDeltaResponse);
+
+    // SendDelta: Client sends delta, server applies it and returns empty
+    // Flow: Delta → Empty
+    rpc SendDelta(GossipDeltaRequest) returns (GossipEmptyResponse);
 }
