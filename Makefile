@@ -30,7 +30,12 @@ controller-gen: swag ## Generate code containing DeepCopy, DeepCopyInto, and Dee
 
 .PHONY: protoc
 protoc:
-	protoc --go_out=./ ./pkg/cluster/messages.proto
+	protoc \
+		--go_out=./ \
+		--go_opt=module=github.com/spechtlabs/tka \
+	    --go-grpc_out=./ \
+		--go-grpc_opt=module=github.com/spechtlabs/tka \
+		./pkg/cluster/messages.proto
 
 .PHONY: manifests
 manifests:
