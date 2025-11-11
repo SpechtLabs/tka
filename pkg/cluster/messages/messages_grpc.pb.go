@@ -28,13 +28,13 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GossipServiceClient interface {
-	// SendHeartbeat: Client sends heartbeat, server responds with diff
+	// SendHeartbeat: Node A sends heartbeat to Node B, Node B responds with diff
 	// Flow: Heartbeat → Diff
 	SendHeartbeat(ctx context.Context, in *GossipHeartbeatRequest, opts ...grpc.CallOption) (*GossipDiffResponse, error)
-	// SendDiff: Client sends diff, server responds with delta (if any) or empty
+	// SendDiff: Node A sends diff to Node B, Node B responds with delta (if any) or empty
 	// Flow: Diff → Delta (or empty)
 	SendDiff(ctx context.Context, in *GossipDiffRequest, opts ...grpc.CallOption) (*GossipDeltaResponse, error)
-	// SendDelta: Client sends delta, server applies it and returns empty
+	// SendDelta: Node A sends delta to Node B, Node B applies it and returns empty
 	// Flow: Delta → Empty
 	SendDelta(ctx context.Context, in *GossipDeltaRequest, opts ...grpc.CallOption) (*GossipEmptyResponse, error)
 }
@@ -81,13 +81,13 @@ func (c *gossipServiceClient) SendDelta(ctx context.Context, in *GossipDeltaRequ
 // All implementations must embed UnimplementedGossipServiceServer
 // for forward compatibility.
 type GossipServiceServer interface {
-	// SendHeartbeat: Client sends heartbeat, server responds with diff
+	// SendHeartbeat: Node A sends heartbeat to Node B, Node B responds with diff
 	// Flow: Heartbeat → Diff
 	SendHeartbeat(context.Context, *GossipHeartbeatRequest) (*GossipDiffResponse, error)
-	// SendDiff: Client sends diff, server responds with delta (if any) or empty
+	// SendDiff: Node A sends diff to Node B, Node B responds with delta (if any) or empty
 	// Flow: Diff → Delta (or empty)
 	SendDiff(context.Context, *GossipDiffRequest) (*GossipDeltaResponse, error)
-	// SendDelta: Client sends delta, server applies it and returns empty
+	// SendDelta: Node A sends delta to Node B, Node B applies it and returns empty
 	// Flow: Delta → Empty
 	SendDelta(context.Context, *GossipDeltaRequest) (*GossipEmptyResponse, error)
 	mustEmbedUnimplementedGossipServiceServer()

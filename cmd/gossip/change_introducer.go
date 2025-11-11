@@ -64,7 +64,7 @@ It is not meant to be used in production.`,
 
 		gossiper := cluster.NewGossipClient[cluster.SerializableString](
 			store,
-			&listener,
+			listener,
 			cluster.WithGossipFactor[cluster.SerializableString](gossipFactorInt),
 			cluster.WithGossipInterval[cluster.SerializableString](gossipIntervalDuration),
 			cluster.WithBootstrapPeer[cluster.SerializableString](serverAddr),
@@ -96,6 +96,13 @@ It is not meant to be used in production.`,
 		// Create and start the TUI
 		model := newGossipModel(store)
 		p := tea.NewProgram(model, tea.WithAltScreen())
+
+		// Monitor context cancellation and quit TUI when context is cancelled
+		go func() {
+			<-cmd.Context().Done()
+			gossiper.Stop()
+			p.Quit()
+		}()
 
 		if _, err := p.Run(); err != nil {
 			return err

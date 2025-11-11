@@ -49,16 +49,12 @@ func (n *GossipNode) String() string {
 
 func (n *GossipNode) Heartbeat(address string) {
 	if n.address != address {
-		otelzap.L().Sugar().With(
-			"old_address", n.address,
-			"new_address", address,
-		).Debug("Heartbeat: Node address changed")
 
 		n.address = address
 	}
 	n.lastSeen = time.Now()
 	n.consecutiveFails = 0 // Reset failure count on successful heartbeat
-	
+
 	// If the peer was suspected dead or dead, resurrect it since we're receiving a direct message
 	if !n.IsHealthy() {
 		previousState := n.state

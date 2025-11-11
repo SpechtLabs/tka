@@ -119,7 +119,7 @@ func (s *TestGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) 
 
 	peer, ok := s.peers[peerID]
 	if !ok {
-		otelzap.L().Warn("Attempted to increment failure count for unknown peer", zap.String("peerID", peerID))
+		otelzap.L().Warn("Attempted to increment failure count for unknown peer", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 		return
 	}
 
@@ -129,6 +129,7 @@ func (s *TestGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) 
 	if peer.IsStale(threshold) && peer.IsHealthy() {
 		peer.MarkSuspectedDead()
 		otelzap.L().Info("Peer marked as suspected dead",
+			zap.String("nodeID", s.GetId()),
 			zap.String("peerID", peerID),
 			zap.String("address", peer.GetAddress()),
 		)
@@ -137,6 +138,7 @@ func (s *TestGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) 
 	s.peers[peerID] = peer
 
 	otelzap.L().Debug("Incremented peer failure count",
+		zap.String("nodeID", s.GetId()),
 		zap.String("peerID", peerID),
 		zap.Int("consecutiveFails", peer.GetConsecutiveFails()),
 		zap.String("state", peer.GetState().String()),
@@ -149,7 +151,7 @@ func (s *TestGossipStore[T]) MarkPeerSuspectedDead(peerID string) {
 
 	peer, ok := s.peers[peerID]
 	if !ok {
-		otelzap.L().Warn("Attempted to mark unknown peer as suspected dead", zap.String("peerID", peerID))
+		otelzap.L().Warn("Attempted to mark unknown peer as suspected dead", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 		return
 	}
 
@@ -157,6 +159,7 @@ func (s *TestGossipStore[T]) MarkPeerSuspectedDead(peerID string) {
 	s.peers[peerID] = peer
 
 	otelzap.L().Info("Peer marked as suspected dead",
+		zap.String("nodeID", s.GetId()),
 		zap.String("peerID", peerID),
 		zap.String("address", peer.GetAddress()),
 	)
@@ -168,7 +171,7 @@ func (s *TestGossipStore[T]) MarkPeerDead(peerID string) {
 
 	peer, ok := s.peers[peerID]
 	if !ok {
-		otelzap.L().Warn("Attempted to mark unknown peer as dead", zap.String("peerID", peerID))
+		otelzap.L().Warn("Attempted to mark unknown peer as dead", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 		return
 	}
 
@@ -176,6 +179,7 @@ func (s *TestGossipStore[T]) MarkPeerDead(peerID string) {
 	s.peers[peerID] = peer
 
 	otelzap.L().Info("Peer marked as dead",
+		zap.String("nodeID", s.GetId()),
 		zap.String("peerID", peerID),
 		zap.String("address", peer.GetAddress()),
 	)
@@ -187,7 +191,7 @@ func (s *TestGossipStore[T]) ResurrectPeer(peerID string) {
 
 	peer, ok := s.peers[peerID]
 	if !ok {
-		otelzap.L().Warn("Attempted to resurrect unknown peer", zap.String("peerID", peerID))
+		otelzap.L().Warn("Attempted to resurrect unknown peer", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 		return
 	}
 
@@ -196,6 +200,7 @@ func (s *TestGossipStore[T]) ResurrectPeer(peerID string) {
 	s.peers[peerID] = peer
 
 	otelzap.L().Info("Peer resurrected",
+		zap.String("nodeID", s.GetId()),
 		zap.String("peerID", peerID),
 		zap.String("address", peer.GetAddress()),
 		zap.String("previousState", oldState.String()),
@@ -220,6 +225,7 @@ func (s *TestGossipStore[T]) RemoveStalePeers(threshold int) []string {
 		// Remove peers that are marked as dead
 		if peer.IsDead() {
 			otelzap.L().Info("Removing dead peer",
+				zap.String("nodeID", s.GetId()),
 				zap.String("peerID", peerID),
 				zap.String("address", peer.GetAddress()),
 				zap.String("state", peer.GetState().String()),
@@ -241,6 +247,7 @@ func (s *TestGossipStore[T]) RemoveStalePeers(threshold int) []string {
 			s.peers[peerID] = peer
 
 			otelzap.L().Info("Suspected dead peer exceeded threshold, marking as dead",
+				zap.String("nodeID", s.GetId()),
 				zap.String("peerID", peerID),
 				zap.String("address", peer.GetAddress()),
 				zap.Int("consecutiveFails", peer.GetConsecutiveFails()),
@@ -266,7 +273,7 @@ func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 		peer, ok := s.peers[peerID]
 		// If we don't have the peer in the peers map, and it's not the local node, we skip it
 		if !ok && peerID != s.GetId() {
-			otelzap.L().Warn("Peer not found in peers map", zap.String("peerID", peerID))
+			otelzap.L().Warn("Peer not found in peers map", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 			continue
 		}
 
@@ -279,6 +286,7 @@ func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 		// unless they resurrect themselves
 		if peer.IsSuspectedDead() || peer.IsDead() {
 			otelzap.L().Debug("Skipping non-healthy peer in digest",
+				zap.String("nodeID", s.GetId()),
 				zap.String("peerID", peerID),
 				zap.String("state", peer.GetState().String()),
 			)
@@ -385,14 +393,14 @@ func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
 			if peerID == s.GetId() {
 				peer = NewGossipNode(peerID, s.address)
 			} else {
-				otelzap.L().Error("Peer not found in peers map, how is this possible?", zap.String("peerID", peerID))
+				otelzap.L().Error("Peer not found in peers map, how is this possible?", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 				continue
 			}
 		}
 
 		state, ok := s.state[peerID]
 		if !ok {
-			otelzap.L().Error("State not found in state map, how is this possible?", zap.String("peerID", peerID))
+			otelzap.L().Error("State not found in state map, how is this possible?", zap.String("nodeID", s.GetId()), zap.String("peerID", peerID))
 			continue
 		}
 
@@ -539,7 +547,7 @@ func (s *TestGossipStore[T]) announceLocalState(other GossipDigest, diff GossipD
 
 	localState, ok := s.state[s.GetId()]
 	if !ok {
-		otelzap.L().Error("Local state not found in state map, how is this possible?", zap.String("peerID", s.GetId()))
+		otelzap.L().Error("Local state not found in state map, how is this possible?", zap.String("nodeID", s.GetId()), zap.String("peerID", s.GetId()))
 		return errors
 	}
 
@@ -592,6 +600,7 @@ func (s *TestGossipStore[T]) applyNewPeerState(peerID string, versionState *mess
 	if versionState.DigestEntry.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD ||
 		versionState.DigestEntry.PeerState == messages.PeerState_PEER_STATE_DEAD {
 		otelzap.L().Debug("Rejecting new peer with non-healthy state",
+			zap.String("nodeID", s.GetId()),
 			zap.String("peerID", peerID),
 			zap.String("peerState", versionState.DigestEntry.PeerState.String()),
 			zap.String("address", versionState.DigestEntry.Address),
@@ -610,6 +619,7 @@ func (s *TestGossipStore[T]) applyNewPeerState(peerID string, versionState *mess
 	s.peers[peerID] = newNode
 
 	otelzap.L().Debug("Added new peer to database",
+		zap.String("nodeID", s.GetId()),
 		zap.String("peerID", peerID),
 		zap.String("address", versionState.DigestEntry.Address),
 		zap.String("state", newNode.GetState().String()),
@@ -671,6 +681,7 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState 
 				// Update last seen time to match remote's fresher info
 				peer.SetLastSeen(remoteLastSeen)
 				otelzap.L().Info("Peer resurrected based on remote info",
+					zap.String("nodeID", s.GetId()),
 					zap.String("peerID", peerID),
 					zap.String("previousState", localState.String()),
 					zap.Time("remoteLastSeen", remoteLastSeen),
@@ -679,6 +690,7 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState 
 				)
 			} else if !peer.IsHealthy() && !remoteIsSignificantlyNewer {
 				otelzap.L().Debug("Ignoring remote healthy state (not significantly newer)",
+					zap.String("nodeID", s.GetId()),
 					zap.String("peerID", peerID),
 					zap.Time("remoteLastSeen", remoteLastSeen),
 					zap.Time("localLastSeen", localLastSeen),
@@ -692,6 +704,7 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState 
 			if localState == messages.PeerState_PEER_STATE_HEALTHY {
 				peer.MarkSuspectedDead()
 				otelzap.L().Info("Peer marked suspected dead via gossip",
+					zap.String("nodeID", s.GetId()),
 					zap.String("peerID", peerID),
 				)
 			}
@@ -700,6 +713,7 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState 
 			if !peer.IsDead() {
 				peer.MarkDead()
 				otelzap.L().Info("Peer marked dead via gossip",
+					zap.String("nodeID", s.GetId()),
 					zap.String("peerID", peerID),
 				)
 			}

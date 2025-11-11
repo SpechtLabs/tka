@@ -1,11 +1,8 @@
 package cluster
 
 import (
-	"bufio"
 	"context"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"net"
 	"slices"
@@ -15,66 +12,50 @@ import (
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/pkg/cluster/messages"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
 )
-
-const varintLenBytes = 10
 
 var (
 	tracer = otel.Tracer("github.com/spechtlabs/tka/pkg/cluster")
 )
 
 type GossipClient[T SerializableAndStringable] struct {
+	messages.UnimplementedGossipServiceServer // Embed for forward compatibility
+
 	peersMu        sync.RWMutex
 	bootstrapPeers []string
 
-	gossipFactor          int
-	gossipInterval        time.Duration
-	stalenessThreshold    int // Number of consecutive failed cycles before considering a peer as suspected dead
-	deadThreshold         int // Number of consecutive failed cycles before considering a peer as dead (requires to be N > stalenessThreshold)
-	resurrectionThreshold int // Number of gossipIntervals which the peer must be in the healthy state from another node to be considered resurrected
-	store                 GossipStore[T]
-	listener              *net.Listener
-	listenerPort          string
+	gossipFactor       int
+	gossipInterval     time.Duration
+	stalenessThreshold int // Number of consecutive failed cycles before considering a peer as suspected dead
+	deadThreshold      int // Number of consecutive failed cycles before considering a peer as dead (requires to be N > stalenessThreshold)
+	store              GossipStore[T]
+	grpcServer         *grpc.Server
+	listenerPort       string
+	listenerAddr       string // Full address (host:port) for return address
+
+	// Connection pool for persistent gRPC clients
+	connsMu sync.RWMutex
+	conns   map[string]*grpc.ClientConn             // Map of peer address -> gRPC client connection
+	clients map[string]messages.GossipServiceClient // Map of peer address -> gRPC service client
 }
 
-type GossipClientOption[T SerializableAndStringable] func(*GossipClient[T])
-
-func WithGossipFactor[T SerializableAndStringable](gossipFactor int) GossipClientOption[T] {
-	return func(c *GossipClient[T]) { c.gossipFactor = gossipFactor }
-}
-
-func WithGossipInterval[T SerializableAndStringable](gossipInterval time.Duration) GossipClientOption[T] {
-	return func(c *GossipClient[T]) { c.gossipInterval = gossipInterval }
-}
-
-func WithBootstrapPeer[T SerializableAndStringable](peers ...string) GossipClientOption[T] {
-	return func(c *GossipClient[T]) {
-		c.peersMu.Lock()
-		defer c.peersMu.Unlock()
-		c.bootstrapPeers = append(c.bootstrapPeers, peers...)
-	}
-}
-
-func WithStalenessThreshold[T SerializableAndStringable](threshold int) GossipClientOption[T] {
-	return func(c *GossipClient[T]) { c.stalenessThreshold = threshold }
-}
-
-func WithDeadThreshold[T SerializableAndStringable](threshold int) GossipClientOption[T] {
-	return func(c *GossipClient[T]) { c.deadThreshold = threshold }
-}
-
-func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener *net.Listener, opts ...GossipClientOption[T]) *GossipClient[T] {
-	listenerAddr := (*listener).Addr().String()
+func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener net.Listener, opts ...GossipClientOption[T]) *GossipClient[T] {
+	listenerAddr := listener.Addr().String()
 	_, port, err := net.SplitHostPort(listenerAddr)
 	if err != nil {
-		otelzap.L().WithError(err).Error("Failed to split listener address")
+		otelzap.L().WithError(err).Error("Failed to split listener address", zap.String("nodeID", store.GetId()))
 		return nil
 	}
 
@@ -85,8 +66,10 @@ func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener
 		deadThreshold:      10, // Default: 10 consecutive failed cycles
 		bootstrapPeers:     make([]string, 0),
 		store:              store,
-		listener:           listener,
 		listenerPort:       port,
+		listenerAddr:       listenerAddr,
+		conns:              make(map[string]*grpc.ClientConn),
+		clients:            make(map[string]messages.GossipServiceClient),
 	}
 
 	for _, opt := range opts {
@@ -94,49 +77,27 @@ func NewGossipClient[T SerializableAndStringable](store GossipStore[T], listener
 	}
 
 	if c.deadThreshold <= c.stalenessThreshold {
-		otelzap.L().Sugar().Error("deadThreshold must be greater than stalenessThreshold")
+		otelzap.L().Sugar().With("nodeID", c.store.GetId()).Error("deadThreshold must be greater than stalenessThreshold")
 		return nil
 	}
+
+	// Create gRPC server with OpenTelemetry stats handler for automatic trace context propagation
+	c.grpcServer = grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
+	messages.RegisterGossipServiceServer(c.grpcServer, c)
+
+	// Start gRPC server in a goroutine
+	go func() {
+		if err := c.grpcServer.Serve(listener); err != nil {
+			otelzap.L().WithError(err).Error("gRPC server failed", zap.String("nodeID", c.store.GetId()))
+		}
+	}()
 
 	return c
 }
 
 func (c *GossipClient[T]) Start(ctx context.Context) {
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() { defer wg.Done(); c.gossipReceiveLoop(ctx) }()
-	go func() { defer wg.Done(); c.gossipSendLoop(ctx) }()
-
-	wg.Wait()
-}
-
-func (c *GossipClient[T]) gossipReceiveLoop(ctx context.Context) {
-	if c.listener == nil {
-		otelzap.L().Sugar().Error("Gossip listener not set")
-		return
-	}
-
-	// Listen for incoming gossip messages
-	for {
-		conn, err := (*c.listener).Accept()
-		if err != nil {
-			return
-		}
-		go func() {
-			if err := c.handleGossipPeer(ctx, conn); err != nil {
-				otelzap.L().WithError(err).Error("failed to handle gossip peer")
-			}
-		}()
-	}
-}
-
-func (c *GossipClient[T]) gossipSendLoop(ctx context.Context) {
-	// Sleep for a random amount of time before starting the gossip sender to avoid all nodes gossiping at the same time
-	startDealy := rand.Int64N(c.gossipInterval.Milliseconds())
-	<-time.After(time.Millisecond * time.Duration(startDealy))
-
-	// run it one before the ticker starts
 	c.gossipToPeers(ctx)
 
 	// Periodically send gossip messages to the peers until the context is done
@@ -154,6 +115,23 @@ func (c *GossipClient[T]) gossipSendLoop(ctx context.Context) {
 	}
 }
 
+func (c *GossipClient[T]) Stop() {
+	if c.grpcServer != nil {
+		c.grpcServer.GracefulStop()
+	}
+
+	// Close all gRPC client connections
+	c.connsMu.Lock()
+	defer c.connsMu.Unlock()
+	for addr, conn := range c.conns {
+		if err := conn.Close(); err != nil {
+			otelzap.L().WithError(err).Error("Failed to close gRPC connection", zap.String("nodeID", c.store.GetId()), zap.String("peer", addr))
+		}
+		delete(c.conns, addr)
+		delete(c.clients, addr)
+	}
+}
+
 func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 	ctx, span := tracer.Start(ctx, "gossip.gossipToPeers",
 		trace.WithAttributes(
@@ -163,81 +141,26 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 	)
 	defer span.End()
 
-	// copy the peer slice to avoid modifying the original slice
-	c.peersMu.RLock()
-	peers := c.bootstrapPeers
-	c.peersMu.RUnlock()
-
-	// Get an up to date list of all our peers and add them to the peers slice if they are not already in it
-	// Create a map to track peer address to peer ID
-	peerAddressToID := make(map[string]string)
-	for _, peer := range c.store.GetPeers() {
-		peerAddressToID[peer.GetAddress()] = peer.ID()
-		if slices.Contains(peers, peer.GetAddress()) {
-			continue
-		}
-		peers = append(peers, peer.GetAddress())
-	}
-
-	// randomize the peer
-	rand.Shuffle(len(peers), func(i, j int) {
-		peers[i], peers[j] = peers[j], peers[i]
-	})
-
-	// Account for the case where the number of peers is less than the gossip factor
-	gossipFactor := min(c.gossipFactor, len(peers))
-
-	// select the first n peers to gossip with where n is the gossip factor
-	peers = peers[:gossipFactor]
+	// Select peers to gossip with
+	peerIDs := c.selectPeersToGossip()
 
 	span.SetAttributes(
-		attribute.Int("gossip.total_peers", len(peers)),
-		attribute.StringSlice("gossip.target_peers", peers),
+		attribute.Int("gossip.total_peers", len(peerIDs)),
+		attribute.StringSlice("gossip.target_peer_ids", peerIDs),
 	)
 
 	// Gossip with the selected peers
-
 	gossipEnvelope := &messages.GossipMessageEnvelope{
-		SrcId:      c.store.GetId(),
-		AnswerPort: c.listenerPort,
+		SrcId: c.store.GetId(),
 	}
 
 	var wg sync.WaitGroup
-	for _, peer := range peers {
-		digest, errors := c.store.Digest()
-		if len(errors) > 0 {
-			for _, err := range errors {
-				otelzap.L().WithError(err).Ctx(ctx).Error("failed to get digest")
-			}
-			continue
-		}
-
-		msg := &messages.GossipMessage{
-			Envelope: gossipEnvelope,
-			Message: &messages.GossipMessage_HeartbeatMessage{
-				HeartbeatMessage: &messages.GossipHeartbeatMessage{
-					TsUnixNano:       time.Now().UnixNano(),
-					VersionMapDigest: digest,
-				},
-			},
-		}
-
+	for _, peerID := range peerIDs {
 		wg.Add(1)
-		go func(peerAddr string) {
+		go func(id string) {
 			defer wg.Done()
-			// Add a random jitter up to 150ms to avoid all nodes gossiping at the same time
-			<-time.After(time.Duration(rand.Uint32N(150)) * time.Millisecond)
-
-			// send the gossip message
-			if err := c.gossipWithPeer(ctx, peerAddr, msg); err != nil {
-				otelzap.L().WithError(err).Ctx(ctx).Error("failed to gossip with peer")
-
-				// Increment failure count for this peer if we know its ID
-				if peerID, ok := peerAddressToID[peerAddr]; ok {
-					c.store.IncrementPeerFailure(peerID, c.stalenessThreshold)
-				}
-			}
-		}(peer)
+			c.gossipWithPeer(ctx, id, gossipEnvelope)
+		}(peerID)
 	}
 
 	wg.Wait()
@@ -250,179 +173,454 @@ func (c *GossipClient[T]) gossipToPeers(ctx context.Context) {
 			attribute.StringSlice("gossip.removed_peer_ids", removedPeers),
 		)
 		otelzap.Ctx(ctx).Info("Removed stale peers",
+			zap.String("nodeID", c.store.GetId()),
 			zap.Int("count", len(removedPeers)),
 			zap.Strings("peer_ids", removedPeers),
 		)
 	}
 }
 
-func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peer string, msg *messages.GossipMessage) humane.Error {
-	ctx, cancel := context.WithTimeout(ctx, c.gossipInterval)
-	defer cancel()
+// selectPeersToGossip selects a subset of peers to gossip with based on the gossip factor.
+// It returns the selected peer node IDs.
+func (c *GossipClient[T]) selectPeersToGossip() []string {
+	// Get all known peers from the store (by ID)
+	knownPeers := c.store.GetPeers()
+	peerIDs := make([]string, 0, len(knownPeers))
+	for _, peer := range knownPeers {
+		peerIDs = append(peerIDs, peer.ID())
+	}
 
-	ctx, span := tracer.Start(ctx, "gossip.gossipWithPeer",
+	// Add bootstrap peers that aren't already known
+	// For bootstrap peers, we use the address as a temporary ID until we learn their actual ID
+	c.peersMu.RLock()
+	bootstrapPeers := c.bootstrapPeers
+	c.peersMu.RUnlock()
+
+	// Build a set of known addresses and peer IDs to avoid duplicates
+	knownAddresses := make(map[string]bool)
+	knownPeerIDs := make(map[string]bool)
+	for _, peer := range knownPeers {
+		knownAddresses[peer.GetAddress()] = true
+		knownPeerIDs[peer.ID()] = true
+	}
+
+	for _, bootstrapAddr := range bootstrapPeers {
+		// Only add bootstrap peer if:
+		// 1. We don't already have a peer with this address
+		// 2. We don't already have this address as a peer ID (since we add all known peer IDs first)
+		if !knownAddresses[bootstrapAddr] && !knownPeerIDs[bootstrapAddr] {
+			// Use address as temporary ID for bootstrap peers we haven't connected to yet
+			peerIDs = append(peerIDs, bootstrapAddr)
+		}
+	}
+
+	// Randomize the peer list to avoid always gossiping with the same peers
+	rand.Shuffle(len(peerIDs), func(i, j int) {
+		peerIDs[i], peerIDs[j] = peerIDs[j], peerIDs[i]
+	})
+
+	// Account for the case where the number of peers is less than the gossip factor
+	gossipFactor := min(c.gossipFactor, len(peerIDs))
+
+	// Select the first n peers to gossip with where n is the gossip factor
+	return peerIDs[:gossipFactor]
+}
+
+func (c *GossipClient[T]) gossipWithPeer(ctx context.Context, peerID string, envelope *messages.GossipMessageEnvelope) {
+	// Create a handshake-scoped context that will span the entire 3-way handshake
+	// This allows us to trace the complete gossip round through the system
+	handshakeCtx, handshakeSpan := tracer.Start(ctx, "gossip.handshake",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.peer_id", peerID),
+		),
+	)
+	defer handshakeSpan.End()
+
+	// Add a random jitter up to 150ms to avoid all nodes gossiping at the same time
+	<-time.After(time.Duration(rand.Uint32N(150)) * time.Millisecond)
+
+	// Resolve peer address from node ID
+	peerAddr, err := c.resolvePeerAddress(peerID)
+	if err != nil {
+		handshakeSpan.RecordError(err)
+		handshakeSpan.SetStatus(codes.Error, "failed to resolve peer address")
+		otelzap.L().WithError(err).Ctx(handshakeCtx).Error("failed to resolve peer address", zap.String("nodeID", c.store.GetId()), zap.String("peer_id", peerID))
+		return
+	}
+
+	handshakeSpan.SetAttributes(attribute.String("gossip.peer_addr", peerAddr))
+
+	// Get digest for heartbeat message
+	digest, errors := c.store.Digest()
+	if len(errors) > 0 {
+		var herr = errors[0]
+		if len(errors) > 1 {
+			for _, err := range errors[1:] {
+				herr = humane.Wrap(herr, err.Display())
+			}
+		}
+		handshakeSpan.RecordError(herr)
+		handshakeSpan.SetStatus(codes.Error, "failed to get digest")
+		for _, err := range errors {
+			otelzap.L().WithError(err).Ctx(handshakeCtx).Error("failed to get digest", zap.String("nodeID", c.store.GetId()))
+		}
+		return
+	}
+
+	// Create heartbeat message
+	heartbeatMsg := &messages.GossipHeartbeatMessage{
+		TsUnixNano:       time.Now().UnixNano(),
+		VersionMapDigest: digest,
+	}
+
+	// Send the gossip heartbeat using the handshake context
+	// This context will be propagated through the entire handshake
+	if err := c.sendHeartbeat(handshakeCtx, peerAddr, envelope, heartbeatMsg); err != nil {
+		handshakeSpan.RecordError(err)
+		handshakeSpan.SetStatus(codes.Error, "handshake failed")
+		otelzap.L().WithError(err).Ctx(handshakeCtx).Error("failed to gossip with peer", zap.String("nodeID", c.store.GetId()), zap.String("peer_id", peerID))
+
+		// Increment failure count for this peer
+		c.store.IncrementPeerFailure(peerID, c.stalenessThreshold)
+		return
+	}
+
+	handshakeSpan.SetStatus(codes.Ok, "handshake completed successfully")
+}
+
+// resolvePeerAddress resolves a peer address from a node ID.
+// If the peerID is a known peer ID, it looks up the peer in the store.
+// If the peerID is a bootstrap peer address (not yet known), it returns the address as-is.
+func (c *GossipClient[T]) resolvePeerAddress(peerID string) (string, humane.Error) {
+	// Try to get peer from store by ID
+	peer := c.store.GetPeer(peerID)
+	if peer != nil {
+		return peer.GetAddress(), nil
+	}
+
+	// If not found, check if it's a bootstrap peer address
+	c.peersMu.RLock()
+	bootstrapPeers := c.bootstrapPeers
+	c.peersMu.RUnlock()
+
+	if slices.Contains(bootstrapPeers, peerID) {
+		// It's a bootstrap peer address, return it as-is
+		return peerID, nil
+	}
+
+	// Not found in store or bootstrap peers
+	panic(humane.New(fmt.Sprintf("peer not found: %s", peerID), "ensure the peer is known to the store or is a bootstrap peer"))
+}
+
+func (c *GossipClient[T]) sendHeartbeat(ctx context.Context, peer string, envelope *messages.GossipMessageEnvelope, heartbeatMsg *messages.GossipHeartbeatMessage) humane.Error {
+	// Create a span for the heartbeat operation (child of handshake span)
+	ctx, span := tracer.Start(ctx, "gossip.sendHeartbeat",
 		trace.WithAttributes(
 			attribute.String("gossip.peer", peer),
 			attribute.String("gossip.node_id", c.store.GetId()),
-			attribute.String("gossip.message_type", fmt.Sprintf("%T", msg.Message)),
 		),
 	)
 	defer span.End()
 
-	// Inject trace context into the message envelope using W3C Trace Context format
-	propagator := otel.GetTextMapPropagator()
-	carrier := propagation.MapCarrier{}
-	propagator.Inject(ctx, carrier)
-	if traceparent, ok := carrier["traceparent"]; ok {
-		msg.Envelope.Traceparent = traceparent
+	// Create request with hash
+	req := &messages.GossipHeartbeatRequest{
+		Envelope:         envelope,
+		HeartbeatMessage: heartbeatMsg,
 	}
+	req.Hash = c.hashRequest(req)
 
-	// send a gossip message to the peer
-	conn, err := net.Dial("tcp", peer)
+	// Get or create persistent gRPC client connection
+	client, err := c.getOrCreateClient(peer)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to dial peer")
-		return humane.Wrap(err, "failed to dial peer")
+		span.SetStatus(codes.Error, "failed to get gRPC client")
+		return humane.Wrap(err, "failed to get gRPC client")
 	}
-	defer func() { _ = conn.Close() }()
 
-	writer := bufio.NewWriter(conn)
+	// Create metadata with return address
+	md := metadata.New(map[string]string{
+		"x-gossip-return-addr": c.listenerAddr,
+	})
 
-	// hash the message before sending it
-	msg.Hash = shaHashString(msg.String())
-	msgBytes, err := proto.Marshal(msg)
+	// Trace context is automatically injected by otelgrpc StatsHandler
+	// Create a timeout context for the RPC call only, derived from the handshake context
+	rpcCtx := metadata.NewOutgoingContext(ctx, md)
+	rpcCtx, cancel := context.WithTimeout(rpcCtx, c.gossipInterval)
+	defer cancel()
+
+	// Call SendHeartbeat with timeout context
+	resp, err := client.SendHeartbeat(rpcCtx, req)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to marshal gossip message")
-		return humane.Wrap(err, "failed to marshal gossip message")
+		span.SetStatus(codes.Error, "failed to send heartbeat")
+		return humane.Wrap(err, "failed to send heartbeat")
 	}
 
-	span.SetAttributes(attribute.Int("gossip.message_size_bytes", len(msgBytes)))
-
-	var hdr [varintLenBytes]byte
-	hdrLen := binary.PutUvarint(hdr[:], uint64(len(msgBytes)))
-	if _, err := writer.Write(hdr[:hdrLen]); err != nil {
+	// Validate response hash
+	if err := c.validateHash(resp); err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to write header")
-		return humane.Wrap(err, "failed to write header")
+		span.SetStatus(codes.Error, "invalid response hash")
+		return humane.Wrap(err, "invalid response hash")
 	}
 
-	if _, err := writer.Write(msgBytes); err != nil {
+	// Handle the diff response using the original handshake context
+	// This ensures trace continuity through the entire handshake
+	if err := c.handleDiffMessage(ctx, peer, resp.Envelope, resp.GossipDiffMessage); err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to write message")
-		return humane.Wrap(err, "failed to write message")
+		span.SetStatus(codes.Error, "failed to handle diff message")
+		return humane.Wrap(err, "failed to handle diff message")
 	}
 
-	if err := writer.Flush(); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to flush writer")
-		return humane.Wrap(err, "failed to flush writer")
-	}
-
-	span.SetStatus(codes.Ok, "message sent successfully")
+	span.SetStatus(codes.Ok, "heartbeat sent successfully")
 	return nil
 }
 
-func (c *GossipClient[T]) handleGossipPeer(ctx context.Context, conn net.Conn) humane.Error {
-	defer func() { _ = conn.Close() }()
+func (c *GossipClient[T]) sendDelta(ctx context.Context, peer string, envelope *messages.GossipMessageEnvelope, deltaMsg *messages.GossipDeltaMessage) humane.Error {
+	// Create a span for the delta operation (child of handshake span)
+	ctx, span := tracer.Start(ctx, "gossip.sendDelta",
+		trace.WithAttributes(
+			attribute.String("gossip.peer", peer),
+			attribute.String("gossip.node_id", c.store.GetId()),
+		),
+	)
+	defer span.End()
 
-	// read the gossip message from the connection
-	reader := bufio.NewReader(conn)
-
-	if err := conn.SetReadDeadline(time.Now().Add(c.gossipInterval)); err != nil {
-		return humane.Wrap(err, "failed to set read deadline")
+	// Create request with hash
+	req := &messages.GossipDeltaRequest{
+		Envelope:           envelope,
+		GossipDeltaMessage: deltaMsg,
 	}
-	msg, herr := readMessage(reader)
+	req.Hash = c.hashRequest(req)
+
+	// Get or create persistent gRPC client connection
+	client, err := c.getOrCreateClient(peer)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to get gRPC client")
+		return humane.Wrap(err, "failed to get gRPC client")
+	}
+
+	// Create metadata with return address
+	md := metadata.New(map[string]string{
+		"x-gossip-return-addr": c.listenerAddr,
+	})
+
+	// Trace context is automatically injected by otelgrpc StatsHandler
+	// Create a timeout context for the RPC call only, derived from the handshake context
+	rpcCtx := metadata.NewOutgoingContext(ctx, md)
+	rpcCtx, cancel := context.WithTimeout(rpcCtx, c.gossipInterval)
+	defer cancel()
+
+	// Call SendDelta with timeout context
+	_, err = client.SendDelta(rpcCtx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to send delta")
+		return humane.Wrap(err, "failed to send delta")
+	}
+
+	span.SetStatus(codes.Ok, "delta sent successfully")
+	return nil
+}
+
+// getOrCreateClient gets or creates a persistent gRPC client connection for the given peer address
+func (c *GossipClient[T]) getOrCreateClient(peerAddr string) (messages.GossipServiceClient, error) {
+	// Check if we already have a client for this peer
+	c.connsMu.RLock()
+	if client, exists := c.clients[peerAddr]; exists {
+		// Check if connection is still valid
+		if conn, connExists := c.conns[peerAddr]; connExists {
+			state := conn.GetState()
+			if state == connectivity.Ready || state == connectivity.Idle {
+				c.connsMu.RUnlock()
+				return client, nil
+			}
+			// Connection is not ready, close it and recreate
+			_ = conn.Close()
+		}
+		delete(c.conns, peerAddr)
+		delete(c.clients, peerAddr)
+	}
+	c.connsMu.RUnlock()
+
+	// Create new connection
+	c.connsMu.Lock()
+	defer c.connsMu.Unlock()
+
+	// Double-check after acquiring write lock
+	if client, exists := c.clients[peerAddr]; exists {
+		if conn, connExists := c.conns[peerAddr]; connExists {
+			state := conn.GetState()
+			if state == connectivity.Ready || state == connectivity.Idle {
+				return client, nil
+			}
+			_ = conn.Close()
+		}
+		delete(c.conns, peerAddr)
+		delete(c.clients, peerAddr)
+	}
+
+	conn, err := grpc.NewClient(peerAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	client := messages.NewGossipServiceClient(conn)
+	c.conns[peerAddr] = conn
+	c.clients[peerAddr] = client
+
+	return client, nil
+}
+
+// extractReturnAddressFromMetadata extracts the return address from gRPC metadata headers
+func (c *GossipClient[T]) extractReturnAddressFromMetadata(ctx context.Context) (string, humane.Error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", humane.New("no metadata in context")
+	}
+
+	// First try to get return address from our custom header
+	if vals := md.Get("x-gossip-return-addr"); len(vals) > 0 {
+		return vals[0], nil
+	}
+
+	// Fallback: extract from peer info
+	p, ok := peer.FromContext(ctx)
+	if ok && p.Addr != nil {
+		return p.Addr.String(), nil
+	}
+
+	// Last resort: try to get from authority header
+	if vals := md.Get(":authority"); len(vals) > 0 {
+		return vals[0], nil
+	}
+
+	return "", humane.New("could not extract return address from metadata")
+}
+
+// SendHeartbeat implements the GossipServiceServer interface
+func (c *GossipClient[T]) SendHeartbeat(ctx context.Context, req *messages.GossipHeartbeatRequest) (*messages.GossipDiffResponse, error) {
+	// Extract return address from metadata headers
+	returnAddr, herr := c.extractReturnAddressFromMetadata(ctx)
 	if herr != nil {
-		return humane.Wrap(herr, "failed to read gossip message from peer")
+		return nil, herr
 	}
 
-	// If we didn't receive anything, but also not an error, well... return early
-	if msg == nil {
-		return nil
-	}
-
-	// Extract trace context from the message envelope
-	if msg.Envelope.Traceparent != "" {
-		propagator := otel.GetTextMapPropagator()
-		carrier := propagation.MapCarrier{"traceparent": msg.Envelope.Traceparent}
-		ctx = propagator.Extract(ctx, carrier)
-	}
-
-	ctx, span := tracer.Start(ctx, "gossip.handleGossipPeer",
+	// Trace context is automatically extracted by otelgrpc StatsHandler
+	// Create span for handling the heartbeat (child of the automatically created gRPC span)
+	ctx, span := tracer.Start(ctx, "gossip.SendHeartbeat",
 		trace.WithAttributes(
 			attribute.String("gossip.node_id", c.store.GetId()),
-			attribute.String("gossip.remote_addr", conn.RemoteAddr().String()),
-			attribute.String("gossip.src_id", msg.Envelope.SrcId),
-			attribute.String("gossip.message_type", fmt.Sprintf("%T", msg.Message)),
+			attribute.String("gossip.src_id", req.Envelope.SrcId),
 		),
 	)
 	defer span.End()
 
-	returnAddr, herr := extractAnswerAddress(conn, msg.Envelope.AnswerPort)
-	if herr != nil {
-		span.RecordError(herr)
-		span.SetStatus(codes.Error, "failed to extract answer address")
-		return humane.Wrap(herr, "failed to extract answer address")
-	}
-
-	span.SetAttributes(attribute.String("gossip.return_addr", returnAddr))
-
-	otelzap.Ctx(ctx).Debug("Received message", zap.String("message", msg.String()))
-
-	if err := c.handleMessage(ctx, returnAddr, msg.Envelope, msg); err != nil {
+	// Validate request hash
+	if err := c.validateRequestHash(req); err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to handle message")
-		return humane.Wrap(err, "failed to handle message")
+		span.SetStatus(codes.Error, "invalid request hash")
+		return nil, err
 	}
 
-	span.SetStatus(codes.Ok, "message handled successfully")
-	return nil
+	// Handle heartbeat and generate response
+	resp, err := c.handleHeartbeatMessage(ctx, returnAddr, req.Envelope, req.HeartbeatMessage)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to handle heartbeat")
+		return nil, err
+	}
+
+	// Add hash to response
+	resp.Hash = c.hashResponse(resp)
+
+	span.SetStatus(codes.Ok, "heartbeat handled successfully")
+	return resp, nil
 }
 
-func (c *GossipClient[T]) handleMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipMessage) humane.Error {
-	// validate if the message hash is present and correct
-	msgHash := msg.Hash
-
-	// Must be present for us to consider the message
-	if msg.Hash == "" {
-		return humane.New("message hash is empty")
+// SendDiff implements the GossipServiceServer interface
+func (c *GossipClient[T]) SendDiff(ctx context.Context, req *messages.GossipDiffRequest) (*messages.GossipDeltaResponse, error) {
+	// Extract return address from metadata headers
+	returnAddr, herr := c.extractReturnAddressFromMetadata(ctx)
+	if herr != nil {
+		return nil, herr
 	}
 
-	// Remove the hash from the message so we don't hash the message including the hash
-	msg.Hash = ""
+	// Trace context is automatically extracted by otelgrpc StatsHandler
+	// Create span for handling the diff (child of the automatically created gRPC span)
+	ctx, span := tracer.Start(ctx, "gossip.SendDiff",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.src_id", req.Envelope.SrcId),
+		),
+	)
+	defer span.End()
 
-	// Hash the message again to validate the hash is correct
-	realHash := shaHashString(msg.String())
-	if realHash != msgHash {
-		return humane.New("message hash is invalid")
+	// Validate request hash
+	if err := c.validateRequestHash(req); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid request hash")
+		return nil, err
 	}
 
-	switch gossipMsgType := msg.Message.(type) {
-	case *messages.GossipMessage_HeartbeatMessage:
-		if err := c.handleHeartbeatMessage(ctx, returnAddr, msg.Envelope, gossipMsgType.HeartbeatMessage); err != nil {
-			return humane.Wrap(err, "failed to handle heartbeat message")
-		}
-
-	case *messages.GossipMessage_GossipDiffMessage:
-		if err := c.handleDiffMessage(ctx, returnAddr, msg.Envelope, gossipMsgType.GossipDiffMessage); err != nil {
-			return humane.Wrap(err, "failed to handle diff message")
-		}
-
-	case *messages.GossipMessage_GossipDeltaMessage:
-		if err := c.handleDeltaMessage(ctx, returnAddr, msg.Envelope, gossipMsgType.GossipDeltaMessage); err != nil {
-			return humane.Wrap(err, "failed to handle delta message")
-		}
-
-	default:
-		return humane.New(fmt.Sprintf("unknown message type: %T", gossipMsgType))
+	// Handle diff and generate response
+	resp, err := c.handleDiffMessageForServer(ctx, returnAddr, req.Envelope, req.GossipDiffMessage)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to handle diff")
+		return nil, err
 	}
 
-	// If we made it here, we successfully handled the message, so return nil
-	return nil
+	// Add hash to response if delta exists
+	if resp.HasDelta {
+		resp.Hash = c.hashResponse(resp)
+	}
+
+	span.SetStatus(codes.Ok, "diff handled successfully")
+	return resp, nil
 }
 
-func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipHeartbeatMessage) humane.Error {
+// SendDelta implements the GossipServiceServer interface
+func (c *GossipClient[T]) SendDelta(ctx context.Context, req *messages.GossipDeltaRequest) (*messages.GossipEmptyResponse, error) {
+	// Extract return address from metadata headers
+	returnAddr, herr := c.extractReturnAddressFromMetadata(ctx)
+	if herr != nil {
+		return nil, herr
+	}
+
+	// Trace context is automatically extracted by otelgrpc StatsHandler
+	// Create span for handling the delta (child of the automatically created gRPC span)
+	ctx, span := tracer.Start(ctx, "gossip.SendDelta",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.src_id", req.Envelope.SrcId),
+		),
+	)
+	defer span.End()
+
+	// Validate request hash
+	if err := c.validateRequestHash(req); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid request hash")
+		return nil, err
+	}
+
+	// Handle delta
+	if err := c.handleDeltaMessage(ctx, returnAddr, req.Envelope, req.GossipDeltaMessage); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to handle delta")
+		return nil, err
+	}
+
+	span.SetStatus(codes.Ok, "delta handled successfully")
+	return &messages.GossipEmptyResponse{}, nil
+}
+
+func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipHeartbeatMessage) (*messages.GossipDiffResponse, error) {
 	ctx, span := tracer.Start(ctx, "gossip.handleHeartbeatMessage",
 		trace.WithAttributes(
 			attribute.String("gossip.node_id", c.store.GetId()),
@@ -439,6 +637,7 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 	if localDigest, exists := msg.VersionMapDigest[c.store.GetId()]; exists {
 		if localDigest.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
 			otelzap.Ctx(ctx).Info("Remote peer suspects we are dead, announcing we are alive",
+				zap.String("nodeID", c.store.GetId()),
 				zap.String("remotePeerID", envelope.SrcId),
 			)
 			// The local node's state will be announced as healthy in the response
@@ -467,7 +666,7 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 		}
 		span.RecordError(herr)
 		span.SetStatus(codes.Error, "failed to get digest")
-		return humane.Wrap(herr, "failed to get digest")
+		return nil, herr
 	}
 
 	delta, errors := c.store.Diff(msg.VersionMapDigest)
@@ -482,32 +681,24 @@ func (c *GossipClient[T]) handleHeartbeatMessage(ctx context.Context, returnAddr
 
 		span.RecordError(herr)
 		span.SetStatus(codes.Error, "failed to diff store")
-		return humane.Wrap(herr, "failed to diff store")
+		return nil, herr
 	}
 
 	span.SetAttributes(attribute.Int("gossip.delta_size", len(delta)))
 
-	diffMsg := &messages.GossipMessage{
+	// Create and return diff response
+	resp := &messages.GossipDiffResponse{
 		Envelope: &messages.GossipMessageEnvelope{
-			SrcId:      c.store.GetId(),
-			AnswerPort: c.listenerPort,
+			SrcId: c.store.GetId(),
 		},
-		Message: &messages.GossipMessage_GossipDiffMessage{
-			GossipDiffMessage: &messages.GossipDiffMessage{
-				StateDelta:       delta,
-				VersionMapDigest: digest,
-			},
+		GossipDiffMessage: &messages.GossipDiffMessage{
+			StateDelta:       delta,
+			VersionMapDigest: digest,
 		},
 	}
 
-	if err := c.gossipWithPeer(ctx, returnAddr, diffMsg); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to gossip diff message with peer")
-		return humane.Wrap(err, "failed to gossip diff message with peer")
-	}
-
-	span.SetStatus(codes.Ok, "heartbeat handled and diff sent")
-	return nil
+	span.SetStatus(codes.Ok, "heartbeat handled and diff response created")
+	return resp, nil
 }
 
 func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipDiffMessage) humane.Error {
@@ -528,6 +719,7 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 	if localDigest, exists := msg.VersionMapDigest[c.store.GetId()]; exists {
 		if localDigest.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
 			otelzap.Ctx(ctx).Info("Remote peer suspects we are dead, announcing we are alive via diff response",
+				zap.String("nodeID", c.store.GetId()),
 				zap.String("remotePeerID", envelope.SrcId),
 			)
 		}
@@ -585,27 +777,118 @@ func (c *GossipClient[T]) handleDiffMessage(ctx context.Context, returnAddr stri
 
 	span.SetAttributes(attribute.Int("gossip.outgoing_delta_size", len(delta)))
 
-	// Generate the delta message to send to the peer
-	deltaMsg := &messages.GossipMessage{
-		Envelope: &messages.GossipMessageEnvelope{
-			SrcId:      c.store.GetId(),
-			AnswerPort: c.listenerPort,
-		},
-		Message: &messages.GossipMessage_GossipDeltaMessage{
-			GossipDeltaMessage: &messages.GossipDeltaMessage{
-				StateDelta: delta,
-			},
-		},
+	// Send delta to peer
+	deltaMsg := &messages.GossipDeltaMessage{
+		StateDelta: delta,
+	}
+	deltaEnvelope := &messages.GossipMessageEnvelope{
+		SrcId: c.store.GetId(),
 	}
 
-	if err := c.gossipWithPeer(ctx, returnAddr, deltaMsg); err != nil {
+	if err := c.sendDelta(ctx, returnAddr, deltaEnvelope, deltaMsg); err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to gossip delta message with peer")
-		return humane.Wrap(err, "failed to gossip delta message with peer")
+		span.SetStatus(codes.Error, "failed to send delta message to peer")
+		return humane.Wrap(err, "failed to send delta message to peer")
 	}
 
 	span.SetStatus(codes.Ok, "diff handled and delta sent")
 	return nil
+}
+
+func (c *GossipClient[T]) handleDiffMessageForServer(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipDiffMessage) (*messages.GossipDeltaResponse, error) {
+	ctx, span := tracer.Start(ctx, "gossip.handleDiffMessageForServer",
+		trace.WithAttributes(
+			attribute.String("gossip.node_id", c.store.GetId()),
+			attribute.String("gossip.src_id", envelope.SrcId),
+			attribute.String("gossip.return_addr", returnAddr),
+			attribute.Int("gossip.state_delta_size", len(msg.StateDelta)),
+			attribute.Int("gossip.remote_version_map_size", len(msg.VersionMapDigest)),
+		),
+	)
+	defer span.End()
+
+	c.store.Heartbeat(envelope.SrcId, returnAddr)
+
+	// Check if the remote peer thinks we are suspected dead
+	if localDigest, exists := msg.VersionMapDigest[c.store.GetId()]; exists {
+		if localDigest.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
+			otelzap.Ctx(ctx).Info("Remote peer suspects we are dead, announcing we are alive via diff response",
+				zap.String("nodeID", c.store.GetId()),
+				zap.String("remotePeerID", envelope.SrcId),
+			)
+		}
+	}
+
+	// Handle peer state information from remote digest
+	for peerID, digestEntry := range msg.VersionMapDigest {
+		if peerID == c.store.GetId() {
+			continue // Skip our own entry
+		}
+
+		if digestEntry.PeerState == messages.PeerState_PEER_STATE_SUSPECTED_DEAD {
+			// Remote node suspects this peer is dead
+			c.store.MarkPeerSuspectedDead(peerID)
+		}
+	}
+
+	// Apply the remote state to the local state
+	errors := c.store.Apply(msg.StateDelta)
+	if len(errors) > 0 {
+		var herr = errors[0]
+		if len(errors) > 1 {
+			for _, err := range errors[1:] {
+				herr = humane.Wrap(herr, err.Display())
+			}
+		}
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to apply diff message to local state")
+		return nil, humane.Wrap(herr, "failed to apply diff message to local state")
+	}
+
+	span.AddEvent("gossip.state_applied")
+
+	// Generate the delta of the local state and the remote state
+	delta, errors := c.store.Diff(msg.VersionMapDigest)
+	if len(errors) > 0 {
+		var herr = errors[0]
+
+		if len(errors) > 1 {
+			for _, err := range errors[1:] {
+				herr = humane.Wrap(herr, err.Display())
+			}
+		}
+
+		span.RecordError(herr)
+		span.SetStatus(codes.Error, "failed to generate delta")
+		return nil, humane.Wrap(herr, "failed to generate delta")
+	}
+
+	// If there is no delta, return empty response
+	if len(delta) == 0 {
+		span.SetStatus(codes.Ok, "diff handled, no delta to send")
+		return &messages.GossipDeltaResponse{
+			Envelope: &messages.GossipMessageEnvelope{
+				SrcId: c.store.GetId(),
+			},
+			HasDelta: false,
+		}, nil
+	}
+
+	span.SetAttributes(attribute.Int("gossip.outgoing_delta_size", len(delta)))
+
+	// Return delta response
+	resp := &messages.GossipDeltaResponse{
+		Envelope: &messages.GossipMessageEnvelope{
+			SrcId: c.store.GetId(),
+		},
+		GossipDeltaMessage: &messages.GossipDeltaMessage{
+			StateDelta: delta,
+		},
+		HasDelta: true,
+	}
+
+	span.SetStatus(codes.Ok, "diff handled and delta response created")
+	return resp, nil
 }
 
 func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr string, envelope *messages.GossipMessageEnvelope, msg *messages.GossipDeltaMessage) humane.Error {
@@ -627,6 +910,7 @@ func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr str
 			// Peer is alive and sending us data, resurrect it
 			c.store.ResurrectPeer(envelope.SrcId)
 			otelzap.Ctx(ctx).Info("Suspected dead peer responded, resurrecting",
+				zap.String("nodeID", c.store.GetId()),
 				zap.String("peerID", envelope.SrcId),
 			)
 		}
@@ -651,55 +935,154 @@ func (c *GossipClient[T]) handleDeltaMessage(ctx context.Context, returnAddr str
 	return nil
 }
 
-func readMessage(reader *bufio.Reader) (*messages.GossipMessage, humane.Error) {
-	// read varint length
-	hdrLen, err := binary.ReadUvarint(reader)
-	if err != nil {
-		if err == io.EOF {
-			return nil, nil
-		}
+// Helper functions for hash validation and address extraction
 
-		return nil, humane.Wrap(err, "failed to read varint length")
+func (c *GossipClient[T]) hashRequest(req proto.Message) string {
+	// Create a copy without hash for hashing
+	switch v := req.(type) {
+	case *messages.GossipHeartbeatRequest:
+		hash := v.Hash
+		v.Hash = ""
+		result := shaHashString(v.String())
+		v.Hash = hash
+		return result
+	case *messages.GossipDiffRequest:
+		hash := v.Hash
+		v.Hash = ""
+		result := shaHashString(v.String())
+		v.Hash = hash
+		return result
+	case *messages.GossipDeltaRequest:
+		hash := v.Hash
+		v.Hash = ""
+		result := shaHashString(v.String())
+		v.Hash = hash
+		return result
+	default:
+		// This should never happen, but return empty hash if it does
+		return ""
 	}
-
-	// if the header length is 0, return early
-	if hdrLen == 0 {
-		return nil, nil
-	}
-
-	// read exactly n bytes
-	buf := make([]byte, hdrLen)
-	if _, err := io.ReadFull(reader, buf); err != nil {
-		if err == io.EOF {
-			return nil, nil
-		}
-		return nil, humane.Wrap(err, "failed to read message")
-	}
-
-	msg := messages.GossipMessage{}
-	if err := proto.Unmarshal(buf, &msg); err != nil {
-		return nil, humane.Wrap(err, "failed to unmarshal message")
-	}
-
-	return &msg, nil
 }
 
-func extractAnswerAddress(conn net.Conn, answerPort string) (string, humane.Error) {
-	host, _, err := net.SplitHostPort(conn.RemoteAddr().String())
-	if err != nil {
-		return "", humane.Wrap(err, "failed to split remote address")
+func (c *GossipClient[T]) hashResponse(resp proto.Message) string {
+	// Create a copy without hash for hashing
+	switch v := resp.(type) {
+	case *messages.GossipDiffResponse:
+		hash := v.Hash
+		v.Hash = ""
+		result := shaHashString(v.String())
+		v.Hash = hash
+		return result
+	case *messages.GossipDeltaResponse:
+		hash := v.Hash
+		v.Hash = ""
+		result := shaHashString(v.String())
+		v.Hash = hash
+		return result
+	default:
+		// This should never happen, but return empty hash if it does
+		return ""
+	}
+}
+
+func (c *GossipClient[T]) validateRequestHash(req proto.Message) error {
+	var hash string
+	var msgWithoutHash proto.Message
+
+	switch v := req.(type) {
+	case *messages.GossipHeartbeatRequest:
+		if v.Hash == "" {
+			return humane.New("request hash is empty")
+		}
+		hash = v.Hash
+		// Create a copy for validation
+		msgWithoutHash = &messages.GossipHeartbeatRequest{
+			Envelope:         v.Envelope,
+			HeartbeatMessage: v.HeartbeatMessage,
+			Hash:             "",
+		}
+	case *messages.GossipDiffRequest:
+		if v.Hash == "" {
+			return humane.New("request hash is empty")
+		}
+		hash = v.Hash
+		msgWithoutHash = &messages.GossipDiffRequest{
+			Envelope:          v.Envelope,
+			GossipDiffMessage: v.GossipDiffMessage,
+			Hash:              "",
+		}
+	case *messages.GossipDeltaRequest:
+		if v.Hash == "" {
+			return humane.New("request hash is empty")
+		}
+		hash = v.Hash
+		msgWithoutHash = &messages.GossipDeltaRequest{
+			Envelope:           v.Envelope,
+			GossipDeltaMessage: v.GossipDeltaMessage,
+			Hash:               "",
+		}
+	default:
+		return humane.New(fmt.Sprintf("unknown request type: %T", req))
 	}
 
-	ip := net.ParseIP(host)
-	if ip == nil {
-		return "", humane.Wrap(err, "failed to parse IP address")
+	var realHash string
+	switch v := msgWithoutHash.(type) {
+	case *messages.GossipHeartbeatRequest:
+		realHash = shaHashString(v.String())
+	case *messages.GossipDiffRequest:
+		realHash = shaHashString(v.String())
+	case *messages.GossipDeltaRequest:
+		realHash = shaHashString(v.String())
+	default:
+		return humane.New(fmt.Sprintf("unknown request type: %T", msgWithoutHash))
+	}
+	if realHash != hash {
+		return humane.New("request hash is invalid")
+	}
+	return nil
+}
+
+func (c *GossipClient[T]) validateHash(resp proto.Message) error {
+	var hash string
+	var msgWithoutHash proto.Message
+
+	switch v := resp.(type) {
+	case *messages.GossipDiffResponse:
+		if v.Hash == "" {
+			return humane.New("response hash is empty")
+		}
+		hash = v.Hash
+		msgWithoutHash = &messages.GossipDiffResponse{
+			Envelope:          v.Envelope,
+			GossipDiffMessage: v.GossipDiffMessage,
+			Hash:              "",
+		}
+	case *messages.GossipDeltaResponse:
+		if !v.HasDelta || v.Hash == "" {
+			return nil // No hash needed if no delta
+		}
+		hash = v.Hash
+		msgWithoutHash = &messages.GossipDeltaResponse{
+			Envelope:           v.Envelope,
+			GossipDeltaMessage: v.GossipDeltaMessage,
+			Hash:               "",
+			HasDelta:           v.HasDelta,
+		}
+	default:
+		return humane.New(fmt.Sprintf("unknown response type: %T", resp))
 	}
 
-	// If the IP address is not an IPv4 address, wrap it in square brackets
-	if ip.To4() == nil {
-		host = fmt.Sprintf("[%s]", host)
+	var realHash string
+	switch v := msgWithoutHash.(type) {
+	case *messages.GossipDiffResponse:
+		realHash = shaHashString(v.String())
+	case *messages.GossipDeltaResponse:
+		realHash = shaHashString(v.String())
+	default:
+		return humane.New(fmt.Sprintf("unknown response type: %T", msgWithoutHash))
 	}
-
-	returnAddr := fmt.Sprintf("%s:%s", host, answerPort)
-	return returnAddr, nil
+	if realHash != hash {
+		return humane.New("response hash is invalid")
+	}
+	return nil
 }
