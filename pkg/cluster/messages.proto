@@ -10,8 +10,6 @@ enum PeerState {
 
 message GossipMessageEnvelope {
     string srcId = 1;
-    string answerPort = 2;
-    string traceparent = 3; // W3C Trace Context traceparent header for distributed tracing
 }
 
 message GossipHeartbeatMessage {
@@ -77,15 +75,15 @@ message GossipEmptyResponse {
 }
 
 service GossipService {
-    // SendHeartbeat: Client sends heartbeat, server responds with diff
+    // SendHeartbeat: Node A sends heartbeat to Node B, Node B responds with diff
     // Flow: Heartbeat → Diff
     rpc SendHeartbeat(GossipHeartbeatRequest) returns (GossipDiffResponse);
 
-    // SendDiff: Client sends diff, server responds with delta (if any) or empty
+    // SendDiff: Node A sends diff to Node B, Node B responds with delta (if any) or empty
     // Flow: Diff → Delta (or empty)
     rpc SendDiff(GossipDiffRequest) returns (GossipDeltaResponse);
 
-    // SendDelta: Client sends delta, server applies it and returns empty
+    // SendDelta: Node A sends delta to Node B, Node B applies it and returns empty
     // Flow: Delta → Empty
     rpc SendDelta(GossipDeltaRequest) returns (GossipEmptyResponse);
 }
