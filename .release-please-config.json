@@ -4,6 +4,7 @@
     ".": {
       "release-type": "simple",
       "package-name": "tailscale-k8s-auth",
+      "include-component-in-tag": false,
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true
     }
