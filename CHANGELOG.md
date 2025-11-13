@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.2](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.1...tailscale-k8s-auth-v0.2.2) (2025-11-12)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/sys to v0.38.0 ([#128](https://github.com/SpechtLabs/tka/issues/128)) ([cdb8147](https://github.com/SpechtLabs/tka/commit/cdb81476d5d20f88b3e6709137d2f2fae570f7b6))
+* **deps:** update module golang.org/x/term to v0.37.0 ([#130](https://github.com/SpechtLabs/tka/issues/130)) ([f4253e7](https://github.com/SpechtLabs/tka/commit/f4253e7a4f7540021463418f2bc5d445054af470))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.22.4 ([#122](https://github.com/SpechtLabs/tka/issues/122)) ([1cdfc3b](https://github.com/SpechtLabs/tka/commit/1cdfc3b2b3b207fc862a4c1e7d9957f1cb76a941))
+* **deps:** update module tailscale.com to v1.90.4 ([#110](https://github.com/SpechtLabs/tka/issues/110)) ([f248317](https://github.com/SpechtLabs/tka/commit/f24831750369143a0b07eba1a3f2860a61f3f8cd))
+* **deps:** update module tailscale.com to v1.90.6 ([#118](https://github.com/SpechtLabs/tka/issues/118)) ([e634606](https://github.com/SpechtLabs/tka/commit/e634606ecde2a35681dc8698fd22eac3c6060c3f))
+
 ## [0.2.1](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.0...tailscale-k8s-auth-v0.2.1) (2025-10-27)
 
 
