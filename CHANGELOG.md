@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/SpechtLabs/tka/compare/v0.2.2...v0.2.3) (2025-11-21)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.34.2 ([#134](https://github.com/SpechtLabs/tka/issues/134)) ([6d92c0b](https://github.com/SpechtLabs/tka/commit/6d92c0bb4af1b33599cfd07a54aef8fdb3539a58))
+* **deps:** update module tailscale.com to v1.90.8 ([#139](https://github.com/SpechtLabs/tka/issues/139)) ([69a3b3e](https://github.com/SpechtLabs/tka/commit/69a3b3e9007131cca0b63bf495ca95850b2024a6))
+
 ## [0.2.2](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.1...tailscale-k8s-auth-v0.2.2) (2025-11-12)
 
 
