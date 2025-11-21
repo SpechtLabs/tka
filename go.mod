@@ -13,7 +13,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/prometheus/client_golang v1.23.2
-	github.com/sierrasoftworks/humane-errors-go v0.0.0-20250904141959-2224f06cddb4
+	github.com/sierrasoftworks/humane-errors-go v0.0.0-20251121131909-6b4ca9dd07a7
 	github.com/spechtlabs/go-otel-utils/otelprovider v0.0.15
 	github.com/spechtlabs/go-otel-utils/otelzap v0.0.15
 	github.com/spf13/cobra v1.10.1
@@ -28,7 +28,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.63.0
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0
 	k8s.io/api v0.34.2
