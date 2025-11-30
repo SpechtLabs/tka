@@ -175,7 +175,7 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	v1alpha1Group.GET(ClusterInfoApiRoute, t.getClusterInfo)
 
 	if t.gossipStore != nil {
-		v1alpha1Grpup.GET(MemberlistRoute, t.getMemberlist)
+		v1alpha1Group.GET(MemberlistRoute, t.getMemberlist)
 	}
 
 	return nil
