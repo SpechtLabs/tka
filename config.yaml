@@ -27,6 +27,13 @@ api:
 health:
   port: 8080
 
+gossip:
+  enabled: true
+  port: 9090
+  bootstrapPeers: []
+  interval: 1s
+  factor: 3
+
 clusterInfo:
   apiEndpoint: ""
   caData: ""

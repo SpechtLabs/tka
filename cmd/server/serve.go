@@ -254,6 +254,10 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return err
 	}
 
+	// Create Gossip Client
+	var gossipClient *cluster.GossipClient[service.NodeMetadata]
+	var gossipStore cluster.GossipStore[service.NodeMetadata]
+
 	// Create Tailscale server
 	tailscaleServer := tsnet.NewServer(viper.GetString("tailscale.hostname"))
 
@@ -263,11 +267,10 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return humane.Wrap(err, "failed to start api tailscale", "check (debug) logs for more details")
 	}
 
-	// Start the Tailscale connection
-	if err := srv.Start(ctx); err != nil {
-		herr := humane.Wrap(err, "failed to connect to tailscale", "ensure your TS_AUTH_KEY is set and valid")
-		cancelFn(herr)
-		return herr
+	gossipClient, gossipStore, err = newGossip(tailscaleServer, clusterInfo)
+	if err != nil {
+		cancelFn(err)
+		return err
 	}
 
 	// Create shared Prometheus instance for all servers
@@ -290,6 +293,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Create local metrics server
 	healthSrv := newHealthServer(tailscaleServer, sharedPrometheus)
 	healthSrv.Addr = fmt.Sprintf(":%d", getHealthPort())
+
+	// Start the gossip client
+	if viper.GetBool("gossip.enabled") {
+		go gossipClient.Start(ctx)
+	}
 
 	// Start TKA server (Tailscale)
 	go func() {
@@ -345,6 +353,11 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	defer cancel()
 
 	otelzap.L().Info("Shutting down servers...")
+
+	// Shutdown Gossip
+	if gossipClient != nil {
+		gossipClient.Stop()
+	}
 
 	// Shutdown local metrics server first
 	if err := healthSrv.Shutdown(shutdownCtx); err != nil {
@@ -443,4 +456,50 @@ func newHealthServer(tsServer tsnet.TSNet, prom *ginprometheus.Prometheus) *http
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
+}
+
+func newGossip(tailscaleServer tsnet.TSNet, clusterInfo *models.TkaClusterInfo) (*cluster.GossipClient[service.NodeMetadata], cluster.GossipStore[service.NodeMetadata], humane.Error) {
+	gossipPort := viper.GetInt("gossip.port")
+	// We listen on all interfaces for gossip
+	listenAddr := fmt.Sprintf(":%d", gossipPort)
+
+	meta := service.NodeMetadata{
+		APIEndpoint: clusterInfo.ServerURL,
+		Labels:      clusterInfo.Labels,
+	}
+
+	// Parse port from URL
+	if u, _ := url.Parse(clusterInfo.ServerURL); u != nil {
+		p := u.Port()
+		if p != "" {
+			meta.APIPort, _ = strconv.Atoi(p)
+		} else {
+			if u.Scheme == "https" {
+				meta.APIPort = 443
+			} else {
+				meta.APIPort = 80
+			}
+		}
+	}
+
+	gossipStore := cluster.NewInMemoryGossipStore[service.NodeMetadata](
+		fmt.Sprintf("%s:%d", viper.GetString("tailscale.hostname"), gossipPort),
+		cluster.WithLocalState(meta),
+	)
+
+	listener, err := tailscaleServer.Listen("tcp", listenAddr)
+	if err != nil {
+		otelzap.L().WithError(err).Error("Failed to listen for gossip")
+		return nil, nil, humane.Wrap(err, "failed to listen for gossip")
+	}
+
+	gossipClient := cluster.NewGossipClient[service.NodeMetadata](
+		gossipStore,
+		listener,
+		cluster.WithGossipFactor[service.NodeMetadata](viper.GetInt("gossip.factor")),
+		cluster.WithGossipInterval[service.NodeMetadata](viper.GetDuration("gossip.interval")),
+		cluster.WithBootstrapPeer[service.NodeMetadata](viper.GetStringSlice("gossip.bootstrapPeers")...),
+	)
+
+	return gossipClient, gossipStore, nil
 }
