@@ -17,3 +17,4 @@ ignores:
   - ".git/**"
   - "vendor/**"
   - CHANGELOG.md
+  - docs/reference/cli.md

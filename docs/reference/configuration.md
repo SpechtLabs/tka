@@ -6,7 +6,7 @@ createTime: 2025/08/25 06:31:44
 
 This page lists all configuration keys, their defaults, and effects. Sources: flags, environment (`TKA_` prefix), or config files (`config.yaml`).
 
-### Conventions
+## Conventions
 
 - Env var mapping replaces `.` with `_` and uppercases keys, prefixed with `TKA_` (e.g., `tailscale.hostname` → `TKA_TAILSCALE_HOSTNAME`).
 - Default config search paths: `.`, `$HOME/.config/tka/`, `/etc/tka/`.
