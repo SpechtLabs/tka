@@ -9,7 +9,6 @@ import (
 	client "github.com/spechtlabs/tka/pkg/client/k8s"
 	"github.com/spechtlabs/tka/pkg/cluster"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
-	"github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/models"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -71,7 +70,7 @@ type TKAServer struct {
 	authMiddleware mw.Middleware
 
 	// Gossip
-	gossipStore cluster.GossipStore[service.NodeMetadata]
+	gossipStore cluster.GossipStore[models.NodeMetadata]
 
 	// API behavior
 	retryAfterSeconds int

@@ -220,7 +220,7 @@ func TestInMemoryGossipStore_SetData(t *testing.T) {
 			displayData := store.GetDisplayData()
 			require.Len(t, displayData, 1)
 			assert.Equal(t, tt.wantVersion, displayData[0].Version)
-			assert.Equal(t, tt.wantData.String(), displayData[0].State)
+			assert.Equal(t, tt.wantData, displayData[0].State)
 		})
 	}
 }
@@ -683,7 +683,7 @@ func TestInMemoryGossipStore_GetDisplayData(t *testing.T) {
 		wantData       []struct {
 			id      string
 			address string
-			state   string
+			state   cluster.SerializableString
 		}
 	}{
 		{
@@ -693,7 +693,7 @@ func TestInMemoryGossipStore_GetDisplayData(t *testing.T) {
 			},
 			wantDataCount:  0,
 			wantLocalCount: 0,
-			wantData:       []struct{ id, address, state string }{},
+			wantData:       nil,
 		},
 		{
 			name: "local state only",
@@ -705,11 +705,11 @@ func TestInMemoryGossipStore_GetDisplayData(t *testing.T) {
 			wantData: []struct {
 				id      string
 				address string
-				state   string
+				state   cluster.SerializableString
 			}{
 				{
 					address: "127.0.0.1:8080",
-					state:   "local",
+					state:   cluster.SerializableString("local"),
 				},
 			},
 		},
@@ -724,11 +724,11 @@ func TestInMemoryGossipStore_GetDisplayData(t *testing.T) {
 			wantData: []struct {
 				id      string
 				address string
-				state   string
+				state   cluster.SerializableString
 			}{
 				{
 					address: "127.0.0.1:8080",
-					state:   "local",
+					state:   cluster.SerializableString("local"),
 				},
 			},
 		},
@@ -818,7 +818,7 @@ func TestInMemoryGossipStore_DiffWithNewerVersions(t *testing.T) {
 		if !data.IsLocal && data.Address == "127.0.0.1:8081" {
 			foundPeer1 = true
 			assert.Equal(t, cluster.Version(2), data.Version)
-			assert.Equal(t, "new", data.State)
+			assert.Equal(t, cluster.SerializableString("new"), data.State)
 		}
 	}
 	assert.True(t, foundPeer1)

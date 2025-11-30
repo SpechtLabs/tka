@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/spechtlabs/tka/pkg/cluster"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
-	"github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/models"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
@@ -74,7 +73,7 @@ func WithNewClusterInfo(serverURL string, caData string, labels map[string]strin
 }
 
 // WithGossipStore configures the TKA server with a gossip store for memberlist discovery.
-func WithGossipStore(store cluster.GossipStore[service.NodeMetadata]) Option {
+func WithGossipStore(store cluster.GossipStore[models.NodeMetadata]) Option {
 	return func(tka *TKAServer) {
 		tka.gossipStore = store
 	}
