@@ -82,8 +82,4 @@ service GossipService {
     // SendDiff: Node A sends diff to Node B, Node B responds with delta (if any) or empty
     // Flow: Diff → Delta (or empty)
     rpc SendDiff(GossipDiffRequest) returns (GossipDeltaResponse);
-
-    // SendDelta: Node A sends delta to Node B, Node B applies it and returns empty
-    // Flow: Delta → Empty
-    rpc SendDelta(GossipDeltaRequest) returns (GossipEmptyResponse);
 }

@@ -371,6 +371,72 @@ func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 	return errors
 }
 
+// ProcessDigestForPeerStates processes peer state information from a remote digest.
+// This updates peer states based on what other nodes report about peers in the cluster.
+// This handles peer state transitions for peers that may not be included in state deltas.
+func (s *TestGossipStore[T]) ProcessDigestForPeerStates(remoteDigest GossipDigest) []humane.Error {
+	s.peersLock.Lock()
+	defer s.peersLock.Unlock()
+
+	errors := make([]humane.Error, 0)
+
+	for peerID, digestEntry := range remoteDigest {
+		// Skip our own entry
+		if peerID == s.GetId() {
+			continue
+		}
+
+		// Skip nil digest entries
+		if digestEntry == nil {
+			continue
+		}
+
+		// Only process peers we already know about
+		// New peers are handled through Apply() when their state is received
+		peer, exists := s.peers[peerID]
+		if !exists {
+			continue
+		}
+
+		// Process peer state information from remote digest
+		// This allows us to learn about peer states even when we're not receiving state updates
+		switch digestEntry.PeerState {
+		case messages.PeerState_PEER_STATE_SUSPECTED_DEAD:
+			// Remote node suspects this peer is dead
+			// Only mark as suspected dead if we currently think it's healthy
+			// This allows fast failure detection while respecting existing state transitions
+			if peer.IsHealthy() {
+				peer.MarkSuspectedDead()
+				s.peers[peerID] = peer
+				otelzap.L().Info("Peer marked as suspected dead based on remote digest",
+					zap.String("nodeID", s.GetId()),
+					zap.String("peerID", peerID),
+					zap.String("address", peer.GetAddress()),
+				)
+			}
+		case messages.PeerState_PEER_STATE_DEAD:
+			// Remote node reports this peer as dead
+			// Always apply dead state for fast failure detection
+			if !peer.IsDead() {
+				peer.MarkDead()
+				s.peers[peerID] = peer
+				otelzap.L().Info("Peer marked as dead based on remote digest",
+					zap.String("nodeID", s.GetId()),
+					zap.String("peerID", peerID),
+					zap.String("address", peer.GetAddress()),
+				)
+			}
+		case messages.PeerState_PEER_STATE_HEALTHY, messages.PeerState_PEER_STATE_UNSPECIFIED:
+			// Note: We don't resurrect peers based on digest information alone.
+			// Healthy/unspecified states are handled through Apply() when state updates are received.
+			// Resurrection requires direct communication (handled in processDeltaMessage)
+			// or significantly newer information (handled in applyExistingPeerState).
+		}
+	}
+
+	return errors
+}
+
 func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
