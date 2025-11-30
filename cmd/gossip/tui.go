@@ -54,7 +54,7 @@ var (
 			Foreground(lipgloss.Color("#00FF00"))
 
 	suspectedDeadStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFA500"))
+				Foreground(lipgloss.Color("#FFA500"))
 
 	deadStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000"))

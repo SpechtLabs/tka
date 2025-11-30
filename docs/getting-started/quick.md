@@ -60,7 +60,7 @@ Get TKA running in under 5 minutes:
    }
    ```
 
-3. ### Configure & Test
+3. ## Configure & Test
 
    ::: terminal Configure and test
 
