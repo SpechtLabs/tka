@@ -87,6 +87,12 @@ type GossipStore[T SerializableAndStringable] interface {
 	// Apply applies a diff to the local node's state
 	Apply(diff GossipDiff) []humane.Error
 
+	// ProcessDigestForPeerStates processes peer state information from a remote digest.
+	// This updates peer states based on what other nodes report about peers in the cluster.
+	// This is separate from Apply because digests may contain peer state information for
+	// peers that aren't included in the state delta.
+	ProcessDigestForPeerStates(remoteDigest GossipDigest) []humane.Error
+
 	// SetData sets the status of the local node
 	SetData(data T)
 
