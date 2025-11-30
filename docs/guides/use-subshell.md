@@ -126,7 +126,7 @@ tka shell -c "./deploy.sh"
 ## Comparison with `tka login`
 
 | Aspect | `tka shell` | `tka login` |
-|--------|-------------|-------------|
+| :--- | :--- | :--- |
 | Environment | Isolated subshell | Modifies current shell |
 | Cleanup | Automatic | Manual logout required |
 | Persistence | Session only | Until logout/expiry |

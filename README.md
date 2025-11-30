@@ -148,7 +148,7 @@ TKA's security model is built on several key principles:
 ## Comparison with Alternatives
 
 | Feature | TKA | Teleport | Tailscale K8s Operator |
-|---------|-----|----------|-------------------------|
+| :--- | :--- | :--- | :--- |
 | **Zero public endpoints** | ✅ | ❌ | ✅ |
 | **Ephemeral credentials** | ✅ | ✅ | ❌ |
 | **Tailscale native** | ✅ | ❌ | ✅ |
