@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type TestGossipStore[T SerializableAndStringable] struct {
+type InMemoryGossipStore[T SerializableAndStringable] struct {
 	id                    string
 	peersLock             sync.RWMutex // Lock ordering: always acquire peersLock before stateLock to prevent deadlocks
 	peers                 map[string]GossipNode
@@ -22,12 +22,12 @@ type TestGossipStore[T SerializableAndStringable] struct {
 	resurrectionThreshold time.Duration // How much newer remote info must be for resurrection
 }
 
-type TestGossipStoreOption[T SerializableAndStringable] func(*TestGossipStore[T])
+type InMemoryGossipStoreOption[T SerializableAndStringable] func(*InMemoryGossipStore[T])
 
 // WithLocalState sets the local state of the store.
 // This will lock the store for the duration of the function.
-func WithLocalState[T SerializableAndStringable](state T) TestGossipStoreOption[T] {
-	return func(s *TestGossipStore[T]) {
+func WithLocalState[T SerializableAndStringable](state T) InMemoryGossipStoreOption[T] {
+	return func(s *InMemoryGossipStore[T]) {
 		s.stateLock.Lock()
 		defer s.stateLock.Unlock()
 
@@ -44,16 +44,16 @@ func WithLocalState[T SerializableAndStringable](state T) TestGossipStoreOption[
 
 // WithResurrectionThreshold sets how much newer remote information must be
 // before allowing a peer to be resurrected from SUSPECTED_DEAD or DEAD state.
-func WithResurrectionThreshold[T SerializableAndStringable](threshold time.Duration) TestGossipStoreOption[T] {
-	return func(s *TestGossipStore[T]) {
+func WithResurrectionThreshold[T SerializableAndStringable](threshold time.Duration) InMemoryGossipStoreOption[T] {
+	return func(s *InMemoryGossipStore[T]) {
 		s.resurrectionThreshold = threshold
 	}
 }
 
-func NewTestGossipStore[T SerializableAndStringable](address string, opts ...TestGossipStoreOption[T]) GossipStore[T] {
+func NewInMemoryGossipStore[T SerializableAndStringable](address string, opts ...InMemoryGossipStoreOption[T]) GossipStore[T] {
 	id := hashString(address)
 
-	s := &TestGossipStore[T]{
+	s := &InMemoryGossipStore[T]{
 		id:                    id,
 		address:               address,
 		peers:                 make(map[string]GossipNode),
@@ -68,11 +68,11 @@ func NewTestGossipStore[T SerializableAndStringable](address string, opts ...Tes
 	return s
 }
 
-func (s *TestGossipStore[T]) GetId() string {
+func (s *InMemoryGossipStore[T]) GetId() string {
 	return s.id
 }
 
-func (s *TestGossipStore[T]) Heartbeat(peerID string, address string) {
+func (s *InMemoryGossipStore[T]) Heartbeat(peerID string, address string) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -85,12 +85,12 @@ func (s *TestGossipStore[T]) Heartbeat(peerID string, address string) {
 	s.peers[peerID] = node
 }
 
-func (s *TestGossipStore[T]) SetData(status T) {
+func (s *InMemoryGossipStore[T]) SetData(status T) {
 	// We don't need to lock the store here because the WithLocalState function will lock the store for us
 	WithLocalState(status)(s)
 }
 
-func (s *TestGossipStore[T]) GetPeers() []GossipNode {
+func (s *InMemoryGossipStore[T]) GetPeers() []GossipNode {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -102,7 +102,7 @@ func (s *TestGossipStore[T]) GetPeers() []GossipNode {
 	return peers
 }
 
-func (s *TestGossipStore[T]) GetPeer(peerID string) *GossipNode {
+func (s *InMemoryGossipStore[T]) GetPeer(peerID string) *GossipNode {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -113,7 +113,7 @@ func (s *TestGossipStore[T]) GetPeer(peerID string) *GossipNode {
 	return nil
 }
 
-func (s *TestGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) {
+func (s *InMemoryGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -145,7 +145,7 @@ func (s *TestGossipStore[T]) IncrementPeerFailure(peerID string, threshold int) 
 	)
 }
 
-func (s *TestGossipStore[T]) MarkPeerSuspectedDead(peerID string) {
+func (s *InMemoryGossipStore[T]) MarkPeerSuspectedDead(peerID string) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -165,7 +165,7 @@ func (s *TestGossipStore[T]) MarkPeerSuspectedDead(peerID string) {
 	)
 }
 
-func (s *TestGossipStore[T]) MarkPeerDead(peerID string) {
+func (s *InMemoryGossipStore[T]) MarkPeerDead(peerID string) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -185,7 +185,7 @@ func (s *TestGossipStore[T]) MarkPeerDead(peerID string) {
 	)
 }
 
-func (s *TestGossipStore[T]) ResurrectPeer(peerID string) {
+func (s *InMemoryGossipStore[T]) ResurrectPeer(peerID string) {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -207,7 +207,7 @@ func (s *TestGossipStore[T]) ResurrectPeer(peerID string) {
 	)
 }
 
-func (s *TestGossipStore[T]) RemoveStalePeers(threshold int) []string {
+func (s *InMemoryGossipStore[T]) RemoveStalePeers(threshold int) []string {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -259,7 +259,7 @@ func (s *TestGossipStore[T]) RemoveStalePeers(threshold int) []string {
 	return removed
 }
 
-func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
+func (s *InMemoryGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -305,7 +305,7 @@ func (s *TestGossipStore[T]) Digest() (GossipDigest, []humane.Error) {
 	return digest, errors
 }
 
-func (s *TestGossipStore[T]) Diff(other GossipDigest) (GossipDiff, []humane.Error) {
+func (s *InMemoryGossipStore[T]) Diff(other GossipDigest) (GossipDiff, []humane.Error) {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -327,7 +327,7 @@ func (s *TestGossipStore[T]) Diff(other GossipDigest) (GossipDiff, []humane.Erro
 	return diff, errors
 }
 
-func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
+func (s *InMemoryGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -374,7 +374,7 @@ func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 // ProcessDigestForPeerStates processes peer state information from a remote digest.
 // This updates peer states based on what other nodes report about peers in the cluster.
 // This handles peer state transitions for peers that may not be included in state deltas.
-func (s *TestGossipStore[T]) ProcessDigestForPeerStates(remoteDigest GossipDigest) []humane.Error {
+func (s *InMemoryGossipStore[T]) ProcessDigestForPeerStates(remoteDigest GossipDigest) []humane.Error {
 	s.peersLock.Lock()
 	defer s.peersLock.Unlock()
 
@@ -437,7 +437,7 @@ func (s *TestGossipStore[T]) ProcessDigestForPeerStates(remoteDigest GossipDiges
 	return errors
 }
 
-func (s *TestGossipStore[T]) GetDisplayData() []NodeDisplayData {
+func (s *InMemoryGossipStore[T]) GetDisplayData() []NodeDisplayData {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
@@ -517,7 +517,7 @@ func gossipVersionedStateMessageFromState[T SerializableAndStringable](diffState
 }
 
 // createGossipVersionedStateFromPeerState creates a GossipVersionedState message from local peer state and peer info.
-func (s *TestGossipStore[T]) createGossipVersionedStateFromPeerState(peerID string, peerState GossipVersionedState[T], peer *GossipNode) (*messages.GossipVersionedState, humane.Error) {
+func (s *InMemoryGossipStore[T]) createGossipVersionedStateFromPeerState(peerID string, peerState GossipVersionedState[T], peer *GossipNode) (*messages.GossipVersionedState, humane.Error) {
 	digestEntry, err := NewDigestEntry(uint64(peerState.GetVersion()), peer)
 	if err != nil {
 		return nil, humane.Wrap(err, "failed to create digest entry")
@@ -537,7 +537,7 @@ func (s *TestGossipStore[T]) createGossipVersionedStateFromPeerState(peerID stri
 
 // processPeersInRemoteDigest handles peers that exist in the remote digest.
 // For each peer, it either requests their state (if we don't have it) or sends our version (if we have a newer one).
-func (s *TestGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
+func (s *InMemoryGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
 	for peerID, digest := range other {
 		if digest == nil {
 			errors = append(errors, humane.New(fmt.Sprintf("digest is nil for peer %s", peerID)))
@@ -573,7 +573,7 @@ func (s *TestGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff
 
 // announcePeersOnlyKnownLocally announces peers that we know about but the remote node doesn't.
 // This ensures both nodes eventually learn about all peers in the cluster.
-func (s *TestGossipStore[T]) announcePeersOnlyKnownLocally(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
+func (s *InMemoryGossipStore[T]) announcePeersOnlyKnownLocally(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
 	for peerID, peer := range s.peers {
 		if _, existsInOther := other[peerID]; existsInOther {
 			continue
@@ -601,7 +601,7 @@ func (s *TestGossipStore[T]) announcePeersOnlyKnownLocally(other GossipDigest, d
 
 // announceLocalState adds the local node's state to the diff if the remote node needs it.
 // This is skipped if the remote node already has a version that's as new or newer than ours.
-func (s *TestGossipStore[T]) announceLocalState(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
+func (s *InMemoryGossipStore[T]) announceLocalState(other GossipDigest, diff GossipDiff, errors []humane.Error) []humane.Error {
 	// Skip if the remote node already knows about us with a version >= our current version
 	if remoteDigest, existsInOther := other[s.GetId()]; existsInOther {
 		if localState, ok := s.state[s.GetId()]; ok {
@@ -629,7 +629,7 @@ func (s *TestGossipStore[T]) announceLocalState(other GossipDigest, diff GossipD
 }
 
 // unmarshalAndCreateState unmarshals the data from a GossipVersionedState and creates a LastWriteWinsState.
-func (s *TestGossipStore[T]) unmarshalAndCreateState(versionState *messages.GossipVersionedState) (*LastWriteWinsState[T], humane.Error) {
+func (s *InMemoryGossipStore[T]) unmarshalAndCreateState(versionState *messages.GossipVersionedState) (*LastWriteWinsState[T], humane.Error) {
 	if versionState == nil {
 		return nil, humane.New("versionState is nil")
 	}
@@ -652,7 +652,7 @@ func (s *TestGossipStore[T]) unmarshalAndCreateState(versionState *messages.Goss
 // It adds the peer to our peers map and initializes their state.
 // IMPORTANT: We only accept new peers that are HEALTHY. If a peer is marked as
 // SUSPECTED_DEAD or DEAD, we reject it to prevent re-adding peers we've already removed.
-func (s *TestGossipStore[T]) applyNewPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
+func (s *InMemoryGossipStore[T]) applyNewPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
 	if versionState == nil {
 		return humane.New("versionState is nil")
 	}
@@ -710,7 +710,7 @@ var (
 // It updates the peer's state based on remote information.
 // Note: We do NOT call Heartbeat here because this is indirect information from gossip.
 // Direct heartbeats are handled separately in the message handlers.
-func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
+func (s *InMemoryGossipStore[T]) applyExistingPeerState(peerID string, versionState *messages.GossipVersionedState) humane.Error {
 	if versionState == nil {
 		return humane.New("versionState is nil")
 	}
@@ -807,7 +807,7 @@ func (s *TestGossipStore[T]) applyExistingPeerState(peerID string, versionState 
 		return ErrorVersionedStateMonotonicIncreasing
 	}
 
-	if currentState.GetVersion() == state.GetVersion() && currentState.GetData() != state.GetData() {
+	if currentState.GetVersion() == state.GetVersion() && !currentState.GetData().ValuesEqual(state.GetData()) {
 		// conflict resolution: if the peer is "lexically smaller" than us, we just apply the peers state
 		if peerID < s.GetId() {
 			// however, if we do this, we also bump the state version so it's re-announced to the network

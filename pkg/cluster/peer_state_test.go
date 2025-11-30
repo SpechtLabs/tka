@@ -128,10 +128,10 @@ func TestGossipNode_MarkHealthyResetsFailures(t *testing.T) {
 	assert.True(t, node.IsHealthy())
 }
 
-func TestTestGossipStore_MarkPeerSuspectedDead(t *testing.T) {
+func TestInMemoryGossipStore_MarkPeerSuspectedDead(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080")
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 
 	// Add a peer
 	store.Heartbeat("peer-1", "localhost:8081")
@@ -148,10 +148,10 @@ func TestTestGossipStore_MarkPeerSuspectedDead(t *testing.T) {
 	assert.True(t, peer.IsSuspectedDead())
 }
 
-func TestTestGossipStore_ResurrectPeer(t *testing.T) {
+func TestInMemoryGossipStore_ResurrectPeer(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080")
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 
 	// Add a peer and mark it suspected dead
 	store.Heartbeat("peer-1", "localhost:8081")
@@ -170,7 +170,7 @@ func TestTestGossipStore_ResurrectPeer(t *testing.T) {
 	assert.Equal(t, 0, peer.GetConsecutiveFails())
 }
 
-func TestTestGossipStore_RemoveStalePeers_WithStates(t *testing.T) {
+func TestInMemoryGossipStore_RemoveStalePeers_WithStates(t *testing.T) {
 	t.Helper()
 
 	tests := []struct {
@@ -229,7 +229,7 @@ func TestTestGossipStore_RemoveStalePeers_WithStates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 
-			store := NewTestGossipStore[SerializableString]("localhost:8080")
+			store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 			tt.setupFunc(store)
 
 			removed := store.RemoveStalePeers(tt.threshold)
@@ -239,10 +239,10 @@ func TestTestGossipStore_RemoveStalePeers_WithStates(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_Digest_ExcludesSuspectedAndDeadPeers(t *testing.T) {
+func TestInMemoryGossipStore_Digest_ExcludesSuspectedAndDeadPeers(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080",
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080",
 		WithLocalState(SerializableString("local-state")),
 	)
 
@@ -308,10 +308,10 @@ func TestTestGossipStore_Digest_ExcludesSuspectedAndDeadPeers(t *testing.T) {
 	assert.NotContains(t, digest, "peer-dead", "Digest should not include dead peer")
 }
 
-func TestTestGossipStore_IncrementPeerFailure_AutoMarksSuspected(t *testing.T) {
+func TestInMemoryGossipStore_IncrementPeerFailure_AutoMarksSuspected(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080")
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 
 	// Add a peer
 	store.Heartbeat("peer-1", "localhost:8081")
@@ -326,7 +326,7 @@ func TestTestGossipStore_IncrementPeerFailure_AutoMarksSuspected(t *testing.T) {
 	assert.True(t, peer.IsSuspectedDead(), "Peer should be marked suspected dead after first failure")
 }
 
-func TestTestGossipStore_Apply_HandlesStateTransitions(t *testing.T) {
+func TestInMemoryGossipStore_Apply_HandlesStateTransitions(t *testing.T) {
 	t.Helper()
 
 	tests := []struct {
@@ -431,7 +431,7 @@ func TestTestGossipStore_Apply_HandlesStateTransitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 
-			store := NewTestGossipStore[SerializableString]("localhost:8080",
+			store := NewInMemoryGossipStore[SerializableString]("localhost:8080",
 				WithLocalState(SerializableString("local-state")),
 				WithResurrectionThreshold[SerializableString](1*time.Second), // Short threshold for testing
 			)
@@ -454,10 +454,10 @@ func TestTestGossipStore_Apply_HandlesStateTransitions(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_NewPeerWithState(t *testing.T) {
+func TestInMemoryGossipStore_NewPeerWithState(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080",
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080",
 		WithLocalState(SerializableString("local-state")),
 	)
 
@@ -497,7 +497,7 @@ func TestDigestEntry_IncludesPeerState(t *testing.T) {
 	assert.Equal(t, messages.PeerState_PEER_STATE_SUSPECTED_DEAD, digestEntry.PeerState)
 }
 
-func TestTestGossipStore_RejectNonHealthyNewPeers(t *testing.T) {
+func TestInMemoryGossipStore_RejectNonHealthyNewPeers(t *testing.T) {
 	t.Helper()
 
 	tests := []struct {
@@ -536,7 +536,7 @@ func TestTestGossipStore_RejectNonHealthyNewPeers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 
-			store := NewTestGossipStore[SerializableString]("localhost:8080",
+			store := NewInMemoryGossipStore[SerializableString]("localhost:8080",
 				WithLocalState(SerializableString("local-state")),
 			)
 

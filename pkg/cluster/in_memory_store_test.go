@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewTestGossipStore(t *testing.T) {
+func TestNewInMemoryGossipStore(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name      string
 		address   string
-		opts      []cluster.TestGossipStoreOption[cluster.SerializableString]
+		opts      []cluster.InMemoryGossipStoreOption[cluster.SerializableString]
 		wantId    func(string) bool
 		wantState bool
 	}{
@@ -31,7 +31,7 @@ func TestNewTestGossipStore(t *testing.T) {
 		{
 			name:    "creates store with initial state",
 			address: "127.0.0.1:8080",
-			opts: []cluster.TestGossipStoreOption[cluster.SerializableString]{
+			opts: []cluster.InMemoryGossipStoreOption[cluster.SerializableString]{
 				cluster.WithLocalState(cluster.SerializableString("initial")),
 			},
 			wantId: func(id string) bool {
@@ -52,7 +52,7 @@ func TestNewTestGossipStore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString](tt.address, tt.opts...).(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString](tt.address, tt.opts...).(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			assert.True(t, tt.wantId(store.GetId()))
 
@@ -67,7 +67,7 @@ func TestNewTestGossipStore(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_GetId(t *testing.T) {
+func TestInMemoryGossipStore_GetId(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -86,8 +86,8 @@ func TestTestGossipStore_GetId(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store1 := cluster.NewTestGossipStore[cluster.SerializableString](tt.address).(*cluster.TestGossipStore[cluster.SerializableString])
-			store2 := cluster.NewTestGossipStore[cluster.SerializableString](tt.address).(*cluster.TestGossipStore[cluster.SerializableString])
+			store1 := cluster.NewInMemoryGossipStore[cluster.SerializableString](tt.address).(*cluster.InMemoryGossipStore[cluster.SerializableString])
+			store2 := cluster.NewInMemoryGossipStore[cluster.SerializableString](tt.address).(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			id1 := store1.GetId()
 			id2 := store2.GetId()
@@ -98,7 +98,7 @@ func TestTestGossipStore_GetId(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_Heartbeat(t *testing.T) {
+func TestInMemoryGossipStore_Heartbeat(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -147,7 +147,7 @@ func TestTestGossipStore_Heartbeat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			// Setup initial peers
 			for peerId, address := range tt.initialPeers {
@@ -170,7 +170,7 @@ func TestTestGossipStore_Heartbeat(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_SetData(t *testing.T) {
+func TestInMemoryGossipStore_SetData(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -208,12 +208,12 @@ func TestTestGossipStore_SetData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := []cluster.TestGossipStoreOption[cluster.SerializableString]{}
+			opts := []cluster.InMemoryGossipStoreOption[cluster.SerializableString]{}
 			if tt.initialState {
 				opts = append(opts, cluster.WithLocalState(tt.initialData))
 			}
 
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080", opts...).(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080", opts...).(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			store.SetData(tt.newData)
 
@@ -225,7 +225,7 @@ func TestTestGossipStore_SetData(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_GetPeers(t *testing.T) {
+func TestInMemoryGossipStore_GetPeers(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -266,7 +266,7 @@ func TestTestGossipStore_GetPeers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			for _, peer := range tt.addPeers {
 				store.Heartbeat(peer.id, peer.address)
@@ -290,7 +290,7 @@ func TestTestGossipStore_GetPeers(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_GetPeer(t *testing.T) {
+func TestInMemoryGossipStore_GetPeer(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -336,7 +336,7 @@ func TestTestGossipStore_GetPeer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			for _, peer := range tt.addPeers {
 				store.Heartbeat(peer.id, peer.address)
@@ -355,18 +355,18 @@ func TestTestGossipStore_GetPeer(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_Digest(t *testing.T) {
+func TestInMemoryGossipStore_Digest(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name              string
-		setup             func(*cluster.TestGossipStore[cluster.SerializableString])
+		setup             func(*cluster.InMemoryGossipStore[cluster.SerializableString])
 		wantDigestEntries int
 		wantLocalIncluded bool
 	}{
 		{
 			name: "empty store with no state",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				// No setup
 			},
 			wantDigestEntries: 0,
@@ -374,7 +374,7 @@ func TestTestGossipStore_Digest(t *testing.T) {
 		},
 		{
 			name: "store with only local state",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			wantDigestEntries: 1,
@@ -382,7 +382,7 @@ func TestTestGossipStore_Digest(t *testing.T) {
 		},
 		{
 			name: "store with peers but no state",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.Heartbeat("peer1", "127.0.0.1:8081")
 			},
 			wantDigestEntries: 0, // No state entries because local state wasn't set
@@ -390,7 +390,7 @@ func TestTestGossipStore_Digest(t *testing.T) {
 		},
 		{
 			name: "store with peers and state",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 				s.Heartbeat("peer1", "127.0.0.1:8081")
 			},
@@ -401,7 +401,7 @@ func TestTestGossipStore_Digest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			tt.setup(store)
 
@@ -420,19 +420,19 @@ func TestTestGossipStore_Digest(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_Diff(t *testing.T) {
+func TestInMemoryGossipStore_Diff(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name          string
-		setup         func(*cluster.TestGossipStore[cluster.SerializableString])
+		setup         func(*cluster.InMemoryGossipStore[cluster.SerializableString])
 		otherDigest   cluster.GossipDigest
 		wantDiffCount int
 		desc          string
 	}{
 		{
 			name: "empty digests",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			otherDigest:   cluster.GossipDigest{},
@@ -441,26 +441,26 @@ func TestTestGossipStore_Diff(t *testing.T) {
 		},
 		{
 			name: "same state, no diff",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			otherDigest: func() cluster.GossipDigest {
-				store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+				store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 				store.SetData(cluster.SerializableString("local"))
 				digest, errors := store.Digest()
 				assert.Equal(t, 0, len(errors), "no errors should be returned")
 				return digest
 			}(),
-			wantDiffCount: 0,
+			wantDiffCount: 1,
 			desc:          "same versions should still announce",
 		},
 		{
 			name: "new peer in other digest",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			otherDigest: func() cluster.GossipDigest {
-				store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8081").(*cluster.TestGossipStore[cluster.SerializableString])
+				store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8081").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 				store.SetData(cluster.SerializableString("remote"))
 				digest, errors := store.Digest()
 				assert.Equal(t, 0, len(errors), "no errors should be returned")
@@ -471,7 +471,7 @@ func TestTestGossipStore_Diff(t *testing.T) {
 		},
 		{
 			name: "request newer state from peer",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 				// Add peer with older state
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -490,7 +490,7 @@ func TestTestGossipStore_Diff(t *testing.T) {
 		},
 		{
 			name: "announce locally known peers not in other digest",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA"))
 				// Add peer1 and learn its state
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -523,7 +523,7 @@ func TestTestGossipStore_Diff(t *testing.T) {
 			},
 			otherDigest: func() cluster.GossipDigest {
 				// Other store only knows about storeA (this store)
-				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8083").(*cluster.TestGossipStore[cluster.SerializableString])
+				storeB := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8083").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
 				digest, errors := storeB.Digest()
 				assert.Equal(t, 0, len(errors), "no errors should be returned")
@@ -536,7 +536,7 @@ func TestTestGossipStore_Diff(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			tt.setup(store)
 
@@ -547,12 +547,12 @@ func TestTestGossipStore_Diff(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_Apply(t *testing.T) {
+func TestInMemoryGossipStore_Apply(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name          string
-		setup         func(*cluster.TestGossipStore[cluster.SerializableString])
+		setup         func(*cluster.InMemoryGossipStore[cluster.SerializableString])
 		diff          cluster.GossipDiff
 		wantPeerCount int
 		wantStateKeys int
@@ -560,7 +560,7 @@ func TestTestGossipStore_Apply(t *testing.T) {
 	}{
 		{
 			name:          "empty diff",
-			setup:         func(s *cluster.TestGossipStore[cluster.SerializableString]) {},
+			setup:         func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {},
 			diff:          cluster.GossipDiff{},
 			wantPeerCount: 0,
 			wantStateKeys: 0,
@@ -568,7 +568,7 @@ func TestTestGossipStore_Apply(t *testing.T) {
 		},
 		{
 			name: "apply new peer state",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			diff: func() cluster.GossipDiff {
@@ -591,7 +591,7 @@ func TestTestGossipStore_Apply(t *testing.T) {
 		},
 		{
 			name: "update existing peer state",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 				s.Heartbeat("peer1", "127.0.0.1:8081")
 				// Add existing peer state
@@ -627,7 +627,7 @@ func TestTestGossipStore_Apply(t *testing.T) {
 		},
 		{
 			name: "ignore own state in diff",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			diff:          cluster.GossipDiff{}, // Will be populated in test
@@ -639,7 +639,7 @@ func TestTestGossipStore_Apply(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			tt.setup(store)
 
@@ -672,12 +672,12 @@ func TestTestGossipStore_Apply(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_GetDisplayData(t *testing.T) {
+func TestInMemoryGossipStore_GetDisplayData(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name           string
-		setup          func(*cluster.TestGossipStore[cluster.SerializableString])
+		setup          func(*cluster.InMemoryGossipStore[cluster.SerializableString])
 		wantDataCount  int
 		wantLocalCount int
 		wantData       []struct {
@@ -688,7 +688,7 @@ func TestTestGossipStore_GetDisplayData(t *testing.T) {
 	}{
 		{
 			name: "empty store",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				// No setup
 			},
 			wantDataCount:  0,
@@ -697,7 +697,7 @@ func TestTestGossipStore_GetDisplayData(t *testing.T) {
 		},
 		{
 			name: "local state only",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 			},
 			wantDataCount:  1,
@@ -715,7 +715,7 @@ func TestTestGossipStore_GetDisplayData(t *testing.T) {
 		},
 		{
 			name: "local state and peers",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("local"))
 				s.Heartbeat("peer1", "127.0.0.1:8081")
 			},
@@ -736,7 +736,7 @@ func TestTestGossipStore_GetDisplayData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 			tt.setup(store)
 
@@ -761,10 +761,10 @@ func TestTestGossipStore_GetDisplayData(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_DiffWithNewerVersions(t *testing.T) {
+func TestInMemoryGossipStore_DiffWithNewerVersions(t *testing.T) {
 	t.Parallel()
 
-	store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+	store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 	store.SetData(cluster.SerializableString("local"))
 
 	// Add a peer with state version 1
@@ -824,13 +824,13 @@ func TestTestGossipStore_DiffWithNewerVersions(t *testing.T) {
 	assert.True(t, foundPeer1)
 }
 
-func TestTestGossipStore_MultiplePeers(t *testing.T) {
+func TestInMemoryGossipStore_MultiplePeers(t *testing.T) {
 	t.Parallel()
 
-	store1 := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8081").(*cluster.TestGossipStore[cluster.SerializableString])
+	store1 := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8081").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 	store1.SetData(cluster.SerializableString("store1"))
 
-	store2 := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8082").(*cluster.TestGossipStore[cluster.SerializableString])
+	store2 := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8082").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 	store2.SetData(cluster.SerializableString("store2"))
 
 	// Store 1 learns about store 2 - get digest
@@ -865,10 +865,10 @@ func TestTestGossipStore_MultiplePeers(t *testing.T) {
 	assert.GreaterOrEqual(t, len(display2), 2, "store2 should know about itself and store1")
 }
 
-func TestTestGossipStore_ConcurrentHeartbeats(t *testing.T) {
+func TestInMemoryGossipStore_ConcurrentHeartbeats(t *testing.T) {
 	t.Parallel()
 
-	store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+	store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 
 	// Simulate concurrent heartbeats
 	done := make(chan bool)
@@ -891,21 +891,21 @@ func TestTestGossipStore_ConcurrentHeartbeats(t *testing.T) {
 	assert.Equal(t, 10, len(peers), "should have 10 peers")
 }
 
-func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
+func TestInMemoryGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 	t.Parallel()
 
 	// This test specifically covers the codepath where we announce locally known peers
 	// that don't exist in the other digest
 	tests := []struct {
 		name         string
-		setup        func(*cluster.TestGossipStore[cluster.SerializableString])
+		setup        func(*cluster.InMemoryGossipStore[cluster.SerializableString])
 		otherDigest  cluster.GossipDigest
 		wantPeerIds  []string
 		wantPeerData map[string]string
 	}{
 		{
 			name: "announce single peer not in other digest",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA-local"))
 				// Add peer1 and learn its state
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -923,7 +923,7 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 				})
 			},
 			otherDigest: func() cluster.GossipDigest {
-				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8082").(*cluster.TestGossipStore[cluster.SerializableString])
+				storeB := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8082").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
 				digest, errors := storeB.Digest()
 				assert.Equal(t, 0, len(errors), "no errors should be returned")
@@ -936,7 +936,7 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 		},
 		{
 			name: "announce multiple peers not in other digest",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA-local"))
 				// Add peer1 and learn its state
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -982,7 +982,7 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 				})
 			},
 			otherDigest: func() cluster.GossipDigest {
-				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8084").(*cluster.TestGossipStore[cluster.SerializableString])
+				storeB := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8084").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
 				digest, errors := storeB.Digest()
 				assert.Equal(t, 0, len(errors), "no errors should be returned")
@@ -997,7 +997,7 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 		},
 		{
 			name: "announce locally known peers even when other knows some of them",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA-local"))
 				// Add peer1 and learn its state
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -1043,7 +1043,7 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 				})
 			},
 			otherDigest: func() cluster.GossipDigest {
-				storeB := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8084").(*cluster.TestGossipStore[cluster.SerializableString])
+				storeB := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8084").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 				storeB.SetData(cluster.SerializableString("storeB"))
 				// StoreB knows about peer2
 				storeB.Heartbeat("peer2", "127.0.0.1:8082")
@@ -1062,7 +1062,7 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 			tt.setup(store)
 
 			diff, errors := store.Diff(tt.otherDigest)
@@ -1091,21 +1091,21 @@ func TestTestGossipStore_Diff_AnnouncesLocallyKnownPeers(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_Diff_SendsUpdatesForLocalPeerState(t *testing.T) {
+func TestInMemoryGossipStore_Diff_SendsUpdatesForLocalPeerState(t *testing.T) {
 	t.Parallel()
 
 	// This test specifically covers the codepath where we have local state for a peer
 	// that differs from the version in the other digest, so we send updates
 	tests := []struct {
 		name             string
-		setup            func(*cluster.TestGossipStore[cluster.SerializableString])
+		setup            func(*cluster.InMemoryGossipStore[cluster.SerializableString])
 		otherDigest      cluster.GossipDigest
 		wantUpdatedPeers map[string]string
 		wantUpdatedCount int
 	}{
 		{
 			name: "send update when local peer state is newer",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA"))
 				// Add peer1 and learn its initial state (v1)
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -1153,7 +1153,7 @@ func TestTestGossipStore_Diff_SendsUpdatesForLocalPeerState(t *testing.T) {
 		},
 		{
 			name: "send updates for multiple peers with newer versions",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA"))
 				// Add peer1 at version 2
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -1210,7 +1210,7 @@ func TestTestGossipStore_Diff_SendsUpdatesForLocalPeerState(t *testing.T) {
 		},
 		{
 			name: "do not send update when local version is older",
-			setup: func(s *cluster.TestGossipStore[cluster.SerializableString]) {
+			setup: func(s *cluster.InMemoryGossipStore[cluster.SerializableString]) {
 				s.SetData(cluster.SerializableString("storeA"))
 				// Add peer1 at version 1
 				s.Heartbeat("peer1", "127.0.0.1:8081")
@@ -1244,7 +1244,7 @@ func TestTestGossipStore_Diff_SendsUpdatesForLocalPeerState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := cluster.NewTestGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.TestGossipStore[cluster.SerializableString])
+			store := cluster.NewInMemoryGossipStore[cluster.SerializableString]("127.0.0.1:8080").(*cluster.InMemoryGossipStore[cluster.SerializableString])
 			tt.setup(store)
 
 			diff, errors := store.Diff(tt.otherDigest)

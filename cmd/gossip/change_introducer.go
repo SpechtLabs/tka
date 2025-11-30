@@ -54,7 +54,7 @@ It is not meant to be used in production.`,
 		if err != nil {
 			return err
 		}
-		store := cluster.NewTestGossipStore[cluster.SerializableString](listenAddr, cluster.WithLocalState(cluster.SerializableString("initial-state")))
+		store := cluster.NewInMemoryGossipStore[cluster.SerializableString](listenAddr, cluster.WithLocalState(cluster.SerializableString("initial-state")))
 
 		listener, err := net.Listen("tcp", listenAddr)
 		if err != nil {

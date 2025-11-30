@@ -54,7 +54,7 @@ It is not meant to be used in production.`,
 			return err
 		}
 
-		store := cluster.NewTestGossipStore(listenAddr,
+		store := cluster.NewInMemoryGossipStore(listenAddr,
 			cluster.WithLocalState(cluster.SerializableString(args[0])),
 		)
 

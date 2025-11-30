@@ -183,10 +183,10 @@ func (m gossipModel) View() string {
 			truncateString(node.State, 20))
 
 		sb.WriteString(style.Render(nodeLine))
-		
+
 		// Add health status with its own color
 		sb.WriteString(healthStyle.Render(fmt.Sprintf("%-18s", healthStatus)))
-		
+
 		// Add last seen
 		lastSeenLine := fmt.Sprintf(" %-25s", node.LastSeen.Format("2006-01-02 15:04:05"))
 		sb.WriteString(style.Render(lastSeenLine))
@@ -210,8 +210,8 @@ func tickCmd() tea.Cmd {
 
 func (m gossipModel) updateStateCmd() tea.Cmd {
 	return func() tea.Msg {
-		// Cast to TestGossipStore to access GetDisplayData method
-		if testStore, ok := m.store.(*cluster.TestGossipStore[cluster.SerializableString]); ok {
+		// Cast to InMemoryGossipStore to access GetDisplayData method
+		if testStore, ok := m.store.(*cluster.InMemoryGossipStore[cluster.SerializableString]); ok {
 			return stateUpdateMsg{data: testStore.GetDisplayData()}
 		}
 		return stateUpdateMsg{data: []cluster.NodeDisplayData{}}
