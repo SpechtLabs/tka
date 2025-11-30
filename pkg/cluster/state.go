@@ -43,12 +43,12 @@ type GossipVersionedState[T SerializableAndStringable] interface {
 	// GetData returns the data of the state.
 	GetData() T
 
-	// Diff returns a copy of the itselft if it is newer than the other version, otherwise (if the other version is newer than itself)it returns nil
+	// Diff returns a copy of itself if it is newer than the other version, otherwise (if the other version is newer than itself) it returns nil
 	Diff(other Version) GossipVersionedState[T]
 
 	// Apply applies a diff to the state.
 	// If the diff is newer, it will apply the diff and return nil.
-	// If the diff is older, it will return nil because we are authorative.
+	// If the diff is older, it will return nil because we are authoritative.
 	// If ambiguous, it will return an error but it is up to the implementation to decide how to resolve the conflict.
 	Apply(diff GossipVersionedState[T]) humane.Error
 
