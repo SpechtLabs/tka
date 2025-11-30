@@ -32,7 +32,7 @@ Get TKA running in under 5 minutes:
 
    :::
 
-2. ### Configure Tailscale ACLs
+2. ## Configure Tailscale ACLs
 
    Add to your [Tailscale ACL policy](https://login.tailscale.com/admin/acls):
 
