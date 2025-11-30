@@ -6,7 +6,7 @@ builds:
   - id: server
     env: &env
       - CGO_ENABLED=0
-    goos: &srv_goos
+    goos:
       - linux
     goarch: &goarch
       - arm64
@@ -35,68 +35,32 @@ builds:
     ldflags: *ldflags
 
 # Docker image for server (multi-platform)
-dockers:
+dockers_v2:
   - id: oci-bundle
-    use: buildx
     dockerfile: Dockerfile
-    goos: linux
-    goarch: amd64
     ids:
       - server
-    image_templates:
-      - ghcr.io/spechtlabs/tka:latest-amd64
-      - ghcr.io/spechtlabs/tka:{{ .Tag }}-amd64
-      - ghcr.io/spechtlabs/tka:v{{ .Major }}-amd64
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/amd64"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    images:
+      - ghcr.io/spechtlabs/tka
+    tags:
+      - latest
+      - "{{ .Tag }}"
+      - "v{{ .Major }}"
+    labels:
+      org.opencontainers.image.created: "{{.Date}}"
+      org.opencontainers.image.title: "{{.ProjectName}}"
+      org.opencontainers.image.revision: "{{.FullCommit}}"
+      org.opencontainers.image.version: "{{.Version}}"
+    flags:
       - "--pull"
-
-  - id: oci-bundle-arm64
-    use: buildx
-    dockerfile: Dockerfile
-    goos: linux
-    goarch: arm64
-    ids:
-      - server
-    image_templates:
-      - ghcr.io/spechtlabs/tka:latest-arm64
-      - ghcr.io/spechtlabs/tka:{{ .Tag }}-arm64
-      - ghcr.io/spechtlabs/tka:v{{ .Major }}-arm64
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/arm64"
-      - "--pull"
-
-docker_manifests:
-  - name_template: ghcr.io/spechtlabs/tka:latest
-    image_templates:
-      - ghcr.io/spechtlabs/tka:latest-amd64
-      - ghcr.io/spechtlabs/tka:latest-arm64
-    skip_push: auto
-
-  - name_template: ghcr.io/spechtlabs/tka:{{ .Tag }}
-    image_templates:
-      - ghcr.io/spechtlabs/tka:{{ .Tag }}-amd64
-      - ghcr.io/spechtlabs/tka:{{ .Tag }}-arm64
-    skip_push: auto
-
-  - name_template: ghcr.io/spechtlabs/tka:v{{ .Major }}
-    image_templates:
-      - ghcr.io/spechtlabs/tka:v{{ .Major }}-amd64
-      - ghcr.io/spechtlabs/tka:v{{ .Major }}-arm64
-    skip_push: auto
 
 # Sign docker-image with cosign (keyless)
 docker_signs:
   - id: oci-bundle-sign
-    artifacts: manifests
+    artifacts: images
     args:
     - "sign"
     - --oidc-issuer=https://token.actions.githubusercontent.com
