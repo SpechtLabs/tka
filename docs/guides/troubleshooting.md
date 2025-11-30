@@ -495,5 +495,5 @@ If you're still experiencing issues:
 ## Related Guides
 
 - [Configuration Reference](../reference/configuration.md)
-- [Security Model](../explanation/security.md)
-- [Production Deployment](../tutorials/comprehensive.md#production-deployment)
+- [Security Model](../understanding/security.md)
+- [Production Deployment](../getting-started/comprehensive.md#production-deployment)

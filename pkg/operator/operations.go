@@ -96,7 +96,7 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 
 	serviceAccount := k8s.NewServiceAccount(signIn)
 
-	// Set Redirect instance as the owner and api
+	// Set SignIn as the owner of the ServiceAccount
 	_ = ctrl.SetControllerReference(signIn, serviceAccount, scheme)
 
 	if err := c.Create(ctx, serviceAccount); err != nil {
@@ -128,7 +128,7 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 
 	clusterRoleBinding := k8s.NewClusterRoleBinding(signIn)
 
-	// Set Redirect instance as the owner and api
+	// Set SignIn as the owner of the ClusterRoleBinding
 	_ = ctrl.SetControllerReference(signIn, clusterRoleBinding, scheme)
 
 	if err := c.Create(ctx, clusterRoleBinding); err != nil {

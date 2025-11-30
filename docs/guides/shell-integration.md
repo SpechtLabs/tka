@@ -309,7 +309,7 @@ unset KUBECONFIG
 
 - [Configure ACLs](./configure-acl.md)
 - [Troubleshooting Guide](./troubleshooting.md)
-- [Production Deployment](../tutorials/comprehensive.md#production-deployment)
+- [Production Deployment](../getting-started/comprehensive.md#production-deployment)
 
 ## Related Documentation
 

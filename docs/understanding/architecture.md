@@ -122,4 +122,4 @@ flowchart LR
 
 - For **implementation details** (API endpoints, CLI commands, config knobs), see the [Developer Reference](../reference/).
 - For **security considerations**, see the [Security Model](./security.md).
-- For **deployment guidance**, see the [Comprehensive Guide](../tutorials/comprehensive.md) (includes production deployment).
+- For **deployment guidance**, see the [Comprehensive Guide](../getting-started/comprehensive.md) (includes production deployment).

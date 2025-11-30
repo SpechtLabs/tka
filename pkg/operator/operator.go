@@ -40,8 +40,8 @@ func getConfigOrDie() *rest.Config {
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		herr := humane.Wrap(err, "Failed to get Kubernetes config",
-			"If --kubeconfig.go is set, will use the kubeconfig.go file at that location. Otherwise will assume running in cluster and use the cluster provided kubeconfig.go.",
-			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
+			"If --kubeconfig is set, will use the kubeconfig file at that location. Otherwise will assume running in cluster and use the cluster provided kubeconfig.",
+			"Check the config precedence: 1) --kubeconfig flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
 		)
 
 		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config") //nolint:golint-sl // Startup Fatal, no context available

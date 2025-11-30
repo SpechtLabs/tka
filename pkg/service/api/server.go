@@ -161,18 +161,18 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	}
 	t.client = svc
 
-	v1alpha1Grpup := t.router.Group(ApiRouteV1Alpha1)
+	v1alpha1Group := t.router.Group(ApiRouteV1Alpha1)
 
 	// Install auth middleware only on the API route group
 	if t.authMiddleware != nil {
-		t.authMiddleware.UseGroup(v1alpha1Grpup, t.tracer)
+		t.authMiddleware.UseGroup(v1alpha1Group, t.tracer)
 	}
 
-	v1alpha1Grpup.POST(LoginApiRoute, t.login)
-	v1alpha1Grpup.GET(LoginApiRoute, t.getLogin)
-	v1alpha1Grpup.GET(KubeconfigApiRoute, t.getKubeconfig)
-	v1alpha1Grpup.POST(LogoutApiRoute, t.logout)
-	v1alpha1Grpup.GET(ClusterInfoApiRoute, t.getClusterInfo)
+	v1alpha1Group.POST(LoginApiRoute, t.login)
+	v1alpha1Group.GET(LoginApiRoute, t.getLogin)
+	v1alpha1Group.GET(KubeconfigApiRoute, t.getKubeconfig)
+	v1alpha1Group.POST(LogoutApiRoute, t.logout)
+	v1alpha1Group.GET(ClusterInfoApiRoute, t.getClusterInfo)
 
 	// TODO(cedi): Add a separate auth middleware for the memberlist route that verifies that the tka clusters have a capability that grants them the ability to communicate to each other.
 	if t.gossipStore != nil {
