@@ -18,7 +18,7 @@ At a high level, TKA has four main components:
 - **[TKA CLI](#tka-cli)** → the user‑facing tool that makes authentication feel seamless
 - **[TKA API Server](#tka-api-server)** → the entrypoint for users, running inside your tailnet
 - **[TKA Operator](#tka-operator)** → a Kubernetes controller that provisions and cleans up ephemeral credentials
-- **[TKA Orchestrator](#tka-orchestrator)** → cluster discovery
+- **[TKA Gossip Layer](#tka-gossip-layer)** → peer-to-peer cluster discovery and metadata synchronization
 <!-- markdownlint-enable MD051 -->
 
 Together, they form a loop:
@@ -48,6 +48,35 @@ sequenceDiagram
     api->>operator: Request kubeconfig
     operator->>k8s: Generate token
     api-->>cli: Return kubeconfig
+```
+
+### Multi-Cluster Discovery
+
+When multiple TKA servers are deployed, they discover each other using a gossip protocol:
+
+```mermaid
+sequenceDiagram
+    participant tka1 as TKA Server (Cluster A)
+    participant tka2 as TKA Server (Cluster B)
+    participant tka3 as TKA Server (Cluster C)
+
+    Note over tka1,tka3: Gossip Protocol - Peer Discovery
+
+    tka1->>tka2: Heartbeat (digest)
+    tka2-->>tka1: Diff (state delta + digest)
+
+    tka2->>tka3: Heartbeat (digest)
+    tka3-->>tka2: Diff (state delta + digest)
+
+    tka1->>tka3: Heartbeat (digest)
+    tka3-->>tka1: Diff (state delta + digest)
+
+    Note over tka1,tka3: All nodes now know about each other
+
+    participant cli as User
+
+    cli->>tka1: GET /api/v1alpha1/memberlist
+    tka1-->>cli: [Cluster A, Cluster B, Cluster C]
 ```
 
 ## Why This Design?
@@ -84,14 +113,23 @@ owns the lifecycle of in‑cluster resources.
 - Creates/deletes ServiceAccounts and RoleBindings
 - Generates tokens and cleans up expired sessions
 
-### TKA Orchestrator [^dev-orchestrator]
+### TKA Gossip Layer [^dev-gossip]
 
-- Provides cluster discovery
+- Enables TKA servers to discover each other
+- Uses a scuttlebutt anti-entropy gossip protocol
+- Shares cluster metadata (API endpoint, port, labels)
+- Tracks peer health with failure detection
+- Provides eventually consistent cluster membership
+- Exposes `/memberlist` API for users to discover available clusters
+
+> [!TIP]
+> For a deep dive into how the gossip protocol works, see [Cluster Discovery & Gossip Protocol](./clustering.md).
+> For configuration options, see the [Configuration Reference](../reference/configuration.md#cluster-gossip-protocol).
 
 [^dev-cli]: [Developer Architecture Reference | System Components | 1. TKA CLI](../reference/developer/architecture.md#1-tka-cli)
 [^dev-api-srv]: [Developer Architecture Reference | System Components | 2. TKA Server](../reference/developer/architecture.md#2-tka-server)
-[^dev-k8s-oper]: [Developer Architecture Reference | System Components | 3. TKA Operator (Controller)](../reference/developer/architecture.md#3-tka-operator-controller)
-[^dev-orchestrator]: [Developer Architecture Reference | System Components | 4. TKA Orchestrator](../reference/developer/architecture.md#4-tka-orchestrator)
+[^dev-k8s-oper]: [Developer Architecture Reference | System Components | 5. TKA Operator (Controller)](../reference/developer/architecture.md#5-tka-operator-controller)
+[^dev-gossip]: [Developer Architecture Reference | System Components | 6. Cluster Discovery Layer](../reference/developer/architecture.md#6-cluster-discovery-layer-pkgcluster)
 
 ## How It Fits Together
 

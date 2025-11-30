@@ -96,19 +96,38 @@ type GossipStore[T SerializableAndStringable] interface {
 	// SetData sets the status of the local node
 	SetData(data T)
 
-	// GetDisplayData returns the display data for the local node and all connected peer nodes
-	GetDisplayData() []NodeDisplayData
+	// GetDisplayData returns the display data for the local node and all connected peer nodes.
+	// The State field contains the actual typed metadata (e.g., NodeMetadata for TKA).
+	GetDisplayData() []NodeDisplayData[T]
 }
 
-type NodeDisplayData struct {
-	ID          string
-	Address     string
-	LastSeen    time.Time
-	Version     Version
-	State       string
-	LastUpdated time.Time
-	IsLocal     bool
-	PeerState   messages.PeerState
+// NodeDisplayData represents a node in the gossip cluster with its typed state.
+// The generic type T allows different implementations to use their own state types
+// (e.g., string for demos, NodeMetadata for TKA).
+type NodeDisplayData[T any] struct {
+	// ID is the unique identifier for this node (hostname:port)
+	ID string `json:"id"`
+
+	// Address is the network address used for gossip communication
+	Address string `json:"address"`
+
+	// LastSeen is the timestamp of the last successful gossip communication
+	LastSeen time.Time `json:"lastSeen"`
+
+	// Version is the current state version of this node
+	Version Version `json:"version"`
+
+	// State contains the actual typed metadata for this node
+	State T `json:"state"`
+
+	// LastUpdated is when the state was last modified
+	LastUpdated time.Time `json:"lastUpdated"`
+
+	// IsLocal indicates if this entry represents the local node
+	IsLocal bool `json:"isLocal"`
+
+	// PeerState indicates the health status (HEALTHY, SUSPECTED_DEAD, DEAD)
+	PeerState messages.PeerState `json:"peerState"`
 }
 
 func hashString(s string) string {

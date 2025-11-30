@@ -22,7 +22,6 @@ import (
 	"github.com/spechtlabs/tka/pkg/cluster"
 	authMw "github.com/spechtlabs/tka/pkg/middleware/auth"
 	koperator "github.com/spechtlabs/tka/pkg/operator"
-	"github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/api"
 	"github.com/spechtlabs/tka/pkg/service/capability"
 	"github.com/spechtlabs/tka/pkg/service/models"
@@ -255,8 +254,8 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	// Create Gossip Client
-	var gossipClient *cluster.GossipClient[service.NodeMetadata]
-	var gossipStore cluster.GossipStore[service.NodeMetadata]
+	var gossipClient *cluster.GossipClient[models.NodeMetadata]
+	var gossipStore cluster.GossipStore[models.NodeMetadata]
 
 	// Create Tailscale server
 	tailscaleServer := tsnet.NewServer(viper.GetString("tailscale.hostname"))
@@ -387,7 +386,7 @@ func newTkaServer(
 	tailscaleServer tsnet.TSNet,
 	prom *ginprometheus.Prometheus,
 	clusterInfo *models.TkaClusterInfo,
-	gossipStore cluster.GossipStore[service.NodeMetadata],
+	gossipStore cluster.GossipStore[models.NodeMetadata],
 	k8sClient k8s.TkaClient) (*ts.Server, *api.TKAServer, humane.Error) {
 	tsServer := ts.NewServer(tailscaleServer,
 		ts.WithDebug(debug),
@@ -458,12 +457,12 @@ func newHealthServer(tsServer tsnet.TSNet, prom *ginprometheus.Prometheus) *http
 	}
 }
 
-func newGossip(tailscaleServer tsnet.TSNet, clusterInfo *models.TkaClusterInfo) (*cluster.GossipClient[service.NodeMetadata], cluster.GossipStore[service.NodeMetadata], humane.Error) {
+func newGossip(tailscaleServer tsnet.TSNet, clusterInfo *models.TkaClusterInfo) (*cluster.GossipClient[models.NodeMetadata], cluster.GossipStore[models.NodeMetadata], humane.Error) {
 	gossipPort := viper.GetInt("gossip.port")
 	// We listen on all interfaces for gossip
 	listenAddr := fmt.Sprintf(":%d", gossipPort)
 
-	meta := service.NodeMetadata{
+	meta := models.NodeMetadata{
 		APIEndpoint: clusterInfo.ServerURL,
 		Labels:      clusterInfo.Labels,
 	}
@@ -482,7 +481,7 @@ func newGossip(tailscaleServer tsnet.TSNet, clusterInfo *models.TkaClusterInfo) 
 		}
 	}
 
-	gossipStore := cluster.NewInMemoryGossipStore[service.NodeMetadata](
+	gossipStore := cluster.NewInMemoryGossipStore[models.NodeMetadata](
 		fmt.Sprintf("%s:%d", viper.GetString("tailscale.hostname"), gossipPort),
 		cluster.WithLocalState(meta),
 	)
@@ -493,12 +492,12 @@ func newGossip(tailscaleServer tsnet.TSNet, clusterInfo *models.TkaClusterInfo) 
 		return nil, nil, humane.Wrap(err, "failed to listen for gossip")
 	}
 
-	gossipClient := cluster.NewGossipClient[service.NodeMetadata](
+	gossipClient := cluster.NewGossipClient[models.NodeMetadata](
 		gossipStore,
 		listener,
-		cluster.WithGossipFactor[service.NodeMetadata](viper.GetInt("gossip.factor")),
-		cluster.WithGossipInterval[service.NodeMetadata](viper.GetDuration("gossip.interval")),
-		cluster.WithBootstrapPeer[service.NodeMetadata](viper.GetStringSlice("gossip.bootstrapPeers")...),
+		cluster.WithGossipFactor[models.NodeMetadata](viper.GetInt("gossip.factor")),
+		cluster.WithGossipInterval[models.NodeMetadata](viper.GetDuration("gossip.interval")),
+		cluster.WithBootstrapPeer[models.NodeMetadata](viper.GetStringSlice("gossip.bootstrapPeers")...),
 	)
 
 	return gossipClient, gossipStore, nil

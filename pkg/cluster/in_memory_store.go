@@ -437,14 +437,14 @@ func (s *InMemoryGossipStore[T]) ProcessDigestForPeerStates(remoteDigest GossipD
 	return errors
 }
 
-func (s *InMemoryGossipStore[T]) GetDisplayData() []NodeDisplayData {
+func (s *InMemoryGossipStore[T]) GetDisplayData() []NodeDisplayData[T] {
 	s.peersLock.RLock()
 	defer s.peersLock.RUnlock()
 
 	s.stateLock.RLock()
 	defer s.stateLock.RUnlock()
 
-	data := make([]NodeDisplayData, 0, len(s.state))
+	data := make([]NodeDisplayData[T], 0, len(s.state))
 	keys := make([]string, 0, len(s.state))
 	for k := range s.state {
 		keys = append(keys, k)
@@ -470,13 +470,12 @@ func (s *InMemoryGossipStore[T]) GetDisplayData() []NodeDisplayData {
 			continue
 		}
 
-		stateData := state.GetData()
-		data = append(data, NodeDisplayData{
+		data = append(data, NodeDisplayData[T]{
 			ID:          peerID,
 			Address:     peer.GetAddress(),
 			LastSeen:    peer.GetLastSeen(),
 			Version:     state.GetVersion(),
-			State:       stateData.String(),
+			State:       state.GetData(),
 			LastUpdated: time.Now(),
 			IsLocal:     peerID == s.GetId(),
 			PeerState:   peer.GetState(),

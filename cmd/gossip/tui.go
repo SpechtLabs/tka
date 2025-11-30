@@ -14,7 +14,7 @@ import (
 // TUI model for displaying gossip state
 type gossipModel struct {
 	store       cluster.GossipStore[cluster.SerializableString]
-	lastData    []cluster.NodeDisplayData
+	lastData    []cluster.NodeDisplayData[cluster.SerializableString]
 	highlighted map[string]time.Time
 	width       int
 	height      int
@@ -22,7 +22,7 @@ type gossipModel struct {
 
 // Update message types
 type stateUpdateMsg struct {
-	data []cluster.NodeDisplayData
+	data []cluster.NodeDisplayData[cluster.SerializableString]
 }
 
 type tickMsg time.Time
@@ -66,7 +66,7 @@ var (
 func newGossipModel(store cluster.GossipStore[cluster.SerializableString]) *gossipModel {
 	return &gossipModel{
 		store:       store,
-		lastData:    make([]cluster.NodeDisplayData, 0),
+		lastData:    make([]cluster.NodeDisplayData[cluster.SerializableString], 0),
 		highlighted: make(map[string]time.Time),
 	}
 }
@@ -180,7 +180,7 @@ func (m gossipModel) View() string {
 			truncateString(node.ID, 12),
 			truncateString(node.Address, 20),
 			node.Version,
-			truncateString(node.State, 20))
+			truncateString(string(node.State), 20))
 
 		sb.WriteString(style.Render(nodeLine))
 
@@ -214,7 +214,7 @@ func (m gossipModel) updateStateCmd() tea.Cmd {
 		if testStore, ok := m.store.(*cluster.InMemoryGossipStore[cluster.SerializableString]); ok {
 			return stateUpdateMsg{data: testStore.GetDisplayData()}
 		}
-		return stateUpdateMsg{data: []cluster.NodeDisplayData{}}
+		return stateUpdateMsg{data: []cluster.NodeDisplayData[cluster.SerializableString]{}}
 	}
 }
 
@@ -231,6 +231,7 @@ func getPeerStateString(state messages.PeerState) string {
 		return "✓ Healthy"
 	case messages.PeerState_PEER_STATE_SUSPECTED_DEAD:
 		return "⚠ Suspected Dead"
+
 	case messages.PeerState_PEER_STATE_DEAD:
 		return "✗ Dead"
 	default:

@@ -31,7 +31,20 @@
 			<tr>
 				<td>{{ .ID }}</td>
 				<td>{{ .Address }}</td>
-				<td>{{ .State }}</td>
+				<td>
+					<dl>
+						<dt>API Endpoint</dt>
+						<dd>{{ .State.APIEndpoint }}:{{ .State.APIPort }}</dd>
+						<dt>Labels</dt>
+						<dd>
+							<ul>
+							{{ range $key, $value := .State.Labels }}
+								<li><strong>{{ $key }}:</strong> {{ $value }}</li>
+							{{ end }}
+							</ul>
+						</dd>
+					</dl>
+				</td>
 				<td class="{{ if eq .PeerState.String "PEER_STATE_HEALTHY" }}healthy{{ else if eq .PeerState.String "PEER_STATE_SUSPECTED_DEAD" }}suspected-dead{{ else if eq .PeerState.String "PEER_STATE_DEAD" }}dead{{ end }}">
 					{{ .PeerState }}
 				</td>
