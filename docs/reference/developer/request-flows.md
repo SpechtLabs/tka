@@ -84,7 +84,7 @@ sequenceDiagram
     end
 
     auth->>auth: get WhoIs resolver
-    Note right of auth: WhoIs resolver is defined as tailscale.WhoIsResolver in <br/> pkg/tailscale
+    Note right of auth: WhoIs resolver is defined as tsnet.WhoIsResolver in <br/> pkg/tsnet
 
     alt request is from a tagged node
         auth-->>cli: HTTP 403 - Requests can only originate from users
@@ -107,7 +107,7 @@ sequenceDiagram
 
     auth->>auth: SetUsername
     auth->>auth: SetRule
-    auth->>api: Process next request handeler
+    auth->>api: Process next request handler
     activate api
     deactivate auth
     api->>api: Process request as usual
@@ -224,3 +224,167 @@ sequenceDiagram
     operator-->>api: return kubeconfig
     deactivate operator
 ```
+
+## Cluster Discovery (Gossip Protocol)
+
+TKA servers can discover each other and share cluster metadata using a gossip-based protocol. This enables multi-cluster deployments where users can discover available clusters.
+
+### Gossip Overview
+
+The gossip protocol uses a 3-way handshake to synchronize state between nodes:
+
+1. **Heartbeat**: Node A sends its version digest to Node B
+2. **Diff**: Node B responds with state differences and its own digest
+3. **Delta**: Node A sends any remaining differences to complete sync
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant nodeA as TKA Node A
+    participant nodeB as TKA Node B
+
+    Note over nodeA,nodeB: Gossip Round (repeats periodically)
+
+    nodeA->>nodeB: SendHeartbeat(GossipHeartbeatRequest)
+    activate nodeB
+    Note right of nodeA: Contains: srcId, timestamp,<br/>version_map_digest
+
+    nodeB->>nodeB: Update peer last_seen
+    nodeB->>nodeB: Compare digests
+    nodeB->>nodeB: Generate state diff
+
+    nodeB-->>nodeA: GossipDiffResponse
+    deactivate nodeB
+    Note left of nodeB: Contains: srcId, state_delta,<br/>version_map_digest
+
+    activate nodeA
+    nodeA->>nodeA: Apply received state
+    nodeA->>nodeA: Generate own diff
+
+    alt Has updates for Node B
+        nodeA->>nodeB: SendDiff(GossipDiffRequest)
+        activate nodeB
+        Note right of nodeA: Contains: srcId, state_delta,<br/>version_map_digest
+
+        nodeB->>nodeB: Apply received state
+        nodeB->>nodeB: Generate delta if needed
+
+        nodeB-->>nodeA: GossipDeltaResponse
+        deactivate nodeB
+        Note left of nodeB: Contains: srcId, state_delta (if any),<br/>has_delta flag
+
+        nodeA->>nodeA: Apply delta if present
+    end
+    deactivate nodeA
+```
+
+### Data Exchanged
+
+Each TKA node shares its **NodeMetadata** through the gossip protocol:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `apiEndpoint` | string | The Kubernetes API server URL for this cluster |
+| `apiPort` | int | The port TKA server listens on |
+| `labels` | map[string]string | Cluster labels (environment, region, etc.) |
+
+### Gossip Message Types
+
+```mermaid
+classDiagram
+    class GossipHeartbeatMessage {
+        +int64 ts_unix_nano
+        +map~string,DigestEntry~ version_map_digest
+    }
+
+    class GossipDiffMessage {
+        +map~string,GossipVersionedState~ state_delta
+        +map~string,DigestEntry~ version_map_digest
+    }
+
+    class GossipDeltaMessage {
+        +map~string,GossipVersionedState~ state_delta
+    }
+
+    class DigestEntry {
+        +uint64 version
+        +string address
+        +int64 last_seen_unix_nano
+        +PeerState peer_state
+    }
+
+    class GossipVersionedState {
+        +DigestEntry digest_entry
+        +bytes data
+    }
+
+    class NodeMetadata {
+        +string apiEndpoint
+        +int apiPort
+        +map~string,string~ labels
+    }
+
+    GossipHeartbeatMessage --> DigestEntry : contains
+    GossipDiffMessage --> DigestEntry : contains
+    GossipDiffMessage --> GossipVersionedState : contains
+    GossipDeltaMessage --> GossipVersionedState : contains
+    GossipVersionedState --> DigestEntry : contains
+    GossipVersionedState --> NodeMetadata : serialized as bytes
+```
+
+### Peer States
+
+The gossip protocol tracks the health of peers using the following states:
+
+| State | Description |
+| :--- | :--- |
+| `HEALTHY` | Peer is responding normally |
+| `SUSPECTED_DEAD` | Peer has missed several heartbeat cycles |
+| `DEAD` | Peer has exceeded the dead threshold and will be removed |
+
+### Gossip Configuration
+
+| Parameter | Default | Description |
+| :--- | :--- | :--- |
+| `gossipFactor` | 3 | Number of peers to gossip with per cycle |
+| `gossipInterval` | 1s | Time between gossip cycles |
+| `stalenessThreshold` | 5 | Consecutive failures before marking peer as suspected dead |
+| `deadThreshold` | 10 | Consecutive failures before removing peer |
+
+### Memberlist API
+
+Users can query the current cluster membership via the API:
+
+```mermaid
+sequenceDiagram
+    participant cli as User / Browser
+    participant api as TKA API Server
+    participant store as GossipStore
+
+    cli->>api: GET /api/v1alpha1/memberlist
+    activate api
+
+    api->>store: GetDisplayData()
+    activate store
+    store-->>api: []NodeDisplayData
+    deactivate store
+
+    alt Accept: application/json
+        api-->>cli: JSON response
+    else Accept: text/html
+        api-->>cli: HTML memberlist page
+    end
+    deactivate api
+```
+
+**Response includes for each node:**
+
+| Field | Description |
+| :--- | :--- |
+| `id` | Unique node identifier |
+| `address` | gRPC address for gossip communication |
+| `lastSeen` | Timestamp of last successful communication |
+| `version` | Current state version (vector clock) |
+| `state` | Serialized NodeMetadata |
+| `peerState` | Health state (HEALTHY, SUSPECTED_DEAD, DEAD) |
+| `isLocal` | Whether this is the local node |

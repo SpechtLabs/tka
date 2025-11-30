@@ -1,23 +1,15 @@
 ---
-title: pkg/tailscale Package
+title: Tailscale Networking Packages
 permalink: /reference/developer/tailscale-server
 createTime: 2025/01/27 12:00:00
 ---
 
-The `pkg/tailscale` package provides a Tailscale-network-only HTTP server that is a true drop-in replacement for Go's standard `http.Server`. This creates HTTP servers that are only accessible via the Tailscale network (tailnet), providing automatic security, TLS certificates, and identity resolution.
+TKA uses two packages for Tailscale networking:
 
-**Go Documentation**: [pkg.go.dev/github.com/spechtlabs/tka/pkg/tailscale](https://pkg.go.dev/github.com/spechtlabs/tka/pkg/tailscale)
+- **`pkg/tshttp`**: High-level HTTP server that runs on Tailscale network
+- **`pkg/tsnet`**: Low-level Tailscale networking abstractions and interfaces
 
-## Overview
-
-This package provides a clean, modern interface for Tailscale HTTP servers with multiple usage patterns:
-
-- **Network Isolation**: HTTP server only accessible via Tailscale network
-- **Automatic TLS**: HTTPS certificates handled by Tailscale
-- **Identity Resolution**: Built-in user identity and capability checking
-- **Funnel Detection**: Ability to detect and reject public Funnel traffic
-- **Drop-in Replacement**: True drop-in replacement for `http.Server`
-- **Flexible Interface**: Multiple usage patterns from simple to advanced
+Together, these packages provide a Tailscale-network-only HTTP server that is a true drop-in replacement for Go's standard `http.Server`, with automatic security, TLS certificates, and identity resolution.
 
 ## Architecture
 
@@ -27,47 +19,147 @@ graph TB
         App[Your HTTP Application]
         Handler[http.Handler]
     end
-    subgraph "pkg/tailscale"
-        TSServer[tailscale.Server]
-        Identity[Identity Resolution]
-        Utils[Utility Functions]
+    subgraph "pkg/tshttp"
+        TSHTTPServer[tshttp.Server]
+        TSHTTPOptions[Options]
     end
-    subgraph "Standard Library & Tailscale"
+    subgraph "pkg/tsnet"
+        TSNet[tsnet.TSNet Interface]
+        WhoIs[tsnet.WhoIsResolver]
+        WhoIsInfo[tsnet.WhoIsInfo]
+        TSNetServer[tsnet.Server]
+    end
+    subgraph "Tailscale SDK"
+        TSNetPkg[tailscale.com/tsnet]
+        LocalClient[tailscale.com/client/local]
+    end
+    subgraph "Standard Library"
         HTTPServer[http.Server]
-        TSNet[tailscale.com/tsnet]
         NetListener[net.Listener]
     end
 
     App --> Handler
-    Handler --> TSServer
-    TSServer --> HTTPServer
-    TSServer --> Identity
-    TSServer --> Utils
-    TSServer --> TSNet
-    TSNet --> NetListener
+    Handler --> TSHTTPServer
+    TSHTTPServer --> HTTPServer
+    TSHTTPServer --> TSNet
+    TSHTTPServer --> WhoIs
+    TSNet --> TSNetServer
+    TSNetServer --> TSNetPkg
+    WhoIs --> WhoIsInfo
+    WhoIs --> LocalClient
+    TSNetPkg --> NetListener
     HTTPServer --> NetListener
 ```
 
-**Key Design:**
+## pkg/tsnet
 
-1. `tailscale.Server` **embeds** `http.Server` directly - it IS an `http.Server`
-2. `tailscale.Server` **connects** to Tailscale network via `tsnet`
-3. `tailscale.Server` **provides** standard `net.Listener` instances from Tailscale
-4. **No abstraction layers** - direct integration with standard Go HTTP patterns
+The `pkg/tsnet` package provides low-level abstractions for Tailscale networking.
 
-## Usage Patterns
+### Key Types
 
-The package supports two usage patterns to match different complexity needs:
+#### TSNet Interface
 
-### 1. High-Level Usage (All-in-One)
-
-Use the `Serve()` method for a complete solution:
+Abstracts the Tailscale server functionality for testability:
 
 ```go
-server := tailscale.NewServer("myapp",
-    tailscale.WithPort(443),
-    tailscale.WithDebug(true),
+type TSNet interface {
+    Up(ctx context.Context) (*ipnstate.Status, error)
+    Listen(network, addr string) (net.Listener, error)
+    ListenTLS(network, addr string) (net.Listener, error)
+    ListenFunnel(network, addr string) (net.Listener, error)
+    LocalWhoIs() (WhoIsResolver, error)
+    SetDir(dir string)
+    SetLogf(logf func(string, ...any))
+    Hostname() string
+    GetPeerState() *ipnstate.PeerStatus
+    IsConnected() bool
+    BackendState() BackendState
+}
+```
+
+#### WhoIsResolver Interface
+
+Interface for identity resolution:
+
+```go
+type WhoIsResolver interface {
+    WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error)
+}
+```
+
+#### WhoIsInfo
+
+Identity information extracted from Tailscale WhoIs lookups:
+
+```go
+type WhoIsInfo struct {
+    LoginName string               // User's login name (e.g., "alice@example.com")
+    CapMap    tailcfg.PeerCapMap   // Capability grants from ACL
+    Tags      []string             // ACL tags (for service accounts)
+}
+
+func (w *WhoIsInfo) IsTagged() bool  // Returns true if device is tagged
+```
+
+#### TailscaleCapability Interface
+
+For capability-based authorization:
+
+```go
+type TailscaleCapability interface {
+    Priority() int
+}
+```
+
+### Mock Support
+
+The `pkg/tsnet/mock` package provides mock implementations for testing:
+
+- `mock.TSNet` - Mock TSNet interface
+- `mock.WhoIsResolver` - Mock WhoIsResolver interface
+
+## pkg/tshttp
+
+The `pkg/tshttp` package provides a high-level HTTP server that runs exclusively on the Tailscale network.
+
+### Features
+
+- **Network Isolation**: HTTP server only accessible via Tailscale network
+- **Automatic TLS**: HTTPS certificates handled by Tailscale
+- **Identity Resolution**: Built-in user identity and capability checking
+- **Funnel Detection**: Ability to detect and reject public Funnel traffic
+- **Drop-in Replacement**: True drop-in replacement for `http.Server`
+
+### Server Type
+
+```go
+type Server struct {
+    *http.Server  // Embedded - IS an http.Server
+
+    // Tailscale components
+    ts    tsnet.TSNet         // Abstracted tsnet server
+    whois tsnet.WhoIsResolver // Resolver for WhoIs lookups
+}
+```
+
+### Usage Patterns
+
+#### 1. High-Level Usage (All-in-One)
+
+```go
+ts := tsnet.NewServer("myapp")
+if _, err := ts.Up(ctx); err != nil {
+    log.Fatal(err)
+}
+
+server := tshttp.NewServer(ts,
+    tshttp.WithPort(443),
+    tshttp.WithDebug(true),
 )
+
+if err := server.Start(ctx); err != nil {
+    log.Fatal(err)
+}
 
 handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     info, err := server.WhoIs(r.Context(), r.RemoteAddr)
@@ -78,20 +170,20 @@ handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "Hello, %s!", info.LoginName)
 })
 
-if err := server.Serve(ctx, handler); err != nil {
+if err := server.Serve(ctx, handler, "tcp"); err != nil {
     log.Fatal(err)
 }
 ```
 
-> [!TIP]
-> See the [Example: High-Level Usage (All-in-One)](#example-high-level-usage-all-in-one) for more info
-
-### 2. Low-Level Usage (Maximum Control)
-
-Use `Start()` + `ListenTCP()` with standard `http.Server` for maximum control:
+#### 2. Low-Level Usage (Maximum Control)
 
 ```go
-server := tailscale.NewServer("myapp")
+ts := tsnet.NewServer("myapp")
+if _, err := ts.Up(ctx); err != nil {
+    log.Fatal(err)
+}
+
+server := tshttp.NewServer(ts)
 if err := server.Start(ctx); err != nil {
     log.Fatal(err)
 }
@@ -101,307 +193,60 @@ if err != nil {
     log.Fatal(err)
 }
 
-// Use any http.Server - server is just for connection setup
+// Use any http.Server
 httpServer := &http.Server{
-    Handler: myHandler,
+    Handler:     myHandler,
     ReadTimeout: 30 * time.Second,
 }
-go func() {
-    if err := httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-        log.Printf("HTTP server error: %v", err)
-    }
-}()
+go httpServer.Serve(listener)
 
 // Graceful shutdown
 shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
-if err := httpServer.Shutdown(shutdownCtx); err != nil {
-    log.Printf("HTTP shutdown error: %v", err)
-}
-if err := server.Stop(shutdownCtx); err != nil {
-    log.Printf("Tailscale shutdown error: %v", err)
-}
-```
-
-> [!TIP]
-> See the [Example: Low-Level Usage (Maximum Control)](#example-high-level-usage-all-in-one) for more info
-
-## Core Types
-
-### Server
-
-The main server type that embeds `http.Server` and adds Tailscale functionality:
-
-```go
-type Server struct {
-    *http.Server  // Embedded - IS an http.Server
-
-    // Configuration
-    debug    bool
-    port     int
-    hostname string
-
-    // Tailscale components
-    ts        *tsnet.Server
-    lc        *local.Client
-    st        *ipnstate.Status
-    serverURL string
-    started   bool
-}
-```
-
-### WhoIsInfo
-
-Identity information extracted from Tailscale WhoIs lookups:
-
-```go
-type WhoIsInfo struct {
-    LoginName string               // User's login name (e.g., "alice@example.com")
-    CapMap    tailcfg.PeerCapMap   // Capability grants from ACL
-    IsTagged  bool                 // Whether the source is a tagged device
-}
-```
-
-### WhoIsResolver
-
-Interface for identity resolution:
-
-```go
-type WhoIsResolver interface {
-    WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error)
-}
-```
-
-This interface is implemented by the `tailscale.Server` and can be mocked for testing with the `pkg/tailscale/mock` package.
-
-## API Reference
-
-### Constructor
-
-#### NewServer
-
-```go
-func NewServer(hostname string, opts ...Option) *Server
-```
-
-Creates a new Tailscale HTTP server with the specified hostname.
-
-**Parameters:**
-
-- `hostname`: The hostname for this server on the tailnet (e.g., "tka")
-- `opts`: Configuration options
-
-**Returns:** A configured `*Server` ready to serve HTTP traffic
-
-**Example:**
-
-```go
-server := tailscale.NewServer("myapp",
-    tailscale.WithPort(443),
-    tailscale.WithDebug(true),
-    tailscale.WithStateDir("/var/lib/myapp/ts-state"),
-)
+httpServer.Shutdown(shutdownCtx)
+server.Stop(shutdownCtx)
 ```
 
 ### Configuration Options
 
-#### WithPort
-
-```go
-func WithPort(port int) Option
-```
-
-Sets the listening port. Default is 443 (HTTPS).
-
-#### WithDebug
-
-```go
-func WithDebug(debug bool) Option
-```
-
-Enables debug logging for Tailscale operations.
-
-#### WithStateDir
-
-```go
-func WithStateDir(dir string) Option
-```
-
-Sets the directory for Tailscale state storage. If empty, uses automatic directory selection.
-
-#### HTTP Timeout Options
-
-Configure standard HTTP server timeouts:
-
-```go
-func WithReadTimeout(timeout time.Duration) Option
-func WithReadHeaderTimeout(timeout time.Duration) Option
-func WithWriteTimeout(timeout time.Duration) Option
-func WithIdleTimeout(timeout time.Duration) Option
-```
+| Option | Description |
+| :--- | :--- |
+| `WithPort(port int)` | Sets the listening port (default: 443) |
+| `WithDebug(bool)` | Enables debug logging |
+| `WithStateDir(dir string)` | Sets Tailscale state directory |
+| `WithReadTimeout(duration)` | Sets HTTP read timeout |
+| `WithReadHeaderTimeout(duration)` | Sets HTTP header read timeout |
+| `WithWriteTimeout(duration)` | Sets HTTP write timeout |
+| `WithIdleTimeout(duration)` | Sets HTTP idle timeout |
 
 ### Server Methods
 
-#### Start
-
-```go
-func (s *Server) Start(ctx context.Context) humane.Error
-```
-
-Connects to the Tailscale network and prepares the server for accepting connections. This method separates connection setup from serving.
-
-**Example:**
-
-```go
-server := tailscale.NewServer("myapp")
-if err := server.Start(ctx); err != nil {
-    log.Fatal(err.Display())
-}
-```
-
-#### ListenTCP
-
-```go
-func (s *Server) ListenTCP(address string) (net.Listener, humane.Error)
-```
-
-Creates a TCP listener on the Tailscale network. Returns a standard `net.Listener` that can be used with any `http.Server`.
-
-**Note:** The server must be started with `Start()` before calling this method.
-
-**Example:**
-
-```go
-listener, err := server.ListenTCP(":8080")
-if err != nil {
-    log.Fatal(err.Display())
-}
-
-httpServer := &http.Server{
-    Handler: myHandler,
-    ReadTimeout: 30 * time.Second,
-}
-go httpServer.Serve(listener)
-```
-
-#### Stop
-
-```go
-func (s *Server) Stop(ctx context.Context) humane.Error
-```
-
-Gracefully stops the Tailscale server.
-
-**Example:**
-
-```go
-if err := server.Stop(ctx); err != nil {
-    log.Printf("Stop error: %v", err)
-}
-```
-
-#### Serve
-
-```go
-func (s *Server) Serve(ctx context.Context, handler http.Handler) humane.Error
-```
-
-Starts the server with the provided HTTP handler. This is the high-level method that handles everything automatically.
-
-**Parameters:**
-
-- `ctx`: Context for server lifecycle
-- `handler`: HTTP handler to serve requests
-
-**Returns:** `humane.Error` if startup or serving fails
-
-**Example:**
-
-```go
-ctx := context.Background()
-handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Hello from tailnet!")
-})
-
-if err := server.Serve(ctx, handler); err != nil {
-    log.Fatal("Server failed:", err.Display())
-}
-```
-
-#### ListenAndServe
-
-```go
-func (s *Server) ListenAndServe() error
-```
-
-Standard library compatible method. Uses `s.Handler` and background context.
-
-**Example:**
-
-```go
-server.Handler = myHandler
-if err := server.ListenAndServe(); err != nil {
-    log.Fatal("Server failed:", err)
-}
-```
-
-#### Shutdown
-
-```go
-func (s *Server) Shutdown(ctx context.Context) humane.Error
-```
-
-Gracefully shuts down the server.
-
-**Example:**
-
-```go
-shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-defer cancel()
-
-if err := server.Shutdown(shutdownCtx); err != nil {
-    log.Printf("Shutdown error: %v", err)
-}
-```
-
-#### WhoIs
-
-```go
-func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, error)
-```
-
-Directly resolves identity for a remote address.
-
-**Example:**
-
-```go
-info, err := server.WhoIs(ctx, "100.64.1.2:12345")
-if err != nil {
-    return fmt.Errorf("identity lookup failed: %w", err)
-}
-
-// Check capabilities
-if caps, ok := info.CapMap["example.com/cap/admin"]; ok {
-    // User has admin capabilities
-}
-```
+| Method | Description |
+| :--- | :--- |
+| `Start(ctx)` | Connects to Tailscale network |
+| `ListenTCP(addr)` | Creates TCP listener on tailnet |
+| `ListenTLS(addr)` | Creates TLS listener on tailnet |
+| `ListenFunnel(addr)` | Creates Funnel listener (public) |
+| `Serve(ctx, handler, network)` | High-level serve method |
+| `Stop(ctx)` | Gracefully stops the server |
+| `WhoIs(ctx, remoteAddr)` | Resolves identity for address |
 
 ### Utility Functions
 
 #### IsFunnelRequest
 
+Detects if a request is coming through Tailscale Funnel:
+
 ```go
 func IsFunnelRequest(r *http.Request) bool
 ```
-
-Detects if an HTTP request is coming through Tailscale Funnel (public internet).
 
 **Example:**
 
 ```go
 func authMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        if tailscale.IsFunnelRequest(r) {
+        if tsnet.IsFunnelRequest(r) {
             http.Error(w, "Access denied: Funnel requests not allowed", http.StatusForbidden)
             return
         }
@@ -410,182 +255,22 @@ func authMiddleware(next http.Handler) http.Handler {
 }
 ```
 
-> [!TIP]
-> See the [Example: Authentication Middleware](#example-authentication-middleware) for more info
-
-#### CtxConnKey
-
-```go
-type CtxConnKey struct{}
-```
-
-Context key for retrieving the underlying `net.Conn` from request context.
-
-## Examples
-
-### Example: High-Level Usage (All-in-One)
-
-```go
-package main
-
-import (
-    "context"
-    "fmt"
-    "net/http"
-
-    "github.com/spechtlabs/tka/pkg/tshttp"
-)
-
-func main() {
-    // Create server
-    server := tailscale.NewServer("myapp",
-        tailscale.WithPort(443),
-        tailscale.WithDebug(true),
-    )
-
-    // Simple handler
-    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        fmt.Fprintf(w, "Hello from %s!", r.Host)
-    })
-
-    // Start server
-    ctx := context.Background()
-    if err := server.Serve(ctx, handler); err != nil {
-        panic(err.Display())
-    }
-}
-```
-
-### Example: Low-Level Usage (Maximum Control)
-
-```go
-package main
-
-import (
-    "context"
-    "errors"
-    "log"
-    "net/http"
-    "os"
-    "os/signal"
-    "syscall"
-    "time"
-
-    "github.com/spechtlabs/tka/pkg/tshttp"
-)
-
-func main() {
-    // Create server
-    server := tailscale.NewServer("myapp")
-
-    // Start with timeout
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-    defer cancel()
-    if err := server.Start(ctx); err != nil {
-        log.Fatal(err.Display())
-    }
-
-    // Create HTTP server
-    mux := http.NewServeMux()
-    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        info, err := server.WhoIs(r.Context(), r.RemoteAddr)
-        if err != nil {
-            http.Error(w, "Authentication failed", http.StatusUnauthorized)
-            return
-        }
-        fmt.Printf("Request from %s: %s %s\n", info.LoginName, r.Method, r.URL.Path)
-        fmt.Fprintf(w, "Hello %s from Tailscale!", info.LoginName)
-    })
-
-    // Listen on Tailscale network
-    listener, err := server.ListenTCP(":8080")
-    if err != nil {
-        log.Fatal(err.Display())
-    }
-
-    // Standard HTTP server
-    httpServer := &http.Server{Handler: mux}
-    go func() {
-        if err := httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-            log.Printf("HTTP server error: %v", err)
-        }
-    }()
-
-    log.Printf("HTTP server listening on Tailscale network port 8080")
-
-    // Handle shutdown
-    stop := make(chan os.Signal, 1)
-    signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-    <-stop
-
-    shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-
-    if err := httpServer.Shutdown(shutdownCtx); err != nil {
-        log.Printf("HTTP shutdown error: %v", err)
-    }
-    if err := server.Stop(shutdownCtx); err != nil {
-        log.Printf("Tailscale shutdown error: %v", err)
-    }
-}
-```
-
-### Example: Authentication Middleware
-
-```go
-func authMiddleware(server *tailscale.Server) func(http.Handler) http.Handler {
-    return func(next http.Handler) http.Handler {
-        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            // Reject Funnel requests
-            if tailscale.IsFunnelRequest(r) {
-                http.Error(w, "Access denied", http.StatusForbidden)
-                return
-            }
-
-            // Get user identity
-            info, err := server.WhoIs(r.Context(), r.RemoteAddr)
-            if err != nil {
-                http.Error(w, "Authentication failed", http.StatusUnauthorized)
-                return
-            }
-
-            // Check for required capability
-            if _, ok := info.CapMap["example.com/cap/api-access"]; !ok {
-                http.Error(w, "Insufficient permissions", http.StatusForbidden)
-                return
-            }
-
-            // Add user info to context
-            ctx := context.WithValue(r.Context(), "user", info.LoginName)
-            next.ServeHTTP(w, r.WithContext(ctx))
-        })
-    }
-}
-```
-
-> [!TIP]
-> To see a Gin-Authentication Middleware in action, check out the [tka source code on GitHub](https://github.com/SpechtLabs/tka/blob/main/pkg/middleware/auth/gin.go)
-
 ## Security Considerations
 
 - **Tailnet Only**: Server is never exposed to internet directly, only via your tailnet
 - **Device Authentication**: All clients must be authenticated members of your tailnet
 - **Network ACLs**: Tailscale ACLs control which devices can reach the server
-- **Public Traffic**: Your server can still receive unauthenticated traffic from the public internet through Tailscale [Funnel]
-  - Public traffic can easily identified by using the `IsFunnelRequest()` function
-  - Applications should reject Funnel requests for sensitive operations
-
-[Funnel]: https://tailscale.com/kb/1223/funnel
+- **Public Traffic**: Server can receive unauthenticated traffic through [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
+  - Use `IsFunnelRequest()` to detect and reject Funnel traffic for sensitive operations
 
 ## Dependencies
 
-- [tailscale.com/tsnet](https://pkg.go.dev/tailscale.com/tsnet) Embedded Tailscale networking
-- [tailscale.com/client/local](https://pkg.go.dev/tailscale.com/client/local) Local Tailscale client for WhoIs
-- [tailscale.com/ipn/ipnstate]([tailscale.com/ipn/ipnstate](https://pkg.go.dev/tailscale.com/ipn/ipnstate)) Status and state management
-- [github.com/sierrasoftworks/humane-errors-go]([github.com/sierrasoftworks/humane-errors-go](https://github.com/sierrasoftworks/humane-errors-go)) Human-friendly error handling
+- [tailscale.com/tsnet](https://pkg.go.dev/tailscale.com/tsnet) - Embedded Tailscale networking
+- [tailscale.com/client/local](https://pkg.go.dev/tailscale.com/client/local) - Local Tailscale client for WhoIs
+- [tailscale.com/ipn/ipnstate](https://pkg.go.dev/tailscale.com/ipn/ipnstate) - Status and state management
 
 ## Related Documentation
 
-- [TKA Architecture](../../explanation/architecture.md) - How this fits into TKA
-- [Security Model](../../explanation/security.md) - Security implications
-- [Production Deployment](../../tutorials/comprehensive.md#production-deployment) - Production usage patterns
+- [TKA Architecture](../../understanding/architecture.md) - How this fits into TKA
+- [Security Model](../../understanding/security.md) - Security implications
+- [Production Deployment](../../getting-started/comprehensive.md#production-deployment) - Production usage patterns

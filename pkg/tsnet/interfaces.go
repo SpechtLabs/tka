@@ -1,7 +1,4 @@
-// Package tshttp provides interfaces and types for HTTP servers on Tailscale networks.
-// This file defines the core interfaces used throughout the package for testability
-// and abstraction of Tailscale functionality.
-package tshttp
+package tsnet
 
 import (
 	"context"
@@ -64,17 +61,6 @@ type TailscaleCapability interface {
 	Priority() int
 }
 
-// TailscaleServer represents the core functionality of a Tailscale server.
-// This interface provides methods to query the server's connection state.
-type TailscaleServer interface {
-	// IsConnected returns true if the server is connected to the Tailscale network.
-	IsConnected() bool
-	// BackendState returns the current backend state as a string.
-	// Possible values: "NoState", "NeedsLogin", "NeedsMachineAuth", "Stopped",
-	// "Starting", "Running".
-	BackendState() string
-}
-
 // TSNet abstracts the subset of tsnet.Server functionality we use.
 // This interface enables testing by allowing mock implementations.
 type TSNet interface {
@@ -95,4 +81,16 @@ type TSNet interface {
 	SetDir(dir string)
 	// SetLogf sets the logging function for Tailscale operations.
 	SetLogf(logf func(string, ...any))
+
+	// Hostname returns the hostname of the Tailscale server.
+	Hostname() string
+
+	// GetPeerState returns the current peer state.
+	GetPeerState() *ipnstate.PeerStatus
+
+	// IsConnected returns true if the server is connected to the Tailscale network.
+	IsConnected() bool
+
+	// BackendState returns the current backend state.
+	BackendState() BackendState
 }

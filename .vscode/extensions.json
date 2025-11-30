@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "bufbuild.vscode-buf",
+        "golang.go",
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-mermaid",
+        "DavidAnson.vscode-markdownlint",
+        "christian-kohler.path-intellisense",
+        "Vue.volar",
+        "shardulm94.trailing-spaces",
+        "bierner.markdown-footnotes"
+    ]
+}

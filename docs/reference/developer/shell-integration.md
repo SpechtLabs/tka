@@ -4,7 +4,7 @@ createTime: 2025/09/07 23:34:59
 permalink: /reference/developer/shell-integration
 ---
 
-This documentation will go more in detail about the inner workings of the [Shell Integration](../../how-to/shell-integration.md)
+This documentation will go more in detail about the inner workings of the [Shell Integration](../../guides/shell-integration.md)
 
 ## Integration Details
 

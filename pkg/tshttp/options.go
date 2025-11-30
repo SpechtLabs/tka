@@ -5,6 +5,8 @@ package tshttp
 import (
 	"fmt"
 	"time"
+
+	"github.com/spechtlabs/tka/pkg/tsnet"
 )
 
 // Option defines a functional option for configuring a Server.
@@ -88,16 +90,8 @@ func WithWriteTimeout(timeout time.Duration) Option {
 
 // WithWhoIsResolver sets a custom WhoIsResolver for identity lookups.
 // This is primarily useful for testing with mock resolvers.
-func WithWhoIsResolver(whois WhoIsResolver) Option {
+func WithWhoIsResolver(whois tsnet.WhoIsResolver) Option {
 	return func(s *Server) {
 		s.whois = whois
-	}
-}
-
-// WithTSNet sets a custom TSNet implementation.
-// This is primarily useful for testing with mock implementations.
-func WithTSNet(ts TSNet) Option {
-	return func(s *Server) {
-		s.ts = ts
 	}
 }

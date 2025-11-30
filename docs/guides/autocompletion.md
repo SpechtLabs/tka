@@ -333,4 +333,4 @@ TKA's autocompletion provides intelligent suggestions for:
 
 - [Shell Integration Setup](./shell-integration.md) - Automatic environment variable updates
 - [CLI Reference](../reference/cli.md) - Complete command documentation
-- [Getting Started](../tutorials/getting-started.md) - Basic TKA usage
+- [Getting Started](../getting-started/quick.md) - Basic TKA usage

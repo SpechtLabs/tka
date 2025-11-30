@@ -16,6 +16,26 @@ definitions:
           example: Failed to authenticate user
         type: string
     type: object
+  models.NodeMetadata:
+    properties:
+      apiEndpoint:
+        description: APIEndpoint is the Kubernetes API server URL for this cluster
+        example: https://api.prod-us.example.com:6443
+        type: string
+      apiPort:
+        description: APIPort is the port of the TKA API server
+        example: 443
+        type: integer
+      labels:
+        additionalProperties:
+          type: string
+        description: Labels are key-value pairs used to identify and categorize the
+          cluster
+        example:
+          environment: production
+          region: us-west-2
+        type: object
+    type: object
   models.TkaClusterInfo:
     description: Contains cluster information including API endpoint, CA data, TLS
       settings, and identifying labels
@@ -235,6 +255,28 @@ paths:
       summary: Log out authenticated user
       tags:
       - authentication
+  /api/v1alpha1/memberlist:
+    get:
+      description: Returns the list of all clusters known via the gossip protocol.
+        Each entry contains the cluster's API endpoint, TKA port, and labels. Use
+        this endpoint to discover all available clusters in the mesh.
+      produces:
+      - application/json
+      - text/html
+      responses:
+        "200":
+          description: List of clusters with their connection details
+          schema:
+            items:
+              $ref: '#/definitions/models.NodeMetadata'
+            type: array
+        "503":
+          description: Gossip not enabled on this server
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get cluster memberlist
+      tags:
+      - cluster
 securityDefinitions:
   TailscaleAuth:
     description: Authentication happens automatically via the Tailscale network. The

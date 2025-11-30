@@ -4,7 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// loginAttempts tracks login attempts by cluster role and outcome
+// loginAttempts tracks login attempts by cluster role and outcome.
 var loginAttempts = prometheus.NewCounterVec(
 	prometheus.CounterOpts{
 		Name: "tka_login_attempts_total",
