@@ -135,10 +135,6 @@ func (t *TKAServer) loadStaticRoutes() {
 	t.router.GET("/swagger", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
 	})
-
-	if t.gossipStore != nil {
-		t.router.GET(MemberlistRoute, t.getMemberlist)
-	}
 }
 
 // LoadApiRoutes registers the authentication API endpoints with the server.
@@ -151,6 +147,7 @@ func (t *TKAServer) loadStaticRoutes() {
 //   - GET  /api/v1alpha1/kubeconfig   - Retrieve kubeconfig for authenticated user
 //   - POST /api/v1alpha1/logout       - Revoke user credentials
 //   - GET  /api/v1alpha1/cluster-info - Retrieve cluster information
+//   - GET  /api/v1alpha1/memberlist   - Retrieve memberlist information
 //
 // Example:
 //
@@ -176,6 +173,10 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	v1alpha1Grpup.GET(KubeconfigApiRoute, t.getKubeconfig)
 	v1alpha1Grpup.POST(LogoutApiRoute, t.logout)
 	v1alpha1Grpup.GET(ClusterInfoApiRoute, t.getClusterInfo)
+
+	if t.gossipStore != nil {
+		v1alpha1Grpup.GET(MemberlistRoute, t.getMemberlist)
+	}
 
 	return nil
 }
