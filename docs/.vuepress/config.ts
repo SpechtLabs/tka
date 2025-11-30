@@ -77,8 +77,6 @@ export default defineUserConfig({
     lastUpdated: false,
     contributors: false,
 
-    blog: false,
-
     article: "/article/",
 
     cache: "filesystem",
