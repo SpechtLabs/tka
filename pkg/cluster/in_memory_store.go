@@ -338,7 +338,7 @@ func (s *TestGossipStore[T]) Apply(diff GossipDiff) []humane.Error {
 
 	// Apply each peer's state from the diff to our local state
 	for peerID, versionState := range diff {
-		// Skip if this is our own peer ID - we don't apply updates to ourselves because we are the authorative source
+		// Skip if this is our own peer ID - we don't apply updates to ourselves because we are the authoritative source
 		if peerID == s.GetId() {
 			continue
 		}
@@ -481,7 +481,7 @@ func (s *TestGossipStore[T]) processPeersInRemoteDigest(other GossipDigest, diff
 		peerState, ok := s.state[peerID]
 		if !ok {
 			// Peer is not in local state yet so we need to request it
-			// Add it to diff with empty data (Version 0). resulting in the peer sending us his state data in the
+			// Add it to diff with empty data (Version 0). Resulting in the peer sending us his state data in the
 			// apply response
 			diff[peerID] = gossipVersionedStateMessageFromDigest(digest)
 			continue
