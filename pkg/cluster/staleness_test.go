@@ -84,10 +84,10 @@ func TestGossipNode_HeartbeatResetsFailures(t *testing.T) {
 	assert.False(t, node.IsStale(5), "Node should not be stale after heartbeat")
 }
 
-func TestTestGossipStore_IncrementPeerFailure(t *testing.T) {
+func TestInMemoryGossipStore_IncrementPeerFailure(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080")
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 
 	// Add a peer
 	store.Heartbeat("peer-1", "localhost:8081")
@@ -105,7 +105,7 @@ func TestTestGossipStore_IncrementPeerFailure(t *testing.T) {
 	assert.Equal(t, 2, peer.GetConsecutiveFails(), "Peer should have 2 failures")
 }
 
-func TestTestGossipStore_RemoveStalePeers(t *testing.T) {
+func TestInMemoryGossipStore_RemoveStalePeers(t *testing.T) {
 	t.Helper()
 
 	tests := []struct {
@@ -182,7 +182,7 @@ func TestTestGossipStore_RemoveStalePeers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
 
-			store := NewTestGossipStore[SerializableString]("localhost:8080")
+			store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 			tt.setupFunc(store)
 
 			// peers go through two phases:
@@ -202,10 +202,10 @@ func TestTestGossipStore_RemoveStalePeers(t *testing.T) {
 	}
 }
 
-func TestTestGossipStore_NeverRemoveLocalNode(t *testing.T) {
+func TestInMemoryGossipStore_NeverRemoveLocalNode(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080",
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080",
 		WithLocalState(SerializableString("local-state")),
 	)
 
@@ -240,10 +240,10 @@ func TestTestGossipStore_NeverRemoveLocalNode(t *testing.T) {
 	assert.True(t, localExists, "Local node should still exist in display data")
 }
 
-func TestTestGossipStore_HeartbeatResetsFailureCount(t *testing.T) {
+func TestInMemoryGossipStore_HeartbeatResetsFailureCount(t *testing.T) {
 	t.Helper()
 
-	store := NewTestGossipStore[SerializableString]("localhost:8080")
+	store := NewInMemoryGossipStore[SerializableString]("localhost:8080")
 
 	// Add a peer and increment failures
 	store.Heartbeat("peer-1", "localhost:8081")

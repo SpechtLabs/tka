@@ -24,7 +24,7 @@ func (s *LastWriteWinsState[T]) Equal(other GossipVersionedState[T]) bool {
 		return false
 	}
 
-	return s.data == other.GetData()
+	return s.data.ValuesEqual(other.GetData())
 }
 
 func (s *LastWriteWinsState[T]) GetVersion() Version {
@@ -78,7 +78,7 @@ func (s *LastWriteWinsState[T]) Apply(diff GossipVersionedState[T]) humane.Error
 	}
 
 	// If versions are equal, we check if data is different
-	if s.data != diff.GetData() {
+	if !s.data.ValuesEqual(diff.GetData()) {
 		// This is the "last write wins" scenario - when versions are equal but data differs,
 		// we apply the diff data (the incoming write wins)
 		s.data = diff.GetData()

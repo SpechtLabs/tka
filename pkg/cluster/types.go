@@ -31,3 +31,12 @@ func (s SerializableString) Unmarshal(data []byte, v interface{}) humane.Error {
 func (s SerializableString) String() string {
 	return string(s)
 }
+
+// ValuesEqual checks if the values are equal.
+func (s SerializableString) ValuesEqual(other interface{}) bool {
+	o, ok := other.(SerializableString)
+	if !ok {
+		return false
+	}
+	return s == o
+}

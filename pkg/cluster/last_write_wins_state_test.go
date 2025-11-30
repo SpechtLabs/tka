@@ -120,11 +120,11 @@ func TestLastWriteWinsStateApply(t *testing.T) {
 				assert.False(t, equalResult)
 
 			case newerWriteTime:
-				assert.Nil(t, diffResult)
+				assert.Equal(t, diffResult, state)
 				assert.False(t, equalResult)
 
 			case olderWriteTime:
-				assert.Nil(t, diffResult)
+				assert.Equal(t, diffResult, state)
 				assert.False(t, equalResult)
 
 			case identical:

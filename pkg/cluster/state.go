@@ -24,7 +24,7 @@ type SerializableAndStringable interface {
 	fmt.Stringer
 	GossipVersionedStateMarshaller
 	GossipVersionedStateUnmarshaller
-	comparable
+	ValuesEqual(other interface{}) bool
 }
 
 // GossipVersionedState is a vector clock implementation of the gossip state that allows for diffing and applying of states and resolving conflicts.
