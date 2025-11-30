@@ -174,9 +174,8 @@ func (t *TKAServer) LoadApiRoutes(svc client.TkaClient) humane.Error {
 	v1alpha1Group.POST(LogoutApiRoute, t.logout)
 	v1alpha1Group.GET(ClusterInfoApiRoute, t.getClusterInfo)
 
-	// TODO(cedi): Add a separate auth middleware for the memberlist route that verifies that the tka clusters have a capability that grants them the ability to communicate to each other.
 	if t.gossipStore != nil {
-		t.router.GET(MemberlistRoute, t.getMemberlist)
+		v1alpha1Grpup.GET(MemberlistRoute, t.getMemberlist)
 	}
 
 	return nil
