@@ -16,7 +16,7 @@ TKALINT ?= $(LOCALBIN)/tkalint
 
 .PHONY: build
 build: generate
-	goreleaser build --clean --snapshot --config .goreleaser.pr.yaml
+	goreleaser build --clean --snapshot --config .goreleaser.yaml
 
 .PHONY: build-release
 build-release: generate
