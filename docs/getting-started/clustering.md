@@ -158,7 +158,7 @@ flowchart LR
 ## Quick Reference
 
 | Setting | Default | Description |
-|---------|---------|-------------|
+| --- | --- | --- |
 | `gossip.enabled` | `false` | Enable clustering |
 | `gossip.port` | `7946` | Gossip TCP port |
 | `gossip.bootstrapPeers` | `[]` | Initial peers |

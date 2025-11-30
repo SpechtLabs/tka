@@ -241,7 +241,7 @@
         },
         "/api/v1alpha1/memberlist": {
             "get": {
-                "description": "Returns the list of all TKA servers known via the gossip protocol, including their cluster metadata (API endpoint, labels, health state). Use this endpoint to discover all available clusters in the mesh.",
+                "description": "Returns the list of all clusters known via the gossip protocol. Each entry contains the cluster's API endpoint, TKA port, and labels. Use this endpoint to discover all available clusters in the mesh.",
                 "produces": [
                     "application/json",
                     "text/html"
@@ -252,11 +252,11 @@
                 "summary": "Get cluster memberlist",
                 "responses": {
                     "200": {
-                        "description": "List of cluster members with their metadata",
+                        "description": "List of clusters with their connection details",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/cluster.NodeDisplayData"
+                                "$ref": "#/definitions/models.NodeMetadata"
                             }
                         }
                     },
@@ -271,35 +271,6 @@
         }
     },
     "definitions": {
-        "cluster.NodeDisplayData": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isLocal": {
-                    "type": "boolean"
-                },
-                "lastSeen": {
-                    "type": "string"
-                },
-                "lastUpdated": {
-                    "type": "string"
-                },
-                "peerState": {
-                    "type": "integer"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "integer"
-                }
-            }
-        },
         "models.ErrorResponse": {
             "description": "Structured error response with contextual advice",
             "type": "object",
@@ -314,6 +285,32 @@
                 "message": {
                     "description": "Primary error message\nexample: Failed to authenticate user",
                     "type": "string"
+                }
+            }
+        },
+        "models.NodeMetadata": {
+            "type": "object",
+            "properties": {
+                "apiEndpoint": {
+                    "description": "APIEndpoint is the Kubernetes API server URL for this cluster",
+                    "type": "string",
+                    "example": "https://api.prod-us.example.com:6443"
+                },
+                "apiPort": {
+                    "description": "APIPort is the port of the TKA API server",
+                    "type": "integer",
+                    "example": 443
+                },
+                "labels": {
+                    "description": "Labels are key-value pairs used to identify and categorize the cluster",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "example": {
+                        "environment": "production",
+                        "region": "us-west-2"
+                    }
                 }
             }
         },

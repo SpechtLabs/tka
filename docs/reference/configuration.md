@@ -126,7 +126,7 @@ These settings control peer failure detection and are typically not changed from
 Each TKA server shares the following metadata with its peers:
 
 | Field | Description |
-|-------|-------------|
+| --- | --- |
 | `APIEndpoint` | The Kubernetes API server URL for this cluster |
 | `APIPort` | The port of the TKA API server |
 | `Labels` | Cluster labels (from `clusterInfo.labels`) |

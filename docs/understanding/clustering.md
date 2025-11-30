@@ -25,7 +25,7 @@ TKA uses a **[scuttlebutt-style anti-entropy gossip protocol]** for cluster disc
 ### Why Gossip?
 
 | Requirement | How Gossip Helps |
-|-------------|------------------|
+| --- | --- |
 | **Decentralized** | No single point of failure or coordination |
 | **Scalable** | O(log N) convergence, handles hundreds of nodes |
 | **Resilient** | Tolerates network partitions and node failures |
@@ -94,7 +94,7 @@ sequenceDiagram
 ```
 
 | Message | Purpose |
-|---------|---------|
+| --- | --- |
 | **Heartbeat** | Initiator sends its digest to check for differences |
 | **Diff Response** | Responder sends its updates + its own digest |
 | **Diff Request** | Initiator sends its updates based on responder's digest |
@@ -105,7 +105,7 @@ sequenceDiagram
 The gossip protocol also handles peer failure detection:
 
 | State | Condition | Behavior |
-|-------|-----------|----------|
+| --- | --- | --- |
 | **Healthy** | Recent successful gossip | Normal operation |
 | **Suspected** | `stalenessThreshold` consecutive failures | Still contacted, marked suspect |
 | **Dead** | `deadThreshold` consecutive failures | Removed from cluster |
@@ -145,7 +145,7 @@ This metadata is used by:
 ### Gossip Configuration
 
 | Setting | Default | Purpose |
-|---------|---------|---------|
+| --- | --- | --- |
 | `gossip.port` | `7946` | TCP port for gossip communication |
 | `gossip.factor` | `3` | Number of peers to contact per round |
 | `gossip.interval` | `1s` | Time between gossip rounds |
@@ -216,7 +216,7 @@ flowchart TB
 TKA uses Protocol Buffers for gossip messages:
 
 | Message | Direction | Content |
-|---------|-----------|---------|
+| --- | --- | --- |
 | `GossipHeartbeatRequest` | Initiator → Responder | Envelope + digest |
 | `GossipDiffResponse` | Responder → Initiator | Envelope + delta + digest |
 | `GossipDiffRequest` | Initiator → Responder | Envelope + delta + digest |
@@ -245,7 +245,7 @@ message VersionDigest {
 ## Comparison with Alternatives
 
 | Approach | Pros | Cons |
-|----------|------|------|
+| --- | --- | --- |
 | **Gossip (TKA)** | Decentralized, resilient, simple | Eventually consistent |
 | **Central Registry** | Strong consistency | Single point of failure |
 | **DNS-based** | Simple to implement | Slow updates, no metadata |
