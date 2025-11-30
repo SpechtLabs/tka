@@ -14,9 +14,9 @@ import (
 
 type TestGossipStore[T SerializableAndStringable] struct {
 	id                    string
-	peersLock             sync.RWMutex
+	peersLock             sync.RWMutex // Lock ordering: always acquire peersLock before stateLock to prevent deadlocks
 	peers                 map[string]GossipNode
-	stateLock             sync.RWMutex
+	stateLock             sync.RWMutex // Lock ordering: always acquire peersLock before stateLock to prevent deadlocks
 	state                 map[string]GossipVersionedState[T]
 	address               string
 	resurrectionThreshold time.Duration // How much newer remote info must be for resurrection
