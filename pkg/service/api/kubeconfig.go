@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// getKubeconfig handles generating and retrieving kubeconfig for authenticated users
+// getKubeconfig handles generating and retrieving kubeconfig for authenticated users.
 // @Summary       Get kubeconfig for authenticated user
 // @Description   Generates and returns a kubeconfig file for the authenticated Tailscale user
 // @Tags          authentication
@@ -88,6 +88,8 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	}
 }
 
+// acceptsYAML determines if the client accepts a YAML response based on the Accept header.
+// It checks for "application/yaml", "text/yaml", and "application/x-yaml".
 func acceptsYAML(c *gin.Context) bool {
 	accept := c.GetHeader("Accept")
 	return accept == "application/yaml" || accept == "text/yaml" || accept == "application/x-yaml"

@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// login handles user authentication through Tailscale for the TKA service
+// login handles user authentication through Tailscale for the TKA service.
 // @Summary       Authenticate user and provision Kubernetes credentials
 // @Description   Authenticates a user through Tailscale, validates their capability rule, and provisions Kubernetes credentials
 // @Tags          authentication
@@ -96,7 +96,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 	ct.JSON(http.StatusAccepted, models.NewUserLoginResponse(userName, role, until))
 }
 
-// getLogin handles retrieving login status through Tailscale for the TKA service
+// getLogin handles retrieving login status through Tailscale for the TKA service.
 // @Summary       Get user authentication status
 // @Description   Retrieves the current authentication status for a Tailscale user
 // @Tags          authentication
