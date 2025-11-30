@@ -11,7 +11,7 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/models"
 )
 
-// logout handles user logout from TKA service
+// logout handles user logout from TKA service.
 // @Summary       Log out authenticated user
 // @Description   Revokes Kubernetes credentials for the authenticated Tailscale user
 // @Tags          authentication

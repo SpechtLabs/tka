@@ -1,6 +1,4 @@
-// Package tshttp provides utility functions for HTTP servers on Tailscale networks.
-// This file contains helper functions for request inspection and connection handling.
-package tshttp
+package tsnet
 
 import (
 	"net"

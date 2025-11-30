@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/tshttp"
+	"github.com/spechtlabs/tka/pkg/tsnet"
 )
 
 type MockWhoIsResolverOption func(*MockWhoIsResolver)
 
-func WithWhoIsResponse(remoteAddr string, info *tshttp.WhoIsInfo) MockWhoIsResolverOption {
+func WithWhoIsResponse(remoteAddr string, info *tsnet.WhoIsInfo) MockWhoIsResolverOption {
 	return func(m *MockWhoIsResolver) {
 		resp, ok := m.responses[remoteAddr]
 		if !ok {
@@ -39,7 +39,7 @@ func WithWhoIsResponses(responses map[string]mockWhoIsResolverResponse) MockWhoI
 }
 
 type mockWhoIsResolverResponse struct {
-	info *tshttp.WhoIsInfo
+	info *tsnet.WhoIsInfo
 	err  error
 }
 
@@ -47,7 +47,7 @@ type MockWhoIsResolver struct {
 	responses map[string]mockWhoIsResolverResponse
 }
 
-func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tshttp.WhoIsResolver {
+func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tsnet.WhoIsResolver {
 	m := &MockWhoIsResolver{
 		responses: make(map[string]mockWhoIsResolverResponse),
 	}
@@ -57,7 +57,7 @@ func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tshttp.WhoIsResolver 
 	return m
 }
 
-func (m *MockWhoIsResolver) WhoIs(ctx context.Context, remoteAddr string) (*tshttp.WhoIsInfo, humane.Error) {
+func (m *MockWhoIsResolver) WhoIs(ctx context.Context, remoteAddr string) (*tsnet.WhoIsInfo, humane.Error) {
 	resp, ok := m.responses[remoteAddr]
 	if !ok {
 		return nil, humane.Wrap(fmt.Errorf("no response for remote address %s", remoteAddr), "no response for remote address", "check (debug) logs for more details")
