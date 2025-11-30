@@ -108,7 +108,7 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 
 	serviceAccount := k8s.NewServiceAccount(signIn)
 
-	// Set Redirect instance as the owner and api
+	// Set SignIn as the owner of the ServiceAccount
 	if err := ctrl.SetControllerReference(signIn, serviceAccount, scheme); err != nil {
 		otelzap.L().WithError(err).Error("Failed to set controller reference")
 	}
@@ -142,7 +142,7 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 
 	clusterRoleBinding := k8s.NewClusterRoleBinding(signIn)
 
-	// Set Redirect instance as the owner and api
+	// Set SignIn as the owner of the ClusterRoleBinding
 	if err := ctrl.SetControllerReference(signIn, clusterRoleBinding, scheme); err != nil {
 		otelzap.L().WithError(err).Error("Failed to set controller reference")
 	}

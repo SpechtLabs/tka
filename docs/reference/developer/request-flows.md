@@ -107,7 +107,7 @@ sequenceDiagram
 
     auth->>auth: SetUsername
     auth->>auth: SetRule
-    auth->>api: Process next request handeler
+    auth->>api: Process next request handler
     activate api
     deactivate auth
     api->>api: Process request as usual

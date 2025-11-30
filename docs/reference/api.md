@@ -89,5 +89,5 @@ curl -X POST https://tka.your-tailnet.ts.net/api/v1alpha1/logout
 
 - [Configuration Reference](./configuration.md)
 - [CLI Reference](./cli.md)
-- [Security Model](../explanation/security.md)
+- [Security Model](../understanding/security.md)
 - [Request Flows](./developer/request-flows.md)
