@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/spechtlabs/tka/pkg/cluster"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	"github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/models"
@@ -69,5 +70,12 @@ func WithNewClusterInfo(serverURL string, caData string, labels map[string]strin
 			InsecureSkipTLSVerify: false, // Default to secure TLS verification
 			Labels:                labels,
 		}
+	}
+}
+
+// WithGossipStore configures the TKA server with a gossip store for memberlist discovery.
+func WithGossipStore(store cluster.GossipStore[service.NodeMetadata]) Option {
+	return func(tka *TKAServer) {
+		tka.gossipStore = store
 	}
 }

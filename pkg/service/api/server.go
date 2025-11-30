@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spechtlabs/tka/internal/utils"
 	client "github.com/spechtlabs/tka/pkg/client/k8s"
+	"github.com/spechtlabs/tka/pkg/cluster"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	"github.com/spechtlabs/tka/pkg/service"
 	"github.com/spechtlabs/tka/pkg/service/models"
@@ -37,6 +38,7 @@ const (
 	LogoutApiRoute = "/logout"
 	// ClusterInfoApiRoute is the path for retrieving cluster information.
 	ClusterInfoApiRoute = "/cluster-info"
+	MemberlistRoute     = "/memberlist"
 )
 
 // TKAServer represents the main HTTP server for Tailscale Kubernetes Auth.
@@ -105,6 +107,7 @@ func NewTKAServer(opts ...Option) *TKAServer {
 		retryAfterSeconds: 1,
 		sharedPrometheus:  nil,
 		clusterInfo:       nil,
+		gossipStore:       nil,
 	}
 
 	// Apply Options
@@ -118,6 +121,7 @@ func NewTKAServer(opts ...Option) *TKAServer {
 
 	tkaServer.router = utils.NewO11yGin("tka_server", tkaServer.sharedPrometheus)
 
+	tkaServer.loadTemplates()
 	tkaServer.loadStaticRoutes()
 	return tkaServer
 }
