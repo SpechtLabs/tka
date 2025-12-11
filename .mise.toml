@@ -10,7 +10,7 @@ npm = "11.5.1"
 pre-commit = "4.4.0"
 
 # Additional tools for development
-golangci-lint = "2.7.1"
+golangci-lint = "2.7.2"
 goreleaser = "2.12.0"
 kind = "0.30.0"
 kubectl = "1.34.2"
