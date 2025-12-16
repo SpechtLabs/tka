@@ -7,7 +7,7 @@ node = "24.12.0"
 npm = "11.5.1"
 
 # Pre-commit for Git hooks
-pre-commit = "4.4.0"
+pre-commit = "4.5.1"
 
 # Additional tools for development
 golangci-lint = "2.7.2"
