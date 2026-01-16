@@ -90,7 +90,7 @@ func cleanup(quiet bool, kubeCfgPath string) {
 		defer wg.Done()
 		if err := signOut(nil, nil); err != nil {
 			if !quiet {
-				pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly"))
+				pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly", "your session may still be active; run 'tka logout' to sign out manually"))
 			}
 		}
 	}()
@@ -100,7 +100,7 @@ func cleanup(quiet bool, kubeCfgPath string) {
 	go func() {
 		defer wg.Done()
 		if err := os.Remove(kubeCfgPath); err != nil && !quiet {
-			pretty_print.PrintError(humane.Wrap(err, "failed to remove temporary kubeconfig"))
+			pretty_print.PrintError(humane.Wrap(err, "failed to remove temporary kubeconfig", "remove it manually: "+kubeCfgPath))
 		}
 	}()
 

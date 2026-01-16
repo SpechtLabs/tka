@@ -209,18 +209,18 @@ func setConfigValue(key, value string, forceCreate bool) humane.Error {
 
 	// If no config file was used and force is not set, show error
 	if configFileUsed == "" && !forceCreate {
-		return humane.New("No configuration file is used. Use --force to create one at ~/.config/tka/config.yaml")
+		return humane.New("No configuration file is used. Use --force to create one at ~/.config/tka/config.yaml", "run 'tka config set --force <key> <value>' to create a new config file")
 	}
 
 	// If forcing creation and no config file in use, create default path
 	if configFileUsed == "" && forceCreate {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return humane.Wrap(err, "failed to determine home directory")
+			return humane.Wrap(err, "failed to determine home directory", "ensure $HOME is set")
 		}
 		configDir := fmt.Sprintf("%s/.config/tka", homeDir)
 		if err := os.MkdirAll(configDir, 0o755); err != nil {
-			return humane.Wrap(err, "failed to create config directory")
+			return humane.Wrap(err, "failed to create config directory", "check permissions for ~/.config/")
 		}
 		configPath := fmt.Sprintf("%s/config.yaml", configDir)
 		viper.SetConfigFile(configPath)
@@ -238,7 +238,7 @@ func setConfigValue(key, value string, forceCreate bool) humane.Error {
 	// Write the configuration back to the file
 	// viper will automatically create the file if it doesn't exist
 	if err := viper.WriteConfig(); err != nil {
-		return humane.Wrap(err, "failed to write config file")
+		return humane.Wrap(err, "failed to write config file", "check file permissions and disk space")
 	}
 
 	return nil
