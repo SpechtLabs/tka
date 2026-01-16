@@ -27,6 +27,8 @@ import (
 
 var scheme = runtime.NewScheme()
 
+// KubeOperator is the Kubernetes controller that manages TkaSignin custom resources.
+// It handles provisioning and deprovisioning of user credentials based on sign-in requests.
 type KubeOperator struct {
 	mgr    ctrl.Manager
 	tracer trace.Tracer
@@ -87,6 +89,8 @@ func newKubeOperator(mgr ctrl.Manager, clusterInfo *models.TkaClusterInfo, clien
 	return op, nil
 }
 
+// NewK8sOperator creates and initializes a new KubeOperator with the provided
+// cluster information and client configuration options.
 func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {

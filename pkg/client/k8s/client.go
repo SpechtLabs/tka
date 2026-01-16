@@ -30,6 +30,8 @@ type tkaClient struct {
 	clusterInfo *models.TkaClusterInfo
 }
 
+// NewTkaClient creates a new TkaClient instance with the provided Kubernetes client,
+// cluster information, and configuration options.
 func NewTkaClient(client client.Client, clusterInfo *models.TkaClusterInfo, opts ClientOptions) TkaClient {
 	return &tkaClient{
 		client:      client,

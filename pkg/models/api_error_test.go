@@ -2,11 +2,10 @@ package models
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
 	"testing"
 
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 )
 
 func TestNewErrorResponse(t *testing.T) {
@@ -21,11 +20,12 @@ func TestNewErrorResponse(t *testing.T) {
 		{
 			name:    "simple_error_with_message",
 			message: "operation failed",
-			cause:   errors.New("database connection lost"),
+			cause:   humane.New("database connection lost", "check database connectivity"),
 			expected: &ErrorResponse{
 				Message: "operation failed",
 				Cause: &ErrorResponse{
 					Message: "database connection lost",
+					Advice:  []string{"check database connectivity"},
 				},
 			},
 		},
@@ -40,11 +40,12 @@ func TestNewErrorResponse(t *testing.T) {
 		{
 			name:    "empty_message",
 			message: "",
-			cause:   errors.New("some error"),
+			cause:   humane.New("some error", "check the logs"),
 			expected: &ErrorResponse{
 				Message: "",
 				Cause: &ErrorResponse{
 					Message: "some error",
+					Advice:  []string{"check the logs"},
 				},
 			},
 		},
@@ -70,13 +71,15 @@ func TestNewErrorResponseWithMultipleCauses(t *testing.T) {
 		{
 			name:    "multiple_causes",
 			message: "service unavailable",
-			cause:   []error{errors.New("operation failed"), errors.New("database connection lost")},
+			cause:   []error{humane.New("operation failed", "retry the operation"), humane.New("database connection lost", "check database connectivity")},
 			expected: &ErrorResponse{
 				Message: "service unavailable",
 				Cause: &ErrorResponse{
 					Message: "operation failed",
+					Advice:  []string{"retry the operation"},
 					Cause: &ErrorResponse{
 						Message: "database connection lost",
+						Advice:  []string{"check database connectivity"},
 					},
 				},
 			},
@@ -84,27 +87,31 @@ func TestNewErrorResponseWithMultipleCauses(t *testing.T) {
 		{
 			name:    "multiple_causes_with_nil",
 			message: "service unavailable",
-			cause:   []error{errors.New("operation failed"), errors.New("database connection lost"), nil},
+			cause:   []error{humane.New("operation failed", "retry the operation"), humane.New("database connection lost", "check database connectivity"), nil},
 			expected: &ErrorResponse{
 				Message: "service unavailable",
 				Cause: &ErrorResponse{
 					Message: "operation failed",
+					Advice:  []string{"retry the operation"},
 					Cause: &ErrorResponse{
 						Message: "database connection lost",
+						Advice:  []string{"check database connectivity"},
 					},
 				},
 			},
 		},
 		{
-			name:    "multiple_causes_with_nil",
+			name:    "multiple_causes_with_nil_first",
 			message: "service unavailable",
-			cause:   []error{nil, errors.New("operation failed"), errors.New("database connection lost")},
+			cause:   []error{nil, humane.New("operation failed", "retry the operation"), humane.New("database connection lost", "check database connectivity")},
 			expected: &ErrorResponse{
 				Message: "service unavailable",
 				Cause: &ErrorResponse{
 					Message: "operation failed",
+					Advice:  []string{"retry the operation"},
 					Cause: &ErrorResponse{
 						Message: "database connection lost",
+						Advice:  []string{"check database connectivity"},
 					},
 				},
 			},
@@ -162,24 +169,28 @@ func TestFromHumaneError(t *testing.T) {
 		},
 		{
 			name:  "wrapped_standard_error",
-			input: humane.Wrap(errors.New("connection refused"), "failed to connect", "check network"),
+			input: humane.Wrap(humane.New("connection refused", "check firewall rules"), "failed to connect", "check network"),
 			expected: &ErrorResponse{
 				Message: "failed to connect",
 				Advice:  []string{"check network"},
 				Cause: &ErrorResponse{
 					Message: "connection refused",
+					Advice:  []string{"check firewall rules"},
 				},
 			},
 		},
 		{
 			name:  "deeply_nested_errors",
-			input: humane.Wrap(humane.Wrap(errors.New("timeout"), "database unavailable"), "service error"),
+			input: humane.Wrap(humane.Wrap(humane.New("timeout", "increase timeout value"), "database unavailable", "check database server"), "service error", "retry the request"),
 			expected: &ErrorResponse{
 				Message: "service error",
+				Advice:  []string{"retry the request"},
 				Cause: &ErrorResponse{
 					Message: "database unavailable",
+					Advice:  []string{"check database server"},
 					Cause: &ErrorResponse{
 						Message: "timeout",
+						Advice:  []string{"increase timeout value"},
 					},
 				},
 			},
@@ -233,14 +244,17 @@ func TestErrorResponse_AsHumaneError(t *testing.T) {
 			name: "deeply_nested_error_response",
 			input: &ErrorResponse{
 				Message: "operation failed",
+				Advice:  []string{"retry the request"},
 				Cause: &ErrorResponse{
 					Message: "service error",
+					Advice:  []string{"check service logs"},
 					Cause: &ErrorResponse{
 						Message: "network timeout",
+						Advice:  []string{"check network connectivity"},
 					},
 				},
 			},
-			expected: humane.Wrap(humane.Wrap(humane.New("network timeout"), "service error"), "operation failed"),
+			expected: humane.Wrap(humane.Wrap(humane.New("network timeout", "check network connectivity"), "service error", "check service logs"), "operation failed", "retry the request"),
 		},
 	}
 
@@ -388,11 +402,11 @@ func TestErrorResponse_Conversion_RoundTrip(t *testing.T) {
 		},
 		{
 			name:  "wrapped_error",
-			input: humane.Wrap(errors.New("inner error"), "outer error", "some advice"),
+			input: humane.Wrap(humane.New("inner error", "check inner details"), "outer error", "some advice"),
 		},
 		{
 			name:  "deeply_nested_error",
-			input: humane.Wrap(humane.Wrap(errors.New("deep error"), "middle error"), "outer error"),
+			input: humane.Wrap(humane.Wrap(humane.New("deep error", "check deep details"), "middle error", "check middle details"), "outer error", "check outer details"),
 		},
 	}
 

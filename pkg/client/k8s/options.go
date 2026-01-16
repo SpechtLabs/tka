@@ -8,6 +8,7 @@ type ClientOptions struct {
 	UserPrefix    string
 }
 
+// DefaultClientOptions returns ClientOptions with sensible default values for development.
 func DefaultClientOptions() ClientOptions {
 	return ClientOptions{
 		Namespace:     DefaultNamespace,

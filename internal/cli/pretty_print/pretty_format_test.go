@@ -1,10 +1,11 @@
 package pretty_print
 
 import (
-	"errors"
 	"os"
 	"regexp"
 	"testing"
+
+	humane "github.com/sierrasoftworks/humane-errors-go"
 )
 
 func setEnvForNoTTY(t *testing.T) {
@@ -78,7 +79,7 @@ func TestFormatWithOptions(t *testing.T) {
 			lvl:     ErrLvl,
 			msg:     "",
 			context: nil,
-			opts:    []Option{WithError(errors.New("boom"))},
+			opts:    []Option{WithError(humane.New("boom", "this is a test error"))},
 			assert: func(t *testing.T, got string) {
 				plain := stripANSI(t, got)
 				if plain == "" {

@@ -7,12 +7,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TkaSigninSpec defines the desired state of a TkaSignin resource.
 type TkaSigninSpec struct {
 	Username       string `json:"username"`
 	Role           string `json:"role"`
 	ValidityPeriod string `json:"validity_period"`
 }
 
+// TkaSigninStatus defines the observed state of a TkaSignin resource.
 type TkaSigninStatus struct {
 	Provisioned bool   `json:"provisioned"`
 	ValidUntil  string `json:"valid_until"`
@@ -38,6 +40,7 @@ type TkaSignin struct {
 
 // +kubebuilder:object:root=true
 
+// TkaSigninList contains a list of TkaSignin resources.
 type TkaSigninList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

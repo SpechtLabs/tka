@@ -10,6 +10,7 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/models"
 )
 
+// PrintClusterInfo prints cluster information in a styled box format to stdout.
 func PrintClusterInfo(respBody *models.TkaClusterInfo) {
 	options := DefaultOptions()
 

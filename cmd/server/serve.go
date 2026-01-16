@@ -40,7 +40,7 @@ func init() {
 	viper.SetDefault("health.port", 8080)
 	err := viper.BindPFlag("health.port", serveCmd.PersistentFlags().Lookup("health-port"))
 	if err != nil {
-		panic(fmt.Errorf("fatal binding flag: %w", err))
+		panic(humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key"))
 	}
 
 	serveCmd.PersistentFlags().String("api-endpoint", "", "API endpoint for the Kubernetes cluster")
@@ -309,7 +309,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		otelzap.L().InfoContext(ctx, "Starting local metrics server", zap.String("addr", healthSrv.Addr))
 
 		if err := healthSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			cancelFn(fmt.Errorf("local metrics server failed: %w", err))
+			cancelFn(humane.Wrap(err, "local metrics server failed", "check that the health port is not already in use"))
 			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start local metrics server")
 		}
 	}()

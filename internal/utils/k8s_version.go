@@ -8,7 +8,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// isK8sVerAtLeast checks if the cluster's Kubernetes version is at least the specified major.minor version
+// IsK8sVerAtLeast checks if the cluster's Kubernetes version is at least the specified
+// major.minor version. It queries the Kubernetes API server to determine the current version.
 func IsK8sVerAtLeast(majorVersion, minorVersion int) (bool, humane.Error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {

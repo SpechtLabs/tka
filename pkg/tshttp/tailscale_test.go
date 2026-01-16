@@ -2,13 +2,13 @@ package tshttp_test
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/tshttp"
 	"github.com/spechtlabs/tka/pkg/tshttp/mock"
 	"github.com/stretchr/testify/require"
@@ -115,7 +115,7 @@ func TestServer_Start(t *testing.T) {
 			name: "up fails",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.UpErr = errors.New("connection failed")
+				m.UpErr = humane.New("connection failed", "check your Tailscale connection")
 			},
 			wantErr: true,
 			errMsg:  "failed to start api tailscale",
@@ -124,7 +124,7 @@ func TestServer_Start(t *testing.T) {
 			name: "whois setup fails",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.WhoIsErr = errors.New("whois failed")
+				m.WhoIsErr = humane.New("whois failed", "check Tailscale API access")
 			},
 			wantErr: true,
 			errMsg:  "failed to get local api client",
@@ -236,7 +236,7 @@ func TestServer_ConnectionState(t *testing.T) {
 			started: true,
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.UpErr = errors.New("tailscale up failed")
+				m.UpErr = humane.New("tailscale up failed", "check your Tailscale connection")
 			},
 			wantErr: true,
 			errMsg:  "failed to start api tailscale",
@@ -351,7 +351,7 @@ func TestServer_ListenMethods(t *testing.T) {
 			started: true,
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.ListenErr = errors.New("listen failed")
+				m.ListenErr = humane.New("listen failed", "check network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create tcp listener",
@@ -362,7 +362,7 @@ func TestServer_ListenMethods(t *testing.T) {
 			started: true,
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.TLSErr = errors.New("tls listen failed")
+				m.TLSErr = humane.New("tls listen failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create TLS listener",
@@ -373,7 +373,7 @@ func TestServer_ListenMethods(t *testing.T) {
 			started: true,
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.FunnelErr = errors.New("funnel listen failed")
+				m.FunnelErr = humane.New("funnel listen failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create Funnel listener",
@@ -479,7 +479,7 @@ func TestServer_WhoIs(t *testing.T) {
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
 				m.Whois = &mock.MockWhoIs{
-					Err: errors.New("lookup failed"),
+					Err: humane.New("lookup failed", "check remote address format"),
 				}
 			},
 			addr:    "100.100.100.100:443",
@@ -534,7 +534,7 @@ func TestServer_ServeNetworks(t *testing.T) {
 			network: "tcp",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.ListenErr = errors.New("listen failed")
+				m.ListenErr = humane.New("listen failed", "check network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -544,7 +544,7 @@ func TestServer_ServeNetworks(t *testing.T) {
 			network: "tls",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.TLSErr = errors.New("tls failed")
+				m.TLSErr = humane.New("tls failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -554,7 +554,7 @@ func TestServer_ServeNetworks(t *testing.T) {
 			network: "funnel",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.FunnelErr = errors.New("funnel failed")
+				m.FunnelErr = humane.New("funnel failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -564,7 +564,7 @@ func TestServer_ServeNetworks(t *testing.T) {
 			network: "custom",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.ListenErr = errors.New("custom listen failed")
+				m.ListenErr = humane.New("custom listen failed", "check custom network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -612,7 +612,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 			},
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.ListenErr = errors.New("listen failed")
+				m.ListenErr = humane.New("listen failed", "check network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -625,7 +625,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 			},
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.TLSErr = errors.New("tls failed")
+				m.TLSErr = humane.New("tls failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve TLS",
@@ -638,7 +638,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 			},
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.FunnelErr = errors.New("funnel failed")
+				m.FunnelErr = humane.New("funnel failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve Funnel",
@@ -651,7 +651,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 			},
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.TLSErr = errors.New("tls failed")
+				m.TLSErr = humane.New("tls failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve TLS",
@@ -664,7 +664,7 @@ func TestServer_HighLevelMethods(t *testing.T) {
 			},
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
-				m.FunnelErr = errors.New("funnel failed")
+				m.FunnelErr = humane.New("funnel failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve Funnel",
@@ -786,7 +786,7 @@ func TestServer_HandlerAssignment(t *testing.T) {
 	t.Run("serve does not set handler when listener fails", func(t *testing.T) {
 		t.Helper()
 		mockTS := mock.NewMockTSNet()
-		mockTS.ListenErr = errors.New("listen failed")
+		mockTS.ListenErr = humane.New("listen failed", "check network configuration")
 
 		s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})

@@ -2,7 +2,6 @@ package operator
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -17,11 +16,16 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 )
 
+// SignInOperation represents the type of action to perform during reconciliation.
 type SignInOperation int
 
+// SignInOperation constants define the possible reconciliation actions.
 const (
+	// SignInOperationProvision creates or updates user credentials.
 	SignInOperationProvision SignInOperation = iota
+	// SignInOperationDeprovision removes user credentials.
 	SignInOperationDeprovision
+	// SignInOperationNOP indicates no operation is needed.
 	SignInOperationNOP
 )
 
@@ -55,7 +59,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 			}
 			if err := t.signOutUser(ctx, signIn); err != nil {
 				otelzap.L().WithError(err).Error("Failed to sign out user", zap.String("username", signIn.Spec.Username))
-				return reconcile.Result{}, fmt.Errorf("%s", err.Display())
+				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, nil
 		}
@@ -69,13 +73,13 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 	case SignInOperationProvision:
 		if err := t.signInUser(ctx, signIn); err != nil {
 			otelzap.L().WithError(err).Error("Failed to sign in user", zap.String("username", signIn.Spec.Username))
-			return reconcile.Result{}, fmt.Errorf("%s", err.Display())
+			return reconcile.Result{}, err
 		}
 
 	case SignInOperationDeprovision:
 		if err := t.signOutUser(ctx, signIn); err != nil {
 			otelzap.L().WithError(err).Error("Failed to sign out user", zap.String("username", signIn.Spec.Username))
-			return reconcile.Result{}, fmt.Errorf("%s", err.Display())
+			return reconcile.Result{}, err
 		}
 
 	case SignInOperationNOP:

@@ -73,8 +73,8 @@ func requireErrorMessage(t *testing.T, body []byte, want string) {
 	require.Equal(t, want, er.Message)
 }
 
-var missingError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "missing")
-var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "no signin")
+var missingError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "missing", "verify the resource exists")
+var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "no signin", "please sign in first")
 
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)

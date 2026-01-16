@@ -1,3 +1,5 @@
+// Package async_operation provides utilities for displaying progress spinners
+// during long-running asynchronous operations in the CLI.
 package async_operation
 
 import (
@@ -5,21 +7,36 @@ import (
 	"time"
 )
 
+// SpinnerStyle represents the visual style of the progress spinner animation.
 type SpinnerStyle int
 
+// Spinner style constants define the available animation styles for the progress spinner.
 const (
+	// Line displays a rotating line animation.
 	Line SpinnerStyle = iota
+	// Dot displays a bouncing dot animation.
 	Dot
+	// MiniDot displays a smaller dot animation.
 	MiniDot
+	// Jump displays a jumping animation.
 	Jump
+	// Pulse displays a pulsing animation.
 	Pulse
+	// Points displays expanding dots animation.
 	Points
+	// Globe displays a spinning globe animation.
 	Globe
+	// Moon displays moon phases animation.
 	Moon
+	// Monkey displays a monkey emoji animation.
 	Monkey
+	// Meter displays a progress meter animation.
 	Meter
+	// Hamburger displays a hamburger menu animation.
 	Hamburger
+	// Ellipsis displays an ellipsis animation.
 	Ellipsis
+	// Silent disables the visual spinner animation.
 	Silent
 )
 
@@ -37,6 +54,7 @@ type spinnerOptions struct {
 	quiet             bool
 }
 
+// PollModelOption is a functional option for configuring spinner behavior.
 type PollModelOption func(*spinnerOptions)
 
 // WithInProgressMessage sets the message displayed while the polling operation is in progress.
@@ -95,6 +113,8 @@ func WithSpinnerStyle(style SpinnerStyle) PollModelOption {
 	}
 }
 
+// WithDefaultOptions returns a PollModelOption that sets sensible default values
+// for all spinner options including max attempts, messages, delay, and style.
 func WithDefaultOptions() PollModelOption {
 	return func(s *spinnerOptions) {
 		s.attempt = 0
@@ -110,6 +130,8 @@ func WithDefaultOptions() PollModelOption {
 	}
 }
 
+// WithQuiet sets the spinner to quiet mode, suppressing visual output
+// and using the Silent spinner style.
 func WithQuiet(quiet bool) PollModelOption {
 	return func(s *spinnerOptions) {
 		s.quiet = quiet

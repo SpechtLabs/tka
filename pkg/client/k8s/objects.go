@@ -15,10 +15,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
+// FormatSigninObjectName generates the Kubernetes object name for a user's sign-in resource.
 func FormatSigninObjectName(userName string) string {
 	return fmt.Sprintf("%s%s", DefaultUserEntryPrefix, userName)
 }
 
+// NewSignin creates a new TkaSignin custom resource for the given user, role, and validity period.
 func NewSignin(userName, role string, validPeriod time.Duration, namespace string) *v1alpha1.TkaSignin {
 	now := time.Now()
 	return &v1alpha1.TkaSignin{
@@ -43,6 +45,7 @@ func NewSignin(userName, role string, validPeriod time.Duration, namespace strin
 	}
 }
 
+// NewServiceAccount creates a new Kubernetes ServiceAccount for the given TkaSignin resource.
 func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -52,6 +55,7 @@ func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 	}
 }
 
+// NewKubeconfig creates a kubeconfig for accessing the cluster with the given credentials.
 func NewKubeconfig(contextName string, clusterInfo *models.TkaClusterInfo, token string, clusterName string, userEntry string) *api.Config {
 	caData, herr := base64.StdEncoding.DecodeString(clusterInfo.CAData)
 	if herr != nil {
@@ -83,6 +87,7 @@ func NewKubeconfig(contextName string, clusterInfo *models.TkaClusterInfo, token
 	}
 }
 
+// NewTokenRequest creates a Kubernetes TokenRequest with the specified expiration time.
 func NewTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
 	return &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
@@ -91,6 +96,7 @@ func NewTokenRequest(expirationSeconds int64) *authenticationv1.TokenRequest {
 	}
 }
 
+// NewRoleRef creates a RoleRef pointing to the ClusterRole specified in the TkaSignin.
 func NewRoleRef(signIn *v1alpha1.TkaSignin) rbacv1.RoleRef {
 	return rbacv1.RoleRef{
 		APIGroup: "rbac.authorization.k8s.io",
@@ -99,11 +105,13 @@ func NewRoleRef(signIn *v1alpha1.TkaSignin) rbacv1.RoleRef {
 	}
 }
 
+// GetClusterRoleBindingName returns the name of the ClusterRoleBinding for a TkaSignin.
 func GetClusterRoleBindingName(signIn *v1alpha1.TkaSignin) string {
 	username := FormatSigninObjectName(signIn.Spec.Username)
 	return fmt.Sprintf("%s-binding", username)
 }
 
+// NewClusterRoleBinding creates a ClusterRoleBinding that grants the user the specified role.
 func NewClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

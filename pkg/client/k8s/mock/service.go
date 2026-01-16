@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-// MockAuthService provides a configurable mock implementation of service.Service for testing.
+// MockTkaClient provides a configurable mock implementation of k8s.TkaClient for testing.
 // This allows tests to simulate different scenarios (success, failure, async operations)
 // without requiring a real Kubernetes cluster or operator.
 //
@@ -18,7 +18,7 @@ import (
 //
 // Example:
 //
-//	mock := &MockAuthService{
+//	mock := &MockTkaClient{
 //	  SignInFn: func(username, role string, period time.Duration) humane.Error {
 //	    if username == "blocked" {
 //	      return humane.New("user blocked", "Contact administrator")
@@ -37,7 +37,7 @@ type MockTkaClient struct {
 	LogoutFn func(username string) humane.Error
 }
 
-// MockTkaClient creates a new mock service with default (success) behavior.
+// NewMockTkaClient creates a new mock client with default (success) behavior.
 // All methods will return successful responses unless custom functions are configured.
 func NewMockTkaClient() k8s.TkaClient {
 	return &MockTkaClient{}

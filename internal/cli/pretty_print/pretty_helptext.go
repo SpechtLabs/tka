@@ -18,6 +18,7 @@ type templateData struct {
 	ShowUsage bool
 }
 
+// Template is the Go text/template used to render CLI help text as markdown.
 var Template = `
 # Usage ` + "`{{ .Name }}`" + `
 ` + "```bash" + `
@@ -118,14 +119,17 @@ var templateFuncs = template.FuncMap{
 	"join":       JoinString,
 }
 
+// FormatHelpText renders the help text for a cobra command as a formatted string.
 func FormatHelpText(cmd *cobra.Command, _ []string, opts ...Option) string {
 	return render(cmd, true, opts...)
 }
 
+// PrintHelpText prints the help text for a cobra command to stdout.
 func PrintHelpText(cmd *cobra.Command, args []string) {
 	fmt.Println(render(cmd, false))
 }
 
+// PrintUsageText prints the usage text for a cobra command to stdout.
 func PrintUsageText(cmd *cobra.Command, _ []string) {
 	fmt.Println(render(cmd, true))
 }
@@ -228,10 +232,12 @@ func Eq(a interface{}, b interface{}) bool {
 	return false
 }
 
+// JoinString joins a slice of strings with the specified separator.
 func JoinString(a []string, sep string) string {
 	return strings.Join(a, sep)
 }
 
+// FlagUsage represents the parsed usage information for a single CLI flag.
 type FlagUsage struct {
 	Flag  string
 	Type  string

@@ -112,9 +112,10 @@ func (e *ErrorResponse) AsHumaneError() humane.Error {
 	return err
 }
 
-// MarshalJSON implements the json.Marshaler interface
+// MarshalJSON implements the json.Marshaler interface.
+// Alias is used to avoid infinite recursion during marshaling.
 func (e *ErrorResponse) MarshalJSON() ([]byte, error) {
-	// Create a temporary type to avoid infinite recursion
+	// Alias is a type alias to avoid infinite recursion during JSON marshaling.
 	type Alias ErrorResponse
 	return json.Marshal(&struct {
 		*Alias
@@ -123,9 +124,10 @@ func (e *ErrorResponse) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// Alias is used to avoid infinite recursion during unmarshaling.
 func (e *ErrorResponse) UnmarshalJSON(data []byte) error {
-	// Create a temporary type to avoid infinite recursion
+	// Alias is a type alias to avoid infinite recursion during JSON unmarshaling.
 	type Alias ErrorResponse
 	aux := &struct {
 		*Alias
