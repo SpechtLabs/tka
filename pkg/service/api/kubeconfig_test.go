@@ -62,7 +62,9 @@ func TestGetKubeconfigHandler(t *testing.T) {
 		{
 			name: "generic error -> 500",
 			setup: func(m *mock.MockTkaClient) client.TkaClient {
-				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) { return nil, humane.New("boom", "check server logs for details") }
+				m.KubeconfigFn = func(string) (*clientcmdapi.Config, humane.Error) {
+					return nil, humane.New("boom", "check server logs for details")
+				}
 				return m
 			},
 			expectedStatus:  http.StatusInternalServerError,

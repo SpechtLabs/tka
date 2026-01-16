@@ -34,9 +34,9 @@ func ArchitectureRules() *configuration.Config {
 		DependenciesRules: []*configuration.DependenciesRule{
 			// Operators should not import net/http directly
 			{
-				Package:              "github.com/spechtlabs/tka/pkg/operator",
-				ShouldNotDependsOn:   []string{"net/http", "database/sql"},
-				ShouldOnlyDependsOn:  nil,
+				Package:             "github.com/spechtlabs/tka/pkg/operator",
+				ShouldNotDependsOn:  []string{"net/http", "database/sql"},
+				ShouldOnlyDependsOn: nil,
 				ShouldNotDependsOnExternal: []string{
 					"github.com/gin-gonic/gin", // Operators shouldn't know about HTTP framework
 				},
@@ -46,7 +46,7 @@ func ArchitectureRules() *configuration.Config {
 			{
 				Package: "github.com/spechtlabs/tka/pkg/service/api",
 				ShouldNotDependsOn: []string{
-					"k8s.io/client-go/kubernetes",  // Use client abstraction
+					"k8s.io/client-go/kubernetes",    // Use client abstraction
 					"sigs.k8s.io/controller-runtime", // This is for operators only
 				},
 			},
@@ -110,14 +110,14 @@ func ArchitectureRules() *configuration.Config {
 		ContentRules: []*configuration.ContentsRule{
 			// Interfaces should be in interface.go or *_interface.go files
 			{
-				Package:                 "github.com/spechtlabs/tka/pkg/**",
+				Package:                     "github.com/spechtlabs/tka/pkg/**",
 				ShouldOnlyContainInterfaces: true,
-				InFiles:                 []string{"interface.go", "interfaces.go", "*_interface.go"},
+				InFiles:                     []string{"interface.go", "interfaces.go", "*_interface.go"},
 			},
 
 			// Mock implementations should be in mock/ subdirectories
 			{
-				Package:              "github.com/spechtlabs/tka/**/mock",
+				Package:                  "github.com/spechtlabs/tka/**/mock",
 				ShouldOnlyContainStructs: true,
 			},
 		},
@@ -126,14 +126,14 @@ func ArchitectureRules() *configuration.Config {
 		FunctionRules: []*configuration.FunctionsRule{
 			// Exported functions should be limited in line count
 			{
-				Package: "github.com/spechtlabs/tka/pkg/**",
+				Package:  "github.com/spechtlabs/tka/pkg/**",
 				MaxLines: 50, // Keep functions small and focused
 			},
 
 			// Public API functions should be well-documented
 			{
-				Package:             "github.com/spechtlabs/tka/pkg/service/api",
-				MaxPublicFunctions:  20, // Limit API surface
+				Package:            "github.com/spechtlabs/tka/pkg/service/api",
+				MaxPublicFunctions: 20, // Limit API surface
 			},
 		},
 
