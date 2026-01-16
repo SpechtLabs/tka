@@ -69,7 +69,7 @@ func newControllerManagedBy() (ctrl.Manager, humane.Error) {
 		},
 	})
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create manager")
+		return nil, humane.Wrap(err, "failed to create manager", "check Kubernetes cluster connectivity and RBAC permissions")
 	}
 
 	return mgr, nil
@@ -83,7 +83,7 @@ func newKubeOperator(mgr ctrl.Manager, clusterInfo *models.TkaClusterInfo, clien
 	}
 
 	if err := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.TkaSignin{}).Named("TkaSignin").Complete(op); err != nil {
-		return nil, humane.Wrap(err, "failed to register controller manager")
+		return nil, humane.Wrap(err, "failed to register controller manager", "check that the TkaSignin CRD is installed in the cluster")
 	}
 
 	return op, nil
@@ -94,11 +94,11 @@ func newKubeOperator(mgr ctrl.Manager, clusterInfo *models.TkaClusterInfo, clien
 func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
+		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme", "this is an internal error; please report it")
 	}
 
 	if err := v1alpha1.AddToScheme(scheme); err != nil {
-		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme")
+		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme", "this is an internal error; please report it")
 	}
 
 	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
@@ -111,7 +111,7 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 	if ok, err := utils.IsK8sVerAtLeast(1, 24); err != nil {
 		return nil, err
 	} else if !ok {
-		return nil, humane.New("k8s version must be at least 1.24")
+		return nil, humane.New("k8s version must be at least 1.24", "upgrade your Kubernetes cluster to version 1.24 or later")
 	}
 
 	op, err := newKubeOperator(mgr, clusterInfo, clientOpts)
@@ -124,7 +124,7 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 
 func (t *KubeOperator) Start(ctx context.Context) humane.Error {
 	if err := t.mgr.Start(ctx); err != nil {
-		return humane.Wrap(err, "failed to start manager")
+		return humane.Wrap(err, "failed to start manager", "check Kubernetes connectivity and operator permissions")
 	}
 
 	return nil

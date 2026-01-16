@@ -148,7 +148,7 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 		name := viper.GetString("clusterInfo.configMapRef.name")
 		namespace := viper.GetString("clusterInfo.configMapRef.namespace")
 		if name == "" || namespace == "" {
-			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true")
+			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true", "set CLUSTER_INFO_CONFIGMAP_REF_NAME and CLUSTER_INFO_CONFIGMAP_REF_NAMESPACE environment variables")
 		}
 
 		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")
@@ -158,16 +158,16 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 
 		restCfg, err := ctrl.GetConfig()
 		if err != nil {
-			return nil, humane.Wrap(err, "failed to get Kubernetes rest config")
+			return nil, humane.Wrap(err, "failed to get Kubernetes rest config", "ensure the server is running inside a Kubernetes cluster")
 		}
 		clientset, err := kubernetes.NewForConfig(restCfg)
 		if err != nil {
-			return nil, humane.Wrap(err, "failed to create Kubernetes clientset")
+			return nil, humane.Wrap(err, "failed to create Kubernetes clientset", "check cluster connectivity and authentication")
 		}
 
 		cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			return nil, humane.Wrap(err, "failed to read configMapRef ConfigMap")
+			return nil, humane.Wrap(err, "failed to read configMapRef ConfigMap", "verify the ConfigMap exists and the server has read permissions")
 		}
 
 		serverURL := cm.Data[keyAPI]
@@ -179,7 +179,7 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 			if yamlKubeconfig, ok := cm.Data[kubeconfigKey]; ok && yamlKubeconfig != "" {
 				cfg, err := clientcmd.Load([]byte(yamlKubeconfig))
 				if err != nil {
-					return nil, humane.Wrap(err, "failed to parse kubeconfig from ConfigMap")
+					return nil, humane.Wrap(err, "failed to parse kubeconfig from ConfigMap", "verify the kubeconfig data in the ConfigMap is valid YAML")
 				}
 				// Use the first cluster entry
 				for _, cluster := range cfg.Clusters {
@@ -381,7 +381,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Check termination cause
 	cause := context.Cause(ctx)
 	if cause != nil && !errors.Is(cause, context.Canceled) {
-		return humane.Wrap(cause, "server terminated due to error")
+		return humane.Wrap(cause, "server terminated due to error", "check the server logs for the root cause")
 	}
 
 	return nil
