@@ -9,6 +9,8 @@ import (
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	globalModels "github.com/spechtlabs/tka/pkg/models"
 	"github.com/spechtlabs/tka/pkg/service/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // logout handles user logout from TKA service
@@ -30,16 +32,30 @@ func (t *TKAServer) logout(ct *gin.Context) {
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.logout")
 	defer span.End()
 
+	// Set initial span attributes
+	span.SetAttributes(attribute.String("logout.username", userName))
+
 	if signIn, err := t.client.GetStatus(ctx, userName); err != nil {
+		span.SetAttributes(attribute.String("logout.status", "error_get_status"))
+		span.SetStatus(codes.Error, "error getting login status")
+		span.RecordError(err)
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting login status")
 		writeHumaneError(ct, err, http.StatusNotFound)
 		return
 	} else {
+		span.SetAttributes(
+			attribute.String("logout.role", signIn.Role),
+			attribute.Bool("logout.was_provisioned", signIn.Provisioned),
+		)
+
 		until := signIn.ValidUntil
 
 		if !signIn.Provisioned {
 			validity, err := time.ParseDuration(signIn.ValidityPeriod)
 			if err != nil {
+				span.SetAttributes(attribute.String("logout.status", "error_parse_duration"))
+				span.SetStatus(codes.Error, "error parsing duration")
+				span.RecordError(err)
 				otelzap.L().WithError(err).ErrorContext(ctx, "Error parsing duration")
 				ct.JSON(http.StatusInternalServerError, globalModels.NewErrorResponse("Error parsing duration", err))
 				return
@@ -48,10 +64,18 @@ func (t *TKAServer) logout(ct *gin.Context) {
 		}
 
 		if err := t.client.DeleteSignIn(ctx, userName); err != nil {
+			span.SetAttributes(attribute.String("logout.status", "error_delete"))
+			span.SetStatus(codes.Error, "error logging out user")
+			span.RecordError(err)
 			otelzap.L().WithError(err).ErrorContext(ctx, "Error logging out user")
 			writeHumaneError(ct, err, http.StatusNotFound)
 			return
 		}
+
+		span.SetAttributes(
+			attribute.String("logout.status", "success"),
+			attribute.Int("logout.http_status", http.StatusOK),
+		)
 
 		ct.JSON(http.StatusOK, models.NewUserLoginResponse(signIn.Username, signIn.Role, until))
 		return

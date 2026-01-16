@@ -116,7 +116,6 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 
 	op, err := newKubeOperator(mgr, clusterInfo, clientOpts)
 	if err != nil {
-		otelzap.L().WithError(err).Error("failed to create kube operator")
 		return nil, err
 	}
 
@@ -125,7 +124,6 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 
 func (t *KubeOperator) Start(ctx context.Context) humane.Error {
 	if err := t.mgr.Start(ctx); err != nil {
-		otelzap.L().WithError(err).Error("failed to start manager")
 		return humane.Wrap(err, "failed to start manager")
 	}
 

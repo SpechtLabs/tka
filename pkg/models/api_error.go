@@ -45,12 +45,23 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 		return FromHumaneError(humane.New(message))
 	}
 
-	// Build from the last cause (deepest)
-	herr := humane.New(nonNilCauses[len(nonNilCauses)-1].Error())
+	// Build from the last cause (deepest), preserving advice if it's a humane error
+	var herr humane.Error
+	lastCause := nonNilCauses[len(nonNilCauses)-1]
+	if he, ok := lastCause.(humane.Error); ok {
+		herr = he
+	} else {
+		herr = humane.New(lastCause.Error())
+	}
 
-	// Wrap each earlier one around it
+	// Wrap each earlier one around it, preserving advice
 	for i := len(nonNilCauses) - 2; i >= 0; i-- {
-		herr = humane.Wrap(herr, nonNilCauses[i].Error())
+		c := nonNilCauses[i]
+		if he, ok := c.(humane.Error); ok {
+			herr = humane.Wrap(herr, he.Error(), he.Advice()...)
+		} else {
+			herr = humane.Wrap(herr, c.Error())
+		}
 	}
 
 	// Finally, wrap with the external message

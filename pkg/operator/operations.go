@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +23,7 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		return err
 	}
 
-	// 4. Create ClusterRoleBinding
+	// 2. Create ClusterRoleBinding
 	if err := t.createOrUpdateClusterRoleBinding(ctx, signIn); err != nil {
 		return err
 	}
@@ -36,8 +34,9 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 		Namespace: signIn.Namespace,
 	}
 	if err := c.Get(ctx, resName, signIn); err != nil {
-		otelzap.L().WithError(err).Error("failed to get tka signin", zap.String("name", resName.Name), zap.String("namespace", resName.Namespace))
-		return humane.Wrap(err, "Failed to load sign-in request")
+		return humane.Wrap(err, "Failed to load sign-in request",
+			"name: "+resName.Name,
+			"namespace: "+resName.Namespace)
 	}
 
 	if signedInAt, ok := signIn.Annotations[k8s.LastAttemptedSignIn]; ok {
@@ -48,12 +47,12 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 
 	signedIn, e := time.Parse(time.RFC3339, signIn.Status.SignedInAt)
 	if e != nil {
-		return humane.Wrap(err, "Failed to parse signedInAt")
+		return humane.Wrap(e, "Failed to parse signedInAt")
 	}
 
 	duration, e := time.ParseDuration(signIn.Spec.ValidityPeriod)
 	if e != nil {
-		return humane.Wrap(err, "Failed to parse validityPeriod")
+		return humane.Wrap(e, "Failed to parse validityPeriod")
 	}
 
 	validUntil := signedIn.Add(duration)
@@ -63,12 +62,6 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 	if err := c.Status().Update(ctx, signIn); err != nil {
 		return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
 	}
-
-	otelzap.L().InfoContext(ctx, "Successfully signed in user",
-		zap.String("user", signIn.Spec.Username),
-		zap.String("validity", signIn.Spec.ValidityPeriod),
-		zap.String("role", signIn.Spec.Role),
-	)
 
 	// Update Prometheus metrics for user sign-in
 	userSignInsTotal.WithLabelValues(signIn.Spec.Role, signIn.Spec.Username).Inc()
@@ -90,11 +83,6 @@ func (t *KubeOperator) signOutUser(ctx context.Context, signIn *v1alpha1.TkaSign
 		return humane.Wrap(err, "failed to delete user")
 	}
 
-	otelzap.L().InfoContext(ctx, "Successfully signed out user",
-		zap.String("user", signIn.Spec.Username),
-		zap.String("role", signIn.Spec.Role),
-	)
-
 	// Update Prometheus metrics for user sign-out
 	activeUserSessions.WithLabelValues(signIn.Spec.Role).Dec()
 
@@ -109,9 +97,7 @@ func (t *KubeOperator) createOrUpdateServiceAccount(ctx context.Context, signIn 
 	serviceAccount := k8s.NewServiceAccount(signIn)
 
 	// Set Redirect instance as the owner and api
-	if err := ctrl.SetControllerReference(signIn, serviceAccount, scheme); err != nil {
-		otelzap.L().WithError(err).Error("Failed to set controller reference")
-	}
+	_ = ctrl.SetControllerReference(signIn, serviceAccount, scheme)
 
 	if err := c.Create(ctx, serviceAccount); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
@@ -143,9 +129,7 @@ func (t *KubeOperator) createOrUpdateClusterRoleBinding(ctx context.Context, sig
 	clusterRoleBinding := k8s.NewClusterRoleBinding(signIn)
 
 	// Set Redirect instance as the owner and api
-	if err := ctrl.SetControllerReference(signIn, clusterRoleBinding, scheme); err != nil {
-		otelzap.L().WithError(err).Error("Failed to set controller reference")
-	}
+	_ = ctrl.SetControllerReference(signIn, clusterRoleBinding, scheme)
 
 	if err := c.Create(ctx, clusterRoleBinding); err != nil {
 		if !k8serrors.IsAlreadyExists(err) {

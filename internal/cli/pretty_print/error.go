@@ -42,7 +42,7 @@ func renderHumaneError(err error) string {
 	code := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("245"))
 
 	// Message
-	b.WriteString(header.Render("✖ " + he.Error()))
+	b.WriteString(header.Render("✗ " + he.Error()))
 	b.WriteString("\n\n")
 
 	// Advice

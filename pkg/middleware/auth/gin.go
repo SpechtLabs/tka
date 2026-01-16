@@ -5,25 +5,21 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 	"sort"
 	"strings"
 
-	// misc
 	"github.com/gin-gonic/gin"
-	"github.com/sierrasoftworks/humane-errors-go"
-	"go.uber.org/zap"
-	"tailscale.com/tailcfg"
-
-	// o11y
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
-	"go.opentelemetry.io/otel/trace"
-
-	// tka
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spechtlabs/tka/pkg/tshttp"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"tailscale.com/tailcfg"
 )
 
 // ginAuthMiddleware provides Tailscale-based authentication middleware for Gin HTTP servers.
@@ -84,13 +80,45 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 		req := ct.Request
 
 		ctx, span := tracer.Start(req.Context(), "Middleware.Auth")
-		defer span.End()
+
+		// Wide event context
+		var (
+			userName     string
+			rejectReason string
+			statusCode   int
+			success      = true
+		)
+
+		// Set span attributes for wide event data at end of auth
+		defer func() {
+			span.SetAttributes(
+				attribute.String("auth.username", userName),
+				attribute.String("auth.remote_addr", req.RemoteAddr),
+				attribute.String("auth.path", req.URL.Path),
+				attribute.Bool("auth.success", success),
+			)
+
+			if !success {
+				span.SetAttributes(
+					attribute.String("auth.reject_reason", rejectReason),
+					attribute.Int("auth.status_code", statusCode),
+				)
+				span.SetStatus(codes.Error, rejectReason)
+				otelzap.L().WarnContext(ctx, "auth rejected",
+					zap.String("username", userName),
+					zap.String("reject_reason", rejectReason),
+					zap.Int("status_code", statusCode),
+				)
+			}
+
+			span.End()
+		}()
 
 		// This URL is visited by the user who is being authenticated. If they are
 		// visiting the URL over Funnel, that means they are not part of the
 		// tailnet that they are trying to be authenticated for.
 		if tshttp.IsFunnelRequest(ct.Request) && !m.allowFunnel {
-			otelzap.L().ErrorContext(ctx, "Unauthorized request from Funnel")
+			success, rejectReason, statusCode = false, "funnel_not_allowed", http.StatusForbidden
 			ct.JSON(http.StatusForbidden, models.NewErrorResponse("Unauthorized request from Funnel"))
 			ct.Abort()
 			return
@@ -98,16 +126,17 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 
 		who, herr := m.resolver.WhoIs(ctx, req.RemoteAddr)
 		if herr != nil {
-			otelzap.L().WithError(herr).ErrorContext(ctx, "Error getting WhoIs")
+			success, rejectReason, statusCode = false, "whois_failed", http.StatusInternalServerError
 			ct.JSON(http.StatusInternalServerError, models.NewErrorResponse("Error getting WhoIs", herr))
 			ct.Abort()
 			return
 		}
 
-		// not sure if this is the right thing to do...
-		userName, _, _ := strings.Cut(who.LoginName, "@")
+		// Extract username from login name
+		userName, _, _ = strings.Cut(who.LoginName, "@")
+
 		if who.IsTagged() && !m.allowTagged {
-			otelzap.L().ErrorContext(ctx, "tagged nodes not (yet) supported")
+			success, rejectReason, statusCode = false, "tagged_node_not_allowed", http.StatusBadRequest
 			ct.JSON(http.StatusBadRequest, models.NewErrorResponse("tagged nodes not (yet) supported"))
 			ct.Abort()
 			return
@@ -115,14 +144,14 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 
 		rules, err := tailcfg.UnmarshalCapJSON[capRule](who.CapMap, m.capName)
 		if err != nil {
-			otelzap.L().WithError(err).ErrorContext(ctx, "Error unmarshaling capability")
+			success, rejectReason, statusCode = false, "capability_unmarshal_failed", http.StatusBadRequest
 			ct.JSON(http.StatusBadRequest, models.FromHumaneError(humane.Wrap(err, "Error unmarshaling api capability map", "Check the syntax of your api ACL for user "+userName+".")))
 			ct.Abort()
 			return
 		}
 
 		if len(rules) == 0 {
-			otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.")
+			success, rejectReason, statusCode = false, "no_capability_rules", http.StatusForbidden
 			ct.JSON(http.StatusForbidden, models.NewErrorResponse("User not authorized"))
 			ct.Abort()
 			return
@@ -133,17 +162,22 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 			return rules[i].Priority() > rules[j].Priority()
 		})
 
-		// If multiple rules have the same priority, the rule evaluation can no longer be deterministic. Therefore we must reject the request.
+		// Check for duplicate priorities - accumulate instead of logging in loop
+		var duplicatePriorities []int
 		for i := 0; i < len(rules)-1; i++ {
 			if rules[i].Priority() == rules[i+1].Priority() {
-				err := humane.New("Multiple capability rules with the same priority found",
-					"Please ensure that no two capability rules have the same priority as this will lead to an undefined behavior.",
-				)
-				otelzap.L().WithError(err).ErrorContext(ctx, err.Error(), zap.String("rules", fmt.Sprintf("%v", rules)))
-				ct.JSON(http.StatusBadRequest, models.FromHumaneError(err))
-				ct.Abort()
-				return
+				duplicatePriorities = append(duplicatePriorities, rules[i].Priority())
 			}
+		}
+
+		if len(duplicatePriorities) > 0 {
+			err := humane.New("Multiple capability rules with the same priority found",
+				"Please ensure that no two capability rules have the same priority as this will lead to an undefined behavior.",
+			)
+			success, rejectReason, statusCode = false, "duplicate_priority_rules", http.StatusBadRequest
+			ct.JSON(http.StatusBadRequest, models.FromHumaneError(err))
+			ct.Abort()
+			return
 		}
 
 		SetUsername(ct, userName)

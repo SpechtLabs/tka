@@ -82,11 +82,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
-
-	// Tailscale
 	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tsnet"
 )
@@ -437,7 +437,6 @@ func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.E
 func (s *Server) Shutdown(ctx context.Context) humane.Error {
 	if s.Server != nil {
 		if err := s.Server.Shutdown(ctx); err != nil {
-			otelzap.L().Error("failed to shutdown HTTP server", zap.Error(err))
 			return humane.Wrap(err, "failed to shutdown HTTP server")
 		}
 	}
@@ -446,9 +445,14 @@ func (s *Server) Shutdown(ctx context.Context) humane.Error {
 }
 
 func (s *Server) connectTailnet(ctx context.Context) humane.Error {
+	tracer := otel.Tracer("tshttp")
+	ctx, span := tracer.Start(ctx, "Server.connectTailnet")
+	defer span.End()
+
 	var err error
 	s.st, err = s.ts.Up(ctx)
 	if err != nil {
+		span.RecordError(err)
 		return humane.Wrap(err, "failed to start api tailscale", "check (debug) logs for more details")
 	}
 
@@ -463,9 +467,18 @@ func (s *Server) connectTailnet(ctx context.Context) humane.Error {
 
 	if s.whois == nil {
 		if s.whois, err = s.ts.LocalWhoIs(); err != nil {
+			span.RecordError(err)
 			return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
 		}
 	}
+
+	// Set span attributes for connection info
+	span.SetAttributes(
+		attribute.String("tailnet.url", s.serverURL),
+		attribute.String("tailnet.dns_name", s.st.Self.DNSName),
+		attribute.Int("tailnet.port", s.port),
+		attribute.String("tailnet.protocol", protocol),
+	)
 
 	otelzap.L().InfoContext(ctx, "tka tailscale running", zap.String("url", s.serverURL))
 	return nil

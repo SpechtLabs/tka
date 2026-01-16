@@ -5,15 +5,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	"github.com/spechtlabs/go-otel-utils/otelzap"
 )
 
 // SignInOperation represents the type of action to perform during reconciliation.
@@ -29,18 +30,61 @@ const (
 	SignInOperationNOP
 )
 
+// reconcileEvent captures all context for a single reconciliation wide event.
+type reconcileEvent struct {
+	name       string
+	namespace  string
+	username   string
+	operation  string
+	success    bool
+	err        error
+	requeueIn  time.Duration
+	durationMs int64
+}
+
 // +kubebuilder:rbac:groups=tka.specht-labs.de,resources=TkaSignin,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tka.specht-labs.de,resources=TkaSignin/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tka.specht-labs.de,resources=TkaSignin/finalizers,verbs=update
 
 func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
 	startTime := time.Now()
-	defer func() {
-		reconcilerDuration.WithLabelValues("user", req.Name, req.Namespace).Observe(float64(time.Since(startTime).Microseconds()))
-	}()
-
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.Reconcile")
-	defer span.End()
+
+	// Initialize wide event context
+	event := &reconcileEvent{
+		name:      req.Name,
+		namespace: req.Namespace,
+		operation: "unknown",
+		success:   true,
+	}
+
+	// Emit wide event data to span attributes and log at the end
+	defer func() {
+		event.durationMs = time.Since(startTime).Milliseconds()
+		reconcilerDuration.WithLabelValues("user", req.Name, req.Namespace).Observe(float64(time.Since(startTime).Microseconds()))
+
+		// Set span attributes for wide event data
+		span.SetAttributes(
+			attribute.String("reconcile.name", event.name),
+			attribute.String("reconcile.namespace", event.namespace),
+			attribute.String("reconcile.username", event.username),
+			attribute.String("reconcile.operation", event.operation),
+			attribute.Bool("reconcile.success", event.success),
+			attribute.Int64("reconcile.duration_ms", event.durationMs),
+		)
+
+		if event.requeueIn > 0 {
+			span.SetAttributes(attribute.Int64("reconcile.requeue_in_ms", event.requeueIn.Milliseconds()))
+		}
+
+		if event.err != nil {
+			span.SetStatus(codes.Error, event.err.Error())
+			span.RecordError(event.err)
+			otelzap.L().WithError(event.err).ErrorContext(ctx, "reconcile completed with error")
+		}
+
+		span.End()
+	}()
 
 	c := t.mgr.GetClient()
 
@@ -57,61 +101,77 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 					Username: strings.TrimPrefix(req.Name, k8s.DefaultUserEntryPrefix),
 				},
 			}
+			event.username = signIn.Spec.Username
+			event.operation = "deprovision_not_found"
+
 			if err := t.signOutUser(ctx, signIn); err != nil {
-				otelzap.L().WithError(err).Error("Failed to sign out user", zap.String("username", signIn.Spec.Username))
+				event.success = false
+				event.err = err
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, nil
 		}
 
-		otelzap.L().WithError(err).Error("failed to get tka signin", zap.String("name", req.Name), zap.String("namespace", req.Namespace))
+		event.success = false
+		event.err = err
+		event.operation = "get_signin_failed"
 		return reconcile.Result{}, err
 	}
 
-	op, validDuration := getAction(signIn)
+	event.username = signIn.Spec.Username
+
+	op, validDuration := getAction(signIn, span)
+	event.requeueIn = validDuration
+
 	switch op {
 	case SignInOperationProvision:
+		event.operation = "provision"
 		if err := t.signInUser(ctx, signIn); err != nil {
-			otelzap.L().WithError(err).Error("Failed to sign in user", zap.String("username", signIn.Spec.Username))
+			event.success = false
+			event.err = err
 			return reconcile.Result{}, err
 		}
 
 	case SignInOperationDeprovision:
+		event.operation = "deprovision"
 		if err := t.signOutUser(ctx, signIn); err != nil {
-			otelzap.L().WithError(err).Error("Failed to sign out user", zap.String("username", signIn.Spec.Username))
+			event.success = false
+			event.err = err
 			return reconcile.Result{}, err
 		}
 
 	case SignInOperationNOP:
-		otelzap.L().Debug("signin operation nop", zap.String("username", signIn.Spec.Username))
+		event.operation = "nop"
 
 	default:
-		otelzap.L().Warn("unknown signin operation", zap.String("username", signIn.Spec.Username))
+		event.operation = "unknown"
 	}
 
 	return reconcile.Result{RequeueAfter: validDuration}, nil
 }
 
-func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
+func getAction(signIn *v1alpha1.TkaSignin, span trace.Span) (SignInOperation, time.Duration) {
 	validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
 	if err != nil {
-		otelzap.L().WithError(err).Error("Failed to parse validity period")
+		span.AddEvent("parse_validity_period_failed")
 		return SignInOperationNOP, time.Duration(0)
 	}
 
 	// If a new signin is not yet provisioned - use the reconciler loop to deploy the SA and CRB
 	if !signIn.Status.Provisioned {
+		span.AddEvent("not_provisioned")
 		return SignInOperationProvision, validity
 	}
 
 	// If SignIn is expired
 	validUntil, err := time.Parse(time.RFC3339, signIn.Status.ValidUntil)
 	if err != nil {
-		otelzap.L().WithError(err).Error("Failed to parse validUntil")
+		span.AddEvent("parse_valid_until_failed")
 		return SignInOperationNOP, time.Duration(0)
 	}
 
 	if time.Now().UTC().After(validUntil.UTC()) {
+		span.AddEvent("signin_expired")
 		return SignInOperationDeprovision, time.Duration(0)
 	}
 
@@ -125,19 +185,19 @@ func getAction(signIn *v1alpha1.TkaSignin) (SignInOperation, time.Duration) {
 
 	signedInAt, err := time.Parse(time.RFC3339, signedInAtStr)
 	if err != nil {
-		otelzap.L().WithError(err).Error("Failed to parse signedInAt")
+		span.AddEvent("parse_signed_in_at_failed")
 		return SignInOperationNOP, time.Duration(0)
 	}
 
 	signedInUntilDuration, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
 	if err != nil {
-		otelzap.L().WithError(err).Error("Failed to parse signedInAt")
+		span.AddEvent("parse_validity_duration_failed")
 		return SignInOperationNOP, time.Duration(0)
 	}
 
 	statusValidUntil := signedInAt.Add(signedInUntilDuration)
 	if !statusValidUntil.Equal(validUntil) {
-		otelzap.L().Debug("User extended their login validity", zap.String("username", signIn.Spec.Username))
+		span.AddEvent("login_extended")
 		return SignInOperationProvision, time.Duration(0)
 	}
 

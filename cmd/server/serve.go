@@ -2,18 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
-	"encoding/base64"
-
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
@@ -26,6 +25,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -329,25 +331,50 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	<-ctx.Done()
 	// No more logging to ctx from here onwards
 
-	// Graceful shutdown with timeout
+	// Graceful shutdown with timeout and trace context
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	otelzap.L().Info("Shutting down servers...")
+	tracer := otel.Tracer("tka_server")
+	shutdownCtx, span := tracer.Start(shutdownCtx, "server.shutdown")
+
+	// Track shutdown status for wide event
+	var (
+		healthShutdownErr error
+		tsShutdownErr     humane.Error
+	)
 
 	// Shutdown local metrics server first
-	if err := healthSrv.Shutdown(shutdownCtx); err != nil {
-		otelzap.L().WithError(err).Error("Failed to shutdown local metrics server gracefully")
-		// Continue with other shutdowns even if local server shutdown failed
-	}
+	healthShutdownErr = healthSrv.Shutdown(shutdownCtx)
 
 	// Shutdown Tailscale server
-	if err := srv.Stop(shutdownCtx); err != nil {
-		otelzap.L().WithError(err).Error("Failed to shutdown Tailscale server gracefully")
-		return err
+	tsShutdownErr = srv.Stop(shutdownCtx)
+
+	// Set span attributes for shutdown wide event
+	span.SetAttributes(
+		attribute.Bool("shutdown.health_ok", healthShutdownErr == nil),
+		attribute.Bool("shutdown.tailscale_ok", tsShutdownErr == nil),
+	)
+
+	if healthShutdownErr != nil {
+		span.SetAttributes(attribute.String("shutdown.health_err", healthShutdownErr.Error()))
+	}
+	if tsShutdownErr != nil {
+		span.SetAttributes(attribute.String("shutdown.tailscale_err", tsShutdownErr.Error()))
+		span.SetStatus(codes.Error, "shutdown failed")
 	}
 
-	otelzap.L().Info("Servers shut down successfully")
+	// Log summary
+	otelzap.L().InfoContext(shutdownCtx, "servers shutdown completed",
+		zap.Bool("health_ok", healthShutdownErr == nil),
+		zap.Bool("tailscale_ok", tsShutdownErr == nil),
+	)
+
+	span.End()
+
+	if tsShutdownErr != nil {
+		return tsShutdownErr
+	}
 
 	// Check termination cause
 	cause := context.Cause(ctx)
