@@ -11,7 +11,7 @@ Get TKA running in under 5 minutes:
 
 :::: steps
 
-1. ### Install CLI & Server
+1. ## Install CLI & Server
 
    ::: terminal One-command setup
 

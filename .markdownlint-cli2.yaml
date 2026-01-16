@@ -6,6 +6,7 @@ config:
   MD013: false
   MD024: false
   MD038: false
+  MD060: false
 
 # Include all Markdown files in the project
 globs:
