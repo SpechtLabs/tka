@@ -276,7 +276,7 @@ func (s *Server) ListenTCP(address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first", "ensure Start() is called before Listen()")
+		return nil, humane.New("server not started", "call Start() before Listen()")
 	}
 	listener, err := s.ts.Listen(network, address)
 	if err != nil {

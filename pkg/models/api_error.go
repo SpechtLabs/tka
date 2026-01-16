@@ -44,7 +44,7 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 
 	// If no real causes left, just return the message alone
 	if len(nonNilCauses) == 0 {
-		return FromHumaneError(humane.New(message))
+		return FromHumaneError(humane.New(message)) //nolint:golint-sl // internal error conversion, advice comes from original error
 	}
 
 	// Build from the last cause (deepest), preserving advice if it's a humane error
@@ -53,7 +53,7 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 	if he, ok := lastCause.(humane.Error); ok {
 		herr = he
 	} else {
-		herr = humane.New(lastCause.Error())
+		herr = humane.New(lastCause.Error()) //nolint:golint-sl // internal error conversion, advice comes from original error
 	}
 
 	// Wrap each earlier one around it, preserving advice
@@ -62,12 +62,12 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 		if he, ok := c.(humane.Error); ok {
 			herr = humane.Wrap(herr, he.Error(), he.Advice()...)
 		} else {
-			herr = humane.Wrap(herr, c.Error())
+			herr = humane.Wrap(herr, c.Error()) //nolint:golint-sl // internal error conversion, advice comes from original error
 		}
 	}
 
 	// Finally, wrap with the external message
-	return FromHumaneError(humane.Wrap(herr, message))
+	return FromHumaneError(humane.Wrap(herr, message)) //nolint:golint-sl // internal error conversion, advice comes from original error
 }
 
 // FromHumaneError converts a humane.Error to an ErrorResponse for JSON serialization.

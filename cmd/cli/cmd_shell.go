@@ -67,7 +67,7 @@ func forkShell(cmd *cobra.Command, args []string) error {
 	// 1. Login and get kubeconfig path
 	kubeCfgPath, err := signIn(quiet)
 	if err != nil {
-		return fmt.Errorf("sign-in failed: %w", err)
+		return err // already wrapped by signIn
 	}
 
 	// 2. Run subshell
@@ -76,7 +76,7 @@ func forkShell(cmd *cobra.Command, args []string) error {
 	// 3. Do cleanup
 	cleanup(quiet, kubeCfgPath)
 	if err != nil {
-		return fmt.Errorf("shell execution failed: %w", err)
+		return humane.Wrap(err, "shell execution failed", "the subshell exited with an error")
 	}
 	return nil
 }

@@ -41,9 +41,9 @@ func signIn(quiet bool) (string, error) {
 	if err != nil {
 		// Unwrap to get the original cause for cleaner error messages
 		if err.Cause() != nil {
-			return "", fmt.Errorf("sign-in failed: %w", err.Cause())
+			return "", humane.Wrap(err.Cause(), "sign-in failed", "ensure you are connected to the Tailscale network", "check that the TKA server is running")
 		}
-		return "", fmt.Errorf("sign-in failed: %w", err)
+		return "", humane.Wrap(err, "sign-in failed", "ensure you are connected to the Tailscale network", "check that the TKA server is running")
 	}
 
 	if !quiet {
@@ -51,16 +51,16 @@ func signIn(quiet bool) (string, error) {
 		pretty_print.PrintLoginInformation(loginInfo)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond) //nolint:golint-sl // brief delay for server processing
 
 	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch kubeconfig: %w", err)
+		return "", humane.Wrap(err, "failed to fetch kubeconfig", "sign-in succeeded but kubeconfig retrieval failed", "try running 'tka login' again")
 	}
 
 	file, err := serializeKubeconfig(kubecfg)
 	if err != nil {
-		return "", fmt.Errorf("failed to serialize kubeconfig: %w", err)
+		return "", err // already wrapped by serializeKubeconfig
 	}
 
 	return file, nil
