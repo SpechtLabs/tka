@@ -226,7 +226,7 @@ func (s *Server) Start(ctx context.Context) humane.Error {
 	}
 
 	if err := s.connectTailnet(ctx); err != nil {
-		return err
+		return humane.Wrap(err, "failed to connect to tailnet", "check TS_AUTH_KEY and network connectivity")
 	}
 
 	s.started = true
@@ -276,11 +276,11 @@ func (s *Server) ListenTCP(address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first", "ensure Start() is called before Listen()")
 	}
 	listener, err := s.ts.Listen(network, address)
 	if err != nil {
-		return nil, humane.Wrap(err, fmt.Sprintf("failed to create %s listener", network))
+		return nil, humane.Wrap(err, fmt.Sprintf("failed to create %s listener", network), "check tailscale connection and network configuration")
 	}
 	return listener, nil
 }
@@ -304,11 +304,11 @@ func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first", "ensure Start() is called before ListenTLS()")
 	}
 	listener, err := s.ts.ListenTLS("tcp", address)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create TLS listener")
+		return nil, humane.Wrap(err, "failed to create TLS listener", "check tailscale connection and TLS configuration")
 	}
 	return listener, nil
 }
@@ -332,11 +332,11 @@ func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) ListenFunnel(address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first", "ensure Start() is called before ListenFunnel()")
 	}
 	listener, err := s.ts.ListenFunnel("tcp", address)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create Funnel listener")
+		return nil, humane.Wrap(err, "failed to create Funnel listener", "check tailscale connection and Funnel configuration in ACLs")
 	}
 	return listener, nil
 }
@@ -401,7 +401,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler, network string
 	}
 
 	if err != nil {
-		return humane.Wrap(err, "failed to create listener")
+		return humane.Wrap(err, "failed to create listener", "check tailscale connection and network configuration")
 	}
 
 	// Set handler and serve
@@ -410,7 +410,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler, network string
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return humane.Wrap(err, "failed to serve HTTP")
+		return humane.Wrap(err, "failed to serve HTTP", "check server configuration and port availability")
 	}
 
 	return nil
@@ -419,7 +419,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler, network string
 // ServeTLS serves over the Tailscale network using the TLS protocol.
 func (s *Server) ServeTLS(ctx context.Context, handler http.Handler) humane.Error {
 	if err := s.Serve(ctx, handler, "tls"); err != nil {
-		return humane.Wrap(err, "failed to serve TLS")
+		return humane.Wrap(err, "failed to serve TLS", "check TLS configuration and certificate validity")
 	}
 	return nil
 }
@@ -428,7 +428,7 @@ func (s *Server) ServeTLS(ctx context.Context, handler http.Handler) humane.Erro
 // See the funnel documentation for more details: https://tailscale.com/kb/1223/funnel
 func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.Error {
 	if err := s.Serve(ctx, handler, "funnel"); err != nil {
-		return humane.Wrap(err, "failed to serve Funnel")
+		return humane.Wrap(err, "failed to serve Funnel", "check Funnel configuration in Tailscale ACLs")
 	}
 	return nil
 }
@@ -437,7 +437,7 @@ func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.E
 func (s *Server) Shutdown(ctx context.Context) humane.Error {
 	if s.Server != nil {
 		if err := s.Server.Shutdown(ctx); err != nil {
-			return humane.Wrap(err, "failed to shutdown HTTP server")
+			return humane.Wrap(err, "failed to shutdown HTTP server", "consider extending the shutdown timeout")
 		}
 	}
 	s.started = false

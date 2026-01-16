@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -104,19 +105,19 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 			event.username = signIn.Spec.Username
 			event.operation = "deprovision_not_found"
 
-			if err := t.signOutUser(ctx, signIn); err != nil {
-				event.success = false
-				event.err = err
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, nil
+		if err := t.signOutUser(ctx, signIn); err != nil {
+			event.success = false
+			event.err = err
+			return reconcile.Result{}, fmt.Errorf("failed to deprovision deleted signin %s: %w", req.Name, err)
 		}
-
-		event.success = false
-		event.err = err
-		event.operation = "get_signin_failed"
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
+
+	event.success = false
+	event.err = err
+	event.operation = "get_signin_failed"
+	return reconcile.Result{}, fmt.Errorf("failed to get signin %s: %w", req.NamespacedName, err)
+}
 
 	event.username = signIn.Spec.Username
 
@@ -129,7 +130,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		if err := t.signInUser(ctx, signIn); err != nil {
 			event.success = false
 			event.err = err
-			return reconcile.Result{}, err
+			return reconcile.Result{}, fmt.Errorf("failed to provision signin %s: %w", signIn.Name, err)
 		}
 
 	case SignInOperationDeprovision:
@@ -137,7 +138,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		if err := t.signOutUser(ctx, signIn); err != nil {
 			event.success = false
 			event.err = err
-			return reconcile.Result{}, err
+			return reconcile.Result{}, fmt.Errorf("failed to deprovision signin %s: %w", signIn.Name, err)
 		}
 
 	case SignInOperationNOP:

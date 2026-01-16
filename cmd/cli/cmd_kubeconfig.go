@@ -176,6 +176,7 @@ func generateExportStatement(fileName string, shell shellType) string {
 	}
 }
 
+//nolint:golint-sl // CLI user output
 func printUseStatement(fileName string, quiet bool) {
 	shell := detectShell()
 	useStatement := generateExportStatement(fileName, shell)

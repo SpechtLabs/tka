@@ -126,12 +126,12 @@ func FormatHelpText(cmd *cobra.Command, _ []string, opts ...Option) string {
 
 // PrintHelpText prints the help text for a cobra command to stdout.
 func PrintHelpText(cmd *cobra.Command, args []string) {
-	fmt.Println(render(cmd, false))
+	fmt.Println(render(cmd, false)) //nolint:golint-sl // CLI user output
 }
 
 // PrintUsageText prints the usage text for a cobra command to stdout.
 func PrintUsageText(cmd *cobra.Command, _ []string) {
-	fmt.Println(render(cmd, true))
+	fmt.Println(render(cmd, true)) //nolint:golint-sl // CLI user output
 }
 
 func render(cmd *cobra.Command, showUsage bool, opts ...Option) string {
@@ -223,7 +223,7 @@ func Eq(a interface{}, b interface{}) bool {
 
 	switch av.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
-		panic("Eq called on unsupported type")
+		panic("Eq called on unsupported type") //nolint:nopanic // programming error - unsupported type should never be passed
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return av.Int() == bv.Int()
 	case reflect.String:

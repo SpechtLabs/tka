@@ -31,6 +31,8 @@ type ErrorResponse struct {
 // NewErrorResponse creates a new ErrorResponse by wrapping an optional cause error.
 // If multiple causes are provided, they are wrapped in order such that
 // the first cause is caused by the second, and so on.
+//
+//nolint:golint-sl // This function builds error responses, not logging
 func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 	// Filter out nils so we never try to wrap them
 	nonNilCauses := make([]error, 0, len(cause))
@@ -70,6 +72,8 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 
 // FromHumaneError converts a humane.Error to an ErrorResponse for JSON serialization.
 // This is the primary way to convert business logic errors into HTTP API responses.
+//
+//nolint:golint-sl // This function builds error responses, not logging
 func FromHumaneError(err humane.Error) *ErrorResponse {
 	if err == nil {
 		return nil

@@ -4,6 +4,7 @@ package tshttp
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -35,7 +36,7 @@ func (a *tsnetAdapter) ListenFunnel(network, addr string) (net.Listener, error) 
 func (a *tsnetAdapter) LocalWhoIs() (WhoIsResolver, error) {
 	lc, err := a.s.LocalClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tailscale local client: %w", err)
 	}
 	return &localWhoIsResolver{lc: lc}, nil
 }

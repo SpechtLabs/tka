@@ -49,7 +49,7 @@ func InitObservability() func() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	if err != nil {
-		fmt.Printf("failed to initialize logger: %v", err)
+		fmt.Printf("failed to initialize logger: %v", err) //nolint:golint-sl // Pre-logger init output
 		os.Exit(1)
 	}
 
@@ -98,12 +98,13 @@ func InitObservability() func() {
 			zap.NamedError("log_shutdown_err", logShutdownErr),
 		)
 
+		// Log shutdown errors but don't panic - allow cleanup to complete
 		if traceShutdownErr != nil {
-			panic(traceShutdownErr)
+			zap.L().Error("failed to shutdown trace provider", zap.Error(traceShutdownErr))
 		}
 
 		if logShutdownErr != nil {
-			panic(logShutdownErr)
+			zap.L().Error("failed to shutdown log provider", zap.Error(logShutdownErr))
 		}
 
 		undoStdLogRedirect()

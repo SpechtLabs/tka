@@ -35,14 +35,14 @@ func NewRootCmd() *cobra.Command {
 	})
 	cmdRoot.SetUsageFunc(func(cmd *cobra.Command) error {
 		initConfig()
-		fmt.Println("")
+		fmt.Println("") //nolint:golint-sl // CLI formatting
 		pretty_print.PrintUsageText(cmd, []string{})
 		return nil
 	})
 	cmdRoot.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
 		initConfig()
-		pretty_print.PrintErrorMessage(err.Error())
-		fmt.Println("")
+		pretty_print.PrintErrorMessage(err.Error()) //nolint:golint-sl // CLI error display
+		fmt.Println("")                             //nolint:golint-sl // CLI formatting
 		pretty_print.PrintHelpText(cmd, []string{})
 		return nil
 	})

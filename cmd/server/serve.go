@@ -249,14 +249,16 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 
 	clusterInfo, err := loadClusterInfo(ctx)
 	if err != nil {
-		cancelFn(err)
-		return err
+		herr := humane.Wrap(err, "failed to load cluster info", "ensure the server is running inside a Kubernetes cluster or has valid kubeconfig")
+		cancelFn(herr)
+		return herr
 	}
 
 	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts)
 	if err != nil {
-		cancelFn(err)
-		return err
+		herr := humane.Wrap(err, "failed to initialize Kubernetes operator", "check cluster connectivity and permissions")
+		cancelFn(herr)
+		return herr
 	}
 
 	// Create Tailscale server
@@ -373,7 +375,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	span.End()
 
 	if tsShutdownErr != nil {
-		return tsShutdownErr
+		return humane.Wrap(tsShutdownErr, "tailscale server shutdown failed", "check tailscale logs for details")
 	}
 
 	// Check termination cause

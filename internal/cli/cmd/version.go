@@ -17,6 +17,7 @@ var (
 	Commit string
 )
 
+//nolint:golint-sl // CLI user output
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

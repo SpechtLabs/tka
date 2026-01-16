@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -38,11 +39,11 @@ tka get login`,
 func signIn(quiet bool) (string, error) {
 	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
+		// Unwrap to get the original cause for cleaner error messages
 		if err.Cause() != nil {
-			return "", err.Cause()
+			return "", fmt.Errorf("sign-in failed: %w", err.Cause())
 		}
-
-		return "", err
+		return "", fmt.Errorf("sign-in failed: %w", err)
 	}
 
 	if !quiet {
@@ -54,12 +55,12 @@ func signIn(quiet bool) (string, error) {
 
 	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to fetch kubeconfig: %w", err)
 	}
 
 	file, err := serializeKubeconfig(kubecfg)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to serialize kubeconfig: %w", err)
 	}
 
 	return file, nil

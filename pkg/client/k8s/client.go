@@ -61,20 +61,20 @@ func (t *tkaClient) NewSignIn(ctx context.Context, userName, role string, validP
 
 		existing, err := t.GetSignIn(ctx, userName)
 		if err != nil {
-			return humane.Wrap(err, "Failed to load existing sign-in request")
+			return humane.Wrap(err, "Failed to load existing sign-in request", "check Kubernetes connectivity and permissions")
 		}
 
 		existing.Spec.ValidityPeriod = signin.Spec.ValidityPeriod
 		existing.Spec.Role = signin.Spec.Role
 		existing.Annotations = signin.Annotations
 		if err := t.client.Update(ctx, existing); err != nil {
-			return humane.Wrap(err, "Failed to update existing sign-in request")
+			return humane.Wrap(err, "Failed to update existing sign-in request", "check Kubernetes permissions for updating TkaSignin resources")
 		}
 	} else if err != nil {
-		return humane.Wrap(err, "Error signing in user", "see underlying error for more details")
+		return humane.Wrap(err, "Error signing in user", "check Kubernetes connectivity and that the operator has create permissions")
 	} else {
 		if err := t.client.Status().Update(ctx, signin); err != nil {
-			return humane.Wrap(err, "Error updating signin status", "see underlying error for more details")
+			return humane.Wrap(err, "Error updating signin status", "check Kubernetes permissions for updating TkaSignin status")
 		}
 	}
 
@@ -94,9 +94,9 @@ func (t *tkaClient) GetSignIn(ctx context.Context, userName string) (*v1alpha1.T
 	var signIn v1alpha1.TkaSignin
 	if err := t.client.Get(ctx, resName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil, humane.Wrap(err, "User not signed in", "Please sign in before requesting")
+			return nil, humane.Wrap(err, "User not signed in", "run 'tka login' to sign in first")
 		}
-		return nil, humane.Wrap(err, "Failed to load sign-in request")
+		return nil, humane.Wrap(err, "Failed to load sign-in request", "check Kubernetes connectivity and read permissions")
 	}
 
 	return &signIn, nil
@@ -114,9 +114,9 @@ func (t *tkaClient) GetKubeconfig(ctx context.Context, userName string) (*api.Co
 	var signIn v1alpha1.TkaSignin
 	if err := t.client.Get(ctx, resName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return nil, humane.Wrap(err, "User not signed in", "Please sign in before requesting kubeconfig")
+			return nil, humane.Wrap(err, "User not signed in", "run 'tka login' to sign in first")
 		}
-		return nil, humane.Wrap(err, "Failed to load sign-in request")
+		return nil, humane.Wrap(err, "Failed to load sign-in request", "check Kubernetes connectivity and read permissions")
 	}
 
 	if !signIn.Status.Provisioned {
@@ -126,7 +126,7 @@ func (t *tkaClient) GetKubeconfig(ctx context.Context, userName string) (*api.Co
 	// Generate token for ServiceAccount
 	token, err := t.generateToken(ctx, &signIn)
 	if err != nil {
-		return nil, humane.Wrap(err, "Failed to generate token")
+		return nil, humane.Wrap(err, "Failed to generate token", "check that the service account exists and Kubernetes has token generation enabled")
 	}
 
 	clusterName := t.opts.ClusterName
@@ -152,13 +152,13 @@ func (t *tkaClient) DeleteSignIn(ctx context.Context, userName string) humane.Er
 	signinName := types.NamespacedName{Name: FormatSigninObjectName(userName), Namespace: t.opts.Namespace}
 	if err := t.client.Get(ctx, signinName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return humane.New("User not signed in", "Please sign in before requesting kubeconfig")
+			return humane.New("User not signed in", "the user may have already been signed out")
 		}
-		return humane.Wrap(err, "Failed to load sign-in request")
+		return humane.Wrap(err, "Failed to load sign-in request", "check Kubernetes connectivity and read permissions")
 	}
 
 	if err := t.client.Delete(ctx, &signIn); err != nil {
-		return humane.Wrap(err, "Failed to remove sign-in request")
+		return humane.Wrap(err, "Failed to remove sign-in request", "check Kubernetes permissions for deleting TkaSignin resources")
 	}
 
 	return nil
@@ -196,19 +196,19 @@ func (t *tkaClient) generateToken(ctx context.Context, signIn *v1alpha1.TkaSigni
 
 	config, err := ctrl.GetConfig()
 	if err != nil {
-		return "", humane.Wrap(err, "Failed to get Kubernetes config")
+		return "", humane.Wrap(err, "Failed to get Kubernetes config", "ensure the operator is running in a Kubernetes cluster or has valid kubeconfig")
 	}
 
 	// For Kubernetes >= 1.30, we need to create a token request
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return "", humane.Wrap(err, "Failed to create Kubernetes clientset")
+		return "", humane.Wrap(err, "Failed to create Kubernetes clientset", "check cluster connectivity and authentication")
 	}
 
 	// Create a token request with expiration time
 	validUntil, err := time.Parse(time.RFC3339, signIn.Status.ValidUntil)
 	if err != nil {
-		return "", humane.Wrap(err, "Failed to parse validUntil")
+		return "", humane.Wrap(err, "Failed to parse validUntil", "this indicates a bug in the sign-in status; try signing out and back in")
 	}
 
 	expirationSeconds := int64(time.Until(validUntil).Seconds())
@@ -219,7 +219,7 @@ func (t *tkaClient) generateToken(ctx context.Context, signIn *v1alpha1.TkaSigni
 
 	tokenResponse, err := clientset.CoreV1().ServiceAccounts(signIn.Namespace).CreateToken(ctx, FormatSigninObjectName(signIn.Spec.Username), tokenRequest, metav1.CreateOptions{})
 	if err != nil {
-		return "", humane.Wrap(err, "Failed to create token for service account")
+		return "", humane.Wrap(err, "Failed to create token for service account", "check that the service account exists and the operator has token creation permissions")
 	}
 
 	return tokenResponse.Status.Token, nil

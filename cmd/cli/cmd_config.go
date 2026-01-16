@@ -178,6 +178,7 @@ func runConfig(cmd *cobra.Command, args []string) {
 	}
 }
 
+//nolint:golint-sl // CLI user output
 func printConfigValue(key string, showFilename, quiet bool) {
 	value := viper.Get(key)
 
@@ -256,6 +257,7 @@ func parseValue(value string) any {
 	return value
 }
 
+//nolint:golint-sl // CLI user output
 func showAllConfig(showFilename, quiet bool) {
 	if showFilename {
 		if quiet {

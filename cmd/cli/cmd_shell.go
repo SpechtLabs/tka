@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -66,7 +67,7 @@ func forkShell(cmd *cobra.Command, args []string) error {
 	// 1. Login and get kubeconfig path
 	kubeCfgPath, err := signIn(quiet)
 	if err != nil {
-		return err
+		return fmt.Errorf("sign-in failed: %w", err)
 	}
 
 	// 2. Run subshell
@@ -74,7 +75,10 @@ func forkShell(cmd *cobra.Command, args []string) error {
 
 	// 3. Do cleanup
 	cleanup(quiet, kubeCfgPath)
-	return err
+	if err != nil {
+		return fmt.Errorf("shell execution failed: %w", err)
+	}
+	return nil
 }
 
 func cleanup(quiet bool, kubeCfgPath string) {
