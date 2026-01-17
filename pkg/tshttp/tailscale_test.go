@@ -126,7 +126,7 @@ func TestServer_Start(t *testing.T) {
 				t.Helper()
 				m.WhoIsErr = humane.New("whois failed", "check Tailscale API access")
 			},
-		wantErr: true,
+			wantErr: true,
 			errMsg:  "failed to connect to tailnet",
 		},
 		{
@@ -238,7 +238,7 @@ func TestServer_ConnectionState(t *testing.T) {
 				t.Helper()
 				m.UpErr = humane.New("tailscale up failed", "check your Tailscale connection")
 			},
-		wantErr: true,
+			wantErr: true,
 			errMsg:  "failed to connect to tailnet",
 		},
 	}

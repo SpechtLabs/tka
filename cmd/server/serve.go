@@ -151,10 +151,10 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true", "set CLUSTER_INFO_CONFIGMAP_REF_NAME and CLUSTER_INFO_CONFIGMAP_REF_NAMESPACE environment variables")
 		}
 
-		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")           //nolint:golint-sl // config keys grouped for readability
-		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")                //nolint:golint-sl // config keys grouped for readability
-		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")        //nolint:golint-sl // config keys grouped for readability
-		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig")    //nolint:golint-sl // config keys grouped for readability
+		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")       //nolint:golint-sl // config keys grouped for readability
+		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")             //nolint:golint-sl // config keys grouped for readability
+		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")     //nolint:golint-sl // config keys grouped for readability
+		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig") //nolint:golint-sl // config keys grouped for readability
 
 		restCfg, err := ctrl.GetConfig()
 		if err != nil {
