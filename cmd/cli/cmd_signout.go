@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -34,14 +35,13 @@ tka signout --quiet`,
 }
 
 func signOut(_ *cobra.Command, _ []string) error {
-	_, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LogoutApiRoute, nil, http.StatusOK, http.StatusProcessing)
+	_, _, err := doRequestAndDecode[models.UserLoginResponse](context.Background(), http.MethodPost, api.LogoutApiRoute, nil, http.StatusOK, http.StatusProcessing)
 	if err != nil {
 		pretty_print.PrintError(err.Cause())
 		os.Exit(1)
 	}
 
-	quiet := viper.GetBool("output.quiet")
-	if !quiet {
+	if quiet := viper.GetBool("output.quiet"); !quiet {
 		pretty_print.PrintOk("You have been signed out")
 	}
 

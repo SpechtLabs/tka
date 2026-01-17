@@ -11,6 +11,7 @@ import (
 	_ "github.com/spechtlabs/tka/pkg/models"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.uber.org/zap"
 	"sigs.k8s.io/yaml"
 )
 
@@ -28,6 +29,8 @@ import (
 // @Header        202         {integer} Retry-After               "Seconds until next poll recommended"
 // @Router        /api/v1alpha1/kubeconfig [get]
 // @Security      TailscaleAuth
+//
+//nolint:golint-sl // Logs are in mutually exclusive branches (not_ready vs error), only one executes per request
 func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	req := ct.Request
 	userName := mwauth.GetUsername(ct)
@@ -38,7 +41,7 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	// Set initial span attributes
 	span.SetAttributes(attribute.String("kubeconfig.username", userName))
 
-	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil {
+	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil { //nolint:golint-sl // kubecfg used in else branch below
 		// Include Retry-After for other async/provisioning flows as a hint
 		ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 
@@ -49,7 +52,10 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 				attribute.Int("kubeconfig.http_status", http.StatusAccepted),
 			)
 			ct.Status(http.StatusAccepted)
-			otelzap.L().InfoContext(ctx, "Kubeconfig not ready yet")
+			otelzap.L().InfoContext(ctx, "Kubeconfig not ready yet",
+				zap.String("username", userName),
+				zap.Int("http_status", http.StatusAccepted),
+			)
 			return
 		}
 
@@ -84,8 +90,5 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 
 func acceptsYAML(c *gin.Context) bool {
 	accept := c.GetHeader("Accept")
-	if accept == "application/yaml" || accept == "text/yaml" || accept == "application/x-yaml" {
-		return true
-	}
-	return false
+	return accept == "application/yaml" || accept == "text/yaml" || accept == "application/x-yaml"
 }

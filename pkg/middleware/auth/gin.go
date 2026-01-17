@@ -81,12 +81,12 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 
 		ctx, span := tracer.Start(req.Context(), "Middleware.Auth")
 
-		// Wide event context
+		// Wide event context - these are captured by the defer closure below
 		var (
 			userName     string
-			rejectReason string
-			statusCode   int
-			success      = true
+			rejectReason string       //nolint:golint-sl // captured by defer, assigned in multiple branches
+			statusCode   int          //nolint:golint-sl // captured by defer, assigned in multiple branches
+			success      = true       //nolint:golint-sl // captured by defer, assigned in multiple branches
 		)
 
 		// Set span attributes for wide event data at end of auth

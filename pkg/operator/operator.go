@@ -35,6 +35,7 @@ type KubeOperator struct {
 	client k8s.TkaClient
 }
 
+//nolint:golint-sl // Startup validation: Fatal terminates on config error, no context available
 func getConfigOrDie() *rest.Config {
 	config, err := ctrl.GetConfig()
 	if err != nil {
@@ -43,7 +44,7 @@ func getConfigOrDie() *rest.Config {
 			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
 		)
 
-		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config")
+		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config") //nolint:golint-sl // Startup Fatal, no context available
 	}
 
 	return config

@@ -19,9 +19,8 @@ func InitObservability() func() {
 	var tracerOptions []otelprovider.TracerOption
 
 	otelEndpoint := viper.GetString("otel.endpoint")
-	otelInsecure := viper.GetBool("otel.insecure")
 
-	if otelInsecure {
+	if otelInsecure := viper.GetBool("otel.insecure"); otelInsecure {
 		loggerOptions = append(loggerOptions, otelprovider.WithLogInsecure())
 		tracerOptions = append(tracerOptions, otelprovider.WithTraceInsecure())
 	}
@@ -86,7 +85,7 @@ func InitObservability() func() {
 		traceShutdownErr = traceProvider.Shutdown(context.Background())
 		logShutdownErr = logProvider.Shutdown(context.Background())
 
-		// Emit single wide event for observability shutdown
+		// Emit single wide event for observability shutdown with all error details
 		otelzap.L().Info("observability shutdown",
 			zap.Bool("trace_flush_ok", traceFlushErr == nil),
 			zap.Bool("log_flush_ok", logFlushErr == nil),
@@ -97,15 +96,6 @@ func InitObservability() func() {
 			zap.NamedError("trace_shutdown_err", traceShutdownErr),
 			zap.NamedError("log_shutdown_err", logShutdownErr),
 		)
-
-		// Log shutdown errors but don't panic - allow cleanup to complete
-		if traceShutdownErr != nil {
-			zap.L().Error("failed to shutdown trace provider", zap.Error(traceShutdownErr))
-		}
-
-		if logShutdownErr != nil {
-			zap.L().Error("failed to shutdown log provider", zap.Error(logShutdownErr))
-		}
 
 		undoStdLogRedirect()
 		undoOtelZapGlobals()

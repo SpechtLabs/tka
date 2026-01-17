@@ -105,19 +105,19 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 			event.username = signIn.Spec.Username
 			event.operation = "deprovision_not_found"
 
-		if err := t.signOutUser(ctx, signIn); err != nil {
-			event.success = false
-			event.err = err
-			return reconcile.Result{}, fmt.Errorf("failed to deprovision deleted signin %s: %w", req.Name, err)
+			if err := t.signOutUser(ctx, signIn); err != nil {
+				event.success = false
+				event.err = err
+				return reconcile.Result{}, fmt.Errorf("failed to deprovision deleted signin %s: %w", req.Name, err) //nolint:golint-sl // controller-runtime expects standard error
+			}
+			return reconcile.Result{}, nil
 		}
-		return reconcile.Result{}, nil
-	}
 
-	event.success = false
-	event.err = err
-	event.operation = "get_signin_failed"
-	return reconcile.Result{}, fmt.Errorf("failed to get signin %s: %w", req.NamespacedName, err)
-}
+		event.success = false
+		event.err = err
+		event.operation = "get_signin_failed"
+		return reconcile.Result{}, fmt.Errorf("failed to get signin %s: %w", req.NamespacedName, err) //nolint:golint-sl // controller-runtime expects standard error
+	}
 
 	event.username = signIn.Spec.Username
 
@@ -130,7 +130,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		if err := t.signInUser(ctx, signIn); err != nil {
 			event.success = false
 			event.err = err
-			return reconcile.Result{}, fmt.Errorf("failed to provision signin %s: %w", signIn.Name, err)
+			return reconcile.Result{}, fmt.Errorf("failed to provision signin %s: %w", signIn.Name, err) //nolint:golint-sl // controller-runtime expects standard error
 		}
 
 	case SignInOperationDeprovision:
@@ -138,7 +138,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		if err := t.signOutUser(ctx, signIn); err != nil {
 			event.success = false
 			event.err = err
-			return reconcile.Result{}, fmt.Errorf("failed to deprovision signin %s: %w", signIn.Name, err)
+			return reconcile.Result{}, fmt.Errorf("failed to deprovision signin %s: %w", signIn.Name, err) //nolint:golint-sl // controller-runtime expects standard error
 		}
 
 	case SignInOperationNOP:
@@ -196,8 +196,7 @@ func getAction(signIn *v1alpha1.TkaSignin, span trace.Span) (SignInOperation, ti
 		return SignInOperationNOP, time.Duration(0)
 	}
 
-	statusValidUntil := signedInAt.Add(signedInUntilDuration)
-	if !statusValidUntil.Equal(validUntil) {
+	if statusValidUntil := signedInAt.Add(signedInUntilDuration); !statusValidUntil.Equal(validUntil) {
 		span.AddEvent("login_extended")
 		return SignInOperationProvision, time.Duration(0)
 	}

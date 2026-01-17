@@ -118,7 +118,7 @@ func TestServer_Start(t *testing.T) {
 				m.UpErr = humane.New("connection failed", "check your Tailscale connection")
 			},
 			wantErr: true,
-			errMsg:  "failed to start api tailscale",
+			errMsg:  "failed to connect to tailnet",
 		},
 		{
 			name: "whois setup fails",
@@ -126,8 +126,8 @@ func TestServer_Start(t *testing.T) {
 				t.Helper()
 				m.WhoIsErr = humane.New("whois failed", "check Tailscale API access")
 			},
-			wantErr: true,
-			errMsg:  "failed to get local api client",
+		wantErr: true,
+			errMsg:  "failed to connect to tailnet",
 		},
 		{
 			name: "idempotent start",
@@ -238,8 +238,8 @@ func TestServer_ConnectionState(t *testing.T) {
 				t.Helper()
 				m.UpErr = humane.New("tailscale up failed", "check your Tailscale connection")
 			},
-			wantErr: true,
-			errMsg:  "failed to start api tailscale",
+		wantErr: true,
+			errMsg:  "failed to connect to tailnet",
 		},
 	}
 
@@ -292,28 +292,28 @@ func TestServer_ListenMethods(t *testing.T) {
 			method:  "tcp",
 			started: false,
 			wantErr: true,
-			errMsg:  "Start() first",
+			errMsg:  "server not started",
 		},
 		{
 			name:    "ListenTLS requires start",
 			method:  "tls",
 			started: false,
 			wantErr: true,
-			errMsg:  "Start() first",
+			errMsg:  "server not started",
 		},
 		{
 			name:    "ListenFunnel requires start",
 			method:  "funnel",
 			started: false,
 			wantErr: true,
-			errMsg:  "Start() first",
+			errMsg:  "server not started",
 		},
 		{
 			name:    "Listen requires start",
 			method:  "listen",
 			started: false,
 			wantErr: true,
-			errMsg:  "Start() first",
+			errMsg:  "server not started",
 		},
 		{
 			name:    "ListenTCP success",

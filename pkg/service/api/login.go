@@ -13,6 +13,7 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/models"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.uber.org/zap"
 )
 
 // login handles user authentication through Tailscale for the TKA service
@@ -28,6 +29,8 @@ import (
 // @Failure       500         {object}  models.ErrorResponse      "Internal Server Error - Error with WhoIs, parsing duration, or signing in user"
 // @Router        /api/v1alpha1/login [post]
 // @Security      TailscaleAuth
+//
+//nolint:golint-sl // Logs are in mutually exclusive error branches, only one executes per request
 func (t *TKAServer) login(ct *gin.Context) {
 	req := ct.Request
 	userName := mwauth.GetUsername(ct)
@@ -45,13 +48,16 @@ func (t *TKAServer) login(ct *gin.Context) {
 			attribute.String("login.role", "unknown"),
 		)
 		span.SetStatus(codes.Error, "no capability rule found")
-		otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.")
+		otelzap.L().ErrorContext(ctx, "No capability rule found for user. Assuming unauthorized.",
+			zap.String("username", userName),
+			zap.Int("http_status", http.StatusForbidden),
+		)
 		loginAttempts.WithLabelValues(userName, "unknown", "forbidden").Inc()
 		ct.JSON(http.StatusForbidden, globalModels.NewErrorResponse("No grant found for user", nil))
 		return
 	}
 
-	now := time.Now()
+	now := time.Now() //nolint:golint-sl // captures request timestamp for valid_until calculation
 	role := capRule.Role
 	span.SetAttributes(attribute.String("login.role", role))
 
@@ -102,6 +108,8 @@ func (t *TKAServer) login(ct *gin.Context) {
 // @Header        202         {integer} Retry-After               "Seconds until next poll recommended"
 // @Router        /api/v1alpha1/login [get]
 // @Security      TailscaleAuth
+//
+//nolint:golint-sl // Logs are in mutually exclusive error branches, only one executes per request
 func (t *TKAServer) getLogin(ct *gin.Context) {
 	req := ct.Request
 	userName := mwauth.GetUsername(ct)
@@ -122,7 +130,7 @@ func (t *TKAServer) getLogin(ct *gin.Context) {
 		return
 	} else {
 		status := http.StatusOK
-		until := signIn.ValidUntil
+		until := signIn.ValidUntil //nolint:golint-sl // may be updated in provisioning check below
 
 		span.SetAttributes(
 			attribute.String("get_login.role", signIn.Role),

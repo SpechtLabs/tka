@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -15,7 +14,7 @@ import (
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -67,7 +66,7 @@ func forkShell(cmd *cobra.Command, args []string) error {
 	// 1. Login and get kubeconfig path
 	kubeCfgPath, err := signIn(quiet)
 	if err != nil {
-		return err // already wrapped by signIn
+		return err //nolint:golint-sl // already wrapped by signIn
 	}
 
 	// 2. Run subshell
@@ -88,10 +87,8 @@ func cleanup(quiet bool, kubeCfgPath string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := signOut(nil, nil); err != nil {
-			if !quiet {
-				pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly", "your session may still be active; run 'tka logout' to sign out manually"))
-			}
+		if err := signOut(nil, nil); err != nil && !quiet {
+			pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly", "your session may still be active; run 'tka logout' to sign out manually"))
 		}
 	}()
 

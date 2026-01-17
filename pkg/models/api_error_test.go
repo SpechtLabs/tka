@@ -436,8 +436,7 @@ func assertErrorResponseEqual(t *testing.T, got, expected *ErrorResponse) {
 		return
 	}
 
-	expectedJson, _ := json.Marshal(expected)
-	if got == nil {
+	if expectedJson, _ := json.Marshal(expected); got == nil {
 		t.Errorf("expected '%s', got 'nil'", expectedJson)
 		return
 	}
@@ -490,9 +489,7 @@ func assertHumaneErrorEqual(t *testing.T, got, expected humane.Error) {
 		return
 	}
 
-	if gotCause != nil && expectedCause != nil {
-		if gotCause.Error() != expectedCause.Error() {
-			t.Errorf("Cause().Error() = %q, want %q", gotCause.Error(), expectedCause.Error())
-		}
+	if gotCause != nil && expectedCause != nil && gotCause.Error() != expectedCause.Error() {
+		t.Errorf("Cause().Error() = %q, want %q", gotCause.Error(), expectedCause.Error())
 	}
 }

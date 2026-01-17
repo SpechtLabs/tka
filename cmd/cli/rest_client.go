@@ -1,17 +1,25 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spechtlabs/tka/pkg/service/api"
 )
 
-func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {
+// httpClient is a custom HTTP client with timeout for CLI requests.
+// Using a shared client allows connection reuse.
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
+func doRequestAndDecode[T any](ctx context.Context, method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {
 	// Allow 200 OK by default if no status codes are passed in
 	okStatus := map[int]bool{}
 	if len(expectedStatus) == 0 {
@@ -26,14 +34,14 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	serverAddr := getServerAddr()
 	url := fmt.Sprintf("%s%s%s", serverAddr, api.ApiRouteV1Alpha1, uri)
 
-	// Create the request
-	req, err := http.NewRequest(method, url, body)
+	// Create the request with context
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, 0, humane.Wrap(err, "failed to create request", "this indicates a bug in the CLI; please report it")
 	}
 
 	// Do the request
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, 0, humane.Wrap(err, "failed to perform request", "ensure tailscale is running and the TKA server is reachable")
 	}

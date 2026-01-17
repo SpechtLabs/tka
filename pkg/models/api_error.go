@@ -86,8 +86,7 @@ func FromHumaneError(err humane.Error) *ErrorResponse {
 	}
 
 	// Handle the cause chain recursively
-	cause := err.Cause()
-	if cause != nil {
+	if cause := err.Cause(); cause != nil {
 		// If the cause is a humane error, convert it recursively
 		var humaneErr humane.Error
 		if errors.As(cause, &humaneErr) {

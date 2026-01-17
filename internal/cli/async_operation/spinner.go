@@ -35,7 +35,7 @@ type PollFunc[T any] func() (T, humane.Error)
 // and options. It automatically selects between a terminal-based or text-based spinner
 // depending on whether the output is a TTY.
 func NewSpinner[T any](pollFunc PollFunc[T], opts ...PollModelOption) Spinner[T] {
-	s := &spinnerImpl[T]{
+	s := &spinnerImpl[T]{ //nolint:golint-sl // s.model is passed to spinner constructors below
 		spinner: nil,
 		model: spinnerModel[T]{
 			err:          nil,

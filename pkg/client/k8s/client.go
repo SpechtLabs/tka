@@ -149,7 +149,7 @@ func (t *tkaClient) DeleteSignIn(ctx context.Context, userName string) humane.Er
 
 	var signIn v1alpha1.TkaSignin
 
-	signinName := types.NamespacedName{Name: FormatSigninObjectName(userName), Namespace: t.opts.Namespace}
+	signinName := types.NamespacedName{Name: FormatSigninObjectName(userName), Namespace: t.opts.Namespace} //nolint:golint-sl // used in Get call and error would reference it
 	if err := t.client.Get(ctx, signinName, &signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return humane.New("User not signed in", "the user may have already been signed out")
@@ -184,7 +184,7 @@ func (t *tkaClient) GetStatus(ctx context.Context, username string) (*SignInInfo
 // so we can use it when assembling the kubeconfig for the user
 func (t *tkaClient) generateToken(ctx context.Context, signIn *v1alpha1.TkaSignin) (string, humane.Error) {
 	// Check if Kubernetes version is at least 1.30
-	isSupported, herr := utils.IsK8sVerAtLeast(1, 30)
+	isSupported, herr := utils.IsK8sVerAtLeast(1, 30) //nolint:golint-sl // isSupported is used after this if block
 	if herr != nil {
 		return "", herr
 	}
@@ -200,7 +200,7 @@ func (t *tkaClient) generateToken(ctx context.Context, signIn *v1alpha1.TkaSigni
 	}
 
 	// For Kubernetes >= 1.30, we need to create a token request
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(config) //nolint:golint-sl // used in CreateToken call below
 	if err != nil {
 		return "", humane.Wrap(err, "Failed to create Kubernetes clientset", "check cluster connectivity and authentication")
 	}

@@ -1,0 +1,53 @@
+# golint-sl configuration for tka
+# See https://github.com/SpechtLabs/golint-sl for documentation
+
+analyzers:
+  # Error Handling - Keep enabled, these are important
+  humaneerror: true
+  errorwrap: true
+  sentinelerrors: true
+
+  # Observability
+  wideevents: true
+  contextlogger: false  # Uses global zap logger by design
+
+  # Kubernetes - Keep enabled, tka is a K8s operator
+  reconciler: true
+  statusupdate: true
+  sideeffects: true
+
+  # Testability - Disable some that require significant refactoring
+  clockinterface: true  # Re-enabled to analyze
+  interfaceconsistency: true  # Re-enabled to analyze
+  mockverify: true  # Re-enabled to analyze
+  optionspattern: true  # Re-enabled to check for issues
+
+  # Resources - Keep enabled, these are critical
+  resourceclose: true
+  httpclient: true
+
+  # Safety - Keep most enabled
+  goroutineleak: true
+  nilcheck: true  # Re-enabled - analyzer now handles trusted types and patterns
+  nopanic: true
+  nestingdepth: true  # Re-enabled to analyze
+  syncaccess: true  # Re-enabled to analyze
+
+  # Clean Code - Re-enabled to analyze issues
+  varscope: true
+  closurecomplexity: true
+  emptyinterface: true
+  returninterface: true
+
+  # Architecture
+  contextfirst: true
+  pkgnaming: false  # Package names would require significant refactoring to fix
+  functionsize: true  # Re-enabled to analyze
+  exporteddoc: true  # Re-enabled to analyze
+  todotracker: true  # Re-enabled to analyze
+  hardcodedcreds: true
+  lifecycle: true  # Re-enabled to analyze
+  dataflow: true
+
+  # Context propagation - Keep enabled for most cases
+  contextpropagation: true

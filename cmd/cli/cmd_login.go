@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"os"
 	"time"
 
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spechtlabs/tka/pkg/service/api"
 	"github.com/spechtlabs/tka/pkg/service/models"
@@ -23,7 +24,7 @@ tka get login`,
 	Args:      cobra.ExactArgs(0),
 	ValidArgs: []string{},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		loginInfo, code, err := doRequestAndDecode[models.UserLoginResponse](http.MethodGet, api.LoginApiRoute, nil, http.StatusOK, http.StatusProcessing)
+		loginInfo, code, err := doRequestAndDecode[models.UserLoginResponse](context.Background(), http.MethodGet, api.LoginApiRoute, nil, http.StatusOK, http.StatusProcessing)
 		if err != nil {
 			pretty_print.PrintError(err.Cause())
 			os.Exit(1)
@@ -37,7 +38,7 @@ tka get login`,
 }
 
 func signIn(quiet bool) (string, error) {
-	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
+	loginInfo, _, err := doRequestAndDecode[models.UserLoginResponse](context.Background(), http.MethodPost, api.LoginApiRoute, nil, http.StatusCreated, http.StatusAccepted)
 	if err != nil {
 		// Unwrap to get the original cause for cleaner error messages
 		if err.Cause() != nil {
@@ -55,7 +56,7 @@ func signIn(quiet bool) (string, error) {
 
 	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {
-		return "", humane.Wrap(err, "failed to fetch kubeconfig", "sign-in succeeded but kubeconfig retrieval failed", "try running 'tka login' again")
+		return "", humane.Wrap(err, "failed to fetch kubeconfig after successful sign-in", "try running 'tka login' again or check server connectivity")
 	}
 
 	file, err := serializeKubeconfig(kubecfg)

@@ -60,7 +60,7 @@ func fetchKubeConfig(quiet bool) (*api.Config, humane.Error) {
 	defer cancel()
 
 	pollFunc := func() (api.Config, humane.Error) {
-		if cfg, _, err := doRequestAndDecode[api.Config](http.MethodGet, tkaApi.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
+		if cfg, _, err := doRequestAndDecode[api.Config](ctx, http.MethodGet, tkaApi.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
 			return *cfg, nil
 		} else {
 			return api.Config{}, err
@@ -124,8 +124,7 @@ func detectShell() shellType {
 	}
 
 	// Check SHELL environment variable first
-	shell := os.Getenv("SHELL")
-	if shell != "" {
+	if shell := os.Getenv("SHELL"); shell != "" {
 		shellName := filepath.Base(shell)
 		switch shellName {
 		case "bash":

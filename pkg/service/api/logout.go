@@ -25,6 +25,8 @@ import (
 // @Failure       500         {object}  models.ErrorResponse           "Internal Server Error - Error with WhoIs, parsing duration, or during logout process"
 // @Router        /api/v1alpha1/logout [post]
 // @Security      TailscaleAuth
+//
+//nolint:golint-sl // Logs are in mutually exclusive error branches, only one executes per request
 func (t *TKAServer) logout(ct *gin.Context) {
 	req := ct.Request
 	userName := mwauth.GetUsername(ct)

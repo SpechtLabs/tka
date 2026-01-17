@@ -9,6 +9,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
+// Compile-time interface verification
+var _ k8s.TkaClient = &MockTkaClient{}
+
 // MockTkaClient provides a configurable mock implementation of k8s.TkaClient for testing.
 // This allows tests to simulate different scenarios (success, failure, async operations)
 // without requiring a real Kubernetes cluster or operator.

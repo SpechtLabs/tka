@@ -8,6 +8,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/api/v1alpha1"
 	"github.com/spechtlabs/tka/pkg/service/models"
+	"go.uber.org/zap"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -56,10 +57,22 @@ func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 }
 
 // NewKubeconfig creates a kubeconfig for accessing the cluster with the given credentials.
+//
+//nolint:golint-sl // Startup validation: Fatal calls terminate on invalid input, scattered logs don't apply
 func NewKubeconfig(contextName string, clusterInfo *models.TkaClusterInfo, token string, clusterName string, userEntry string) *api.Config {
-	caData, herr := base64.StdEncoding.DecodeString(clusterInfo.CAData)
+	if clusterInfo == nil {
+		otelzap.L().Fatal("clusterInfo cannot be nil", //nolint:golint-sl // Startup Fatal, no context available
+			zap.String("context_name", contextName),
+			zap.String("cluster_name", clusterName),
+		)
+		return nil
+	}
+	caData, herr := base64.StdEncoding.DecodeString(clusterInfo.CAData) //nolint:golint-sl // caData is used after this if block
 	if herr != nil {
-		otelzap.L().WithError(herr).Fatal("failed to decode CA data")
+		otelzap.L().WithError(herr).Fatal("failed to decode CA data", //nolint:golint-sl // Startup Fatal, no context available
+			zap.String("context_name", contextName),
+			zap.String("cluster_name", clusterName),
+		)
 	}
 
 	return &api.Config{

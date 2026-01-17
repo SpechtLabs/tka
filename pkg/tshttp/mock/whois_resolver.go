@@ -46,6 +46,9 @@ type mockWhoIsResolverResponse struct {
 	err  error
 }
 
+// Compile-time interface verification
+var _ tshttp.WhoIsResolver = &MockWhoIsResolver{}
+
 // MockWhoIsResolver is a configurable mock implementation of tshttp.WhoIsResolver for testing.
 type MockWhoIsResolver struct {
 	responses map[string]mockWhoIsResolverResponse

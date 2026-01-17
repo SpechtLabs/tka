@@ -150,7 +150,7 @@ type Server struct {
 // stopped with Shutdown().
 func NewServer(hostname string, opts ...Option) *Server {
 	// Initialize Tailscale server
-	ts := &tsnet.Server{Hostname: hostname}
+	ts := &tsnet.Server{Hostname: hostname} //nolint:golint-sl // used in Server struct below
 
 	// Construct the underlying http.Server with sane defaults
 	httpSrv := &http.Server{
@@ -304,7 +304,7 @@ func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first", "ensure Start() is called before ListenTLS()")
+		return nil, humane.New("server not started: call Start() before ListenTLS()", "ensure Start() is called before ListenTLS()")
 	}
 	listener, err := s.ts.ListenTLS("tcp", address)
 	if err != nil {
@@ -332,7 +332,7 @@ func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) ListenFunnel(address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first", "ensure Start() is called before ListenFunnel()")
+		return nil, humane.New("server not started: call Start() before ListenFunnel()", "ensure Start() is called before ListenFunnel()")
 	}
 	listener, err := s.ts.ListenFunnel("tcp", address)
 	if err != nil {
@@ -384,7 +384,7 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 //	if err := server.Serve(ctx, handler, "tcp"); err != nil {
 //		log.Printf("Server error: %v", err)
 //	}
-func (s *Server) Serve(ctx context.Context, handler http.Handler, network string) humane.Error {
+func (s *Server) Serve(ctx context.Context, handler http.Handler, network string) humane.Error { //nolint:golint-sl // ctx reserved for graceful shutdown (TODO: implement)
 	var listener net.Listener
 	var err humane.Error
 
@@ -436,7 +436,7 @@ func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.E
 // Shutdown gracefully shuts down the tailscale server
 func (s *Server) Shutdown(ctx context.Context) humane.Error {
 	if s.Server != nil {
-		if err := s.Server.Shutdown(ctx); err != nil {
+		if err := s.Server.Shutdown(ctx); err != nil { //nolint:golint-sl // nested if needed for error capture
 			return humane.Wrap(err, "failed to shutdown HTTP server", "consider extending the shutdown timeout")
 		}
 	}

@@ -202,7 +202,7 @@ func printConfigValue(key string, showFilename, quiet bool) {
 
 func setConfigValue(key, value string, forceCreate bool) humane.Error {
 	// Parse the value appropriately
-	parsedValue := parseValue(value)
+	parsedValue := parseValue(value) //nolint:golint-sl // parsed early, used after validation
 
 	// Get the config file that was used
 	configFileUsed := viper.ConfigFileUsed()

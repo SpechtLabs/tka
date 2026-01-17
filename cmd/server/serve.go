@@ -151,10 +151,10 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true", "set CLUSTER_INFO_CONFIGMAP_REF_NAME and CLUSTER_INFO_CONFIGMAP_REF_NAMESPACE environment variables")
 		}
 
-		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")
-		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")
-		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")
-		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig")
+		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")           //nolint:golint-sl // config keys grouped for readability
+		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")                //nolint:golint-sl // config keys grouped for readability
+		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")        //nolint:golint-sl // config keys grouped for readability
+		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig")    //nolint:golint-sl // config keys grouped for readability
 
 		restCfg, err := ctrl.GetConfig()
 		if err != nil {
@@ -172,7 +172,7 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 
 		serverURL := cm.Data[keyAPI]
 		caData := cm.Data[keyCA]
-		insecure := parseBoolish(cm.Data[keyInsecure])
+		insecure := parseBoolish(cm.Data[keyInsecure]) //nolint:golint-sl // insecure used in struct below
 
 		// kubeadm cluster-info configmap supports embedding a kubeconfig in a single key
 		if serverURL == "" && caData == "" && kubeconfigKey != "" {
@@ -238,6 +238,7 @@ func getHealthPort() int {
 	return localPort
 }
 
+//nolint:golint-sl // Server lifecycle: startup info, component-specific Fatal logs in goroutines, shutdown wide event
 func runE(cmd *cobra.Command, _ []string) humane.Error {
 	debug := viper.GetBool("debug")
 	configureGinMode(debug)
@@ -254,7 +255,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return herr
 	}
 
-	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts)
+	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts) //nolint:golint-sl // part of init sequence, used in LoadApiRoutes
 	if err != nil {
 		herr := humane.Wrap(err, "failed to initialize Kubernetes operator", "check cluster connectivity and permissions")
 		cancelFn(herr)
@@ -264,7 +265,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Create Tailscale server
 	srv := newTailscaleServer(debug)
 
-	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, tailcfg.PeerCapability(viper.GetString("tailscale.capName")))
+	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, tailcfg.PeerCapability(viper.GetString("tailscale.capName"))) //nolint:golint-sl // part of init sequence
 
 	// Start the Tailscale connection
 	if err := srv.Start(ctx); err != nil {
@@ -379,8 +380,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	// Check termination cause
-	cause := context.Cause(ctx)
-	if cause != nil && !errors.Is(cause, context.Canceled) {
+	if cause := context.Cause(ctx); cause != nil && !errors.Is(cause, context.Canceled) {
 		return humane.Wrap(cause, "server terminated due to error", "check the server logs for the root cause")
 	}
 

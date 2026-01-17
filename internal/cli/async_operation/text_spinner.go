@@ -27,7 +27,7 @@ func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 	m.tea.ctx = ctx
 	m.tea.model.startedAt = time.Now()
 
-	var finalModel teaPollModel[T]
+	var finalModel teaPollModel[T] //nolint:golint-sl // assigned in loop below, used after loop
 
 	var msg tea.Msg = pollTriggerMsg{}
 
