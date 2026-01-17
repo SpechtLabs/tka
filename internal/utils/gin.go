@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// NewO11yGin creates a new Gin router pre-configured with observability middleware
+// including OpenTelemetry tracing, structured logging with Zap, and optional Prometheus metrics.
 func NewO11yGin(routerName string, prom *ginprometheus.Prometheus) *gin.Engine {
 	// Setup Gin router
 	router := gin.New()

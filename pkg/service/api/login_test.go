@@ -68,7 +68,9 @@ func TestLoginHandler(t *testing.T) {
 			name: "signin generic error maps to 500",
 			rule: rule,
 			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
-				m.SignInFn = func(string, string, time.Duration) humane.Error { return humane.New("boom") }
+				m.SignInFn = func(string, string, time.Duration) humane.Error {
+					return humane.New("boom", "check server logs for details")
+				}
 				return m
 			},
 			expectedStatus:  http.StatusInternalServerError,
@@ -141,7 +143,9 @@ func TestGetLoginHandler(t *testing.T) {
 		{
 			name: "generic error -> 500",
 			setup: func(m *mock.MockTkaClient) k8s.TkaClient {
-				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) { return nil, humane.New("kaput") }
+				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) {
+					return nil, humane.New("kaput", "check server logs for details")
+				}
 
 				return m
 			},

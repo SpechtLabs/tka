@@ -17,4 +17,5 @@ const (
 	MinSigninValidity = 10 * time.Minute
 )
 
+// NotReadyYetError is returned when a sign-in request exists but has not yet been provisioned.
 var NotReadyYetError = humane.New("Not ready yet", "Please wait for the TKA signin to be ready")

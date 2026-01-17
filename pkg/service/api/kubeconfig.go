@@ -9,6 +9,9 @@ import (
 	"github.com/spechtlabs/tka/pkg/client/k8s"
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	_ "github.com/spechtlabs/tka/pkg/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.uber.org/zap"
 	"sigs.k8s.io/yaml"
 )
 
@@ -26,6 +29,8 @@ import (
 // @Header        202         {integer} Retry-After               "Seconds until next poll recommended"
 // @Router        /api/v1alpha1/kubeconfig [get]
 // @Security      TailscaleAuth
+//
+//nolint:golint-sl // Logs are in mutually exclusive branches (not_ready vs error), only one executes per request
 func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	req := ct.Request
 	userName := mwauth.GetUsername(ct)
@@ -33,30 +38,51 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	ctx, span := t.tracer.Start(req.Context(), "TKAServer.getKubeconfig")
 	defer span.End()
 
-	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil {
+	// Set initial span attributes
+	span.SetAttributes(attribute.String("kubeconfig.username", userName))
+
+	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil { //nolint:golint-sl // kubecfg used in else branch below
 		// Include Retry-After for other async/provisioning flows as a hint
 		ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 
 		// If the operator indicates credentials are not ready yet, return 202
 		if err == k8s.NotReadyYetError {
+			span.SetAttributes(
+				attribute.String("kubeconfig.status", "not_ready"),
+				attribute.Int("kubeconfig.http_status", http.StatusAccepted),
+			)
 			ct.Status(http.StatusAccepted)
-			otelzap.L().InfoContext(ctx, "Kubeconfig not ready yet")
+			otelzap.L().InfoContext(ctx, "Kubeconfig not ready yet",
+				zap.String("username", userName),
+				zap.Int("http_status", http.StatusAccepted),
+			)
 			return
 		}
 
 		// Map NotFound to 401 for this endpoint, otherwise use default mapping
+		span.SetAttributes(attribute.String("kubeconfig.status", "error"))
+		span.SetStatus(codes.Error, "error getting kubeconfig")
+		span.RecordError(err)
 		writeHumaneError(ct, err, http.StatusUnauthorized)
 		otelzap.L().WithError(err).ErrorContext(ctx, "Error getting kubeconfig")
 		return
 	} else {
+		// Set success attributes
+		span.SetAttributes(
+			attribute.String("kubeconfig.status", "success"),
+			attribute.Int("kubeconfig.http_status", http.StatusOK),
+		)
+
 		// Content negotiation: YAML if explicitly requested, otherwise JSON
 		if acceptsYAML(ct) {
+			span.SetAttributes(attribute.String("kubeconfig.format", "yaml"))
 			if data, yerr := yaml.Marshal(kubecfg); yerr == nil {
 				ct.Data(http.StatusOK, "application/yaml", data)
 				return
 			}
 			// Fall through to JSON on marshal error
 		}
+		span.SetAttributes(attribute.String("kubeconfig.format", "json"))
 		ct.JSON(http.StatusOK, *kubecfg)
 		return
 	}
@@ -64,8 +90,5 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 
 func acceptsYAML(c *gin.Context) bool {
 	accept := c.GetHeader("Accept")
-	if accept == "application/yaml" || accept == "text/yaml" || accept == "application/x-yaml" {
-		return true
-	}
-	return false
+	return accept == "application/yaml" || accept == "text/yaml" || accept == "application/x-yaml"
 }

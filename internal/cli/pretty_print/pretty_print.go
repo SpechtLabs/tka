@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	humane "github.com/sierrasoftworks/humane-errors-go"
 )
 
-// PrettyPrint prints a message with the global options
-func PrettyPrint(lvl PrintLevel, msg string, context ...string) (int, error) {
+// PrettyPrint prints a message with the global options.
+func PrettyPrint(lvl PrintLevel, msg string, context ...string) (int, humane.Error) {
 	return PrettyPrintWithOptions(lvl, msg, context)
 }
 
-// PrettyPrintWithOptions formats and prints a message with custom options
-func PrettyPrintWithOptions(lvl PrintLevel, msg string, context []string, opts ...Option) (int, error) {
+// PrettyPrintWithOptions formats and prints a message with custom options.
+func PrettyPrintWithOptions(lvl PrintLevel, msg string, context []string, opts ...Option) (int, humane.Error) {
 	formatted := FormatWithOptions(lvl, msg, context, opts...)
 
 	// Determine the output writer
@@ -26,7 +28,11 @@ func PrettyPrintWithOptions(lvl PrintLevel, msg string, context []string, opts .
 	}
 
 	// Write to the appropriate output
-	return fmt.Fprint(output, formatted)
+	n, err := fmt.Fprint(output, formatted)
+	if err != nil {
+		return n, humane.Wrap(err, "failed to write formatted output", "check that stdout/stderr is writable")
+	}
+	return n, nil
 }
 
 // Convenience functions for common levels

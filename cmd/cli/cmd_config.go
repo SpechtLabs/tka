@@ -178,6 +178,7 @@ func runConfig(cmd *cobra.Command, args []string) {
 	}
 }
 
+//nolint:golint-sl // CLI user output
 func printConfigValue(key string, showFilename, quiet bool) {
 	value := viper.Get(key)
 
@@ -201,25 +202,25 @@ func printConfigValue(key string, showFilename, quiet bool) {
 
 func setConfigValue(key, value string, forceCreate bool) humane.Error {
 	// Parse the value appropriately
-	parsedValue := parseValue(value)
+	parsedValue := parseValue(value) //nolint:golint-sl // parsed early, used after validation
 
 	// Get the config file that was used
 	configFileUsed := viper.ConfigFileUsed()
 
 	// If no config file was used and force is not set, show error
 	if configFileUsed == "" && !forceCreate {
-		return humane.New("No configuration file is used. Use --force to create one at ~/.config/tka/config.yaml")
+		return humane.New("No configuration file is used. Use --force to create one at ~/.config/tka/config.yaml", "run 'tka config set --force <key> <value>' to create a new config file")
 	}
 
 	// If forcing creation and no config file in use, create default path
 	if configFileUsed == "" && forceCreate {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return humane.Wrap(err, "failed to determine home directory")
+			return humane.Wrap(err, "failed to determine home directory", "ensure $HOME is set")
 		}
 		configDir := fmt.Sprintf("%s/.config/tka", homeDir)
 		if err := os.MkdirAll(configDir, 0o755); err != nil {
-			return humane.Wrap(err, "failed to create config directory")
+			return humane.Wrap(err, "failed to create config directory", "check permissions for ~/.config/")
 		}
 		configPath := fmt.Sprintf("%s/config.yaml", configDir)
 		viper.SetConfigFile(configPath)
@@ -237,7 +238,7 @@ func setConfigValue(key, value string, forceCreate bool) humane.Error {
 	// Write the configuration back to the file
 	// viper will automatically create the file if it doesn't exist
 	if err := viper.WriteConfig(); err != nil {
-		return humane.Wrap(err, "failed to write config file")
+		return humane.Wrap(err, "failed to write config file", "check file permissions and disk space")
 	}
 
 	return nil
@@ -256,6 +257,7 @@ func parseValue(value string) any {
 	return value
 }
 
+//nolint:golint-sl // CLI user output
 func showAllConfig(showFilename, quiet bool) {
 	if showFilename {
 		if quiet {

@@ -1,0 +1,138 @@
+# arch-go configuration file
+# Run: arch-go
+# Install: go install github.com/fdaines/arch-go@latest
+#
+# This enforces clean architecture boundaries in the TKA codebase.
+
+version: 1
+
+# Compliance thresholds
+threshold:
+  compliance:
+    rate: 80
+    scope: "package"
+  coverage:
+    rate: 80
+    scope: "package"
+
+# Dependency rules enforce layer boundaries
+dependenciesRules:
+  # ============================================
+  # LAYER: Operator (Kubernetes Controller Logic)
+  # ============================================
+  # Operators should use abstractions, not direct HTTP or DB
+  - package: "github.com/spechtlabs/tka/pkg/operator"
+    shouldNotDependsOn:
+      - "net/http"           # No direct HTTP calls
+      - "database/sql"       # No direct DB access
+    shouldNotDependsOnExternal:
+      - "github.com/gin-gonic/gin"  # HTTP framework is for API layer
+
+  # ============================================
+  # LAYER: API/Service (HTTP Handlers)
+  # ============================================
+  # API layer uses client abstractions, not k8s internals
+  - package: "github.com/spechtlabs/tka/pkg/service/api"
+    shouldNotDependsOn:
+      - "k8s.io/client-go/kubernetes"     # Use client/k8s abstraction
+      - "sigs.k8s.io/controller-runtime"  # This is for operators only
+
+  # ============================================
+  # LAYER: Client (Data Access)
+  # ============================================
+  # Client package provides abstractions, shouldn't know about higher layers
+  - package: "github.com/spechtlabs/tka/pkg/client/**"
+    shouldNotDependsOn:
+      - "github.com/spechtlabs/tka/pkg/service/**"
+      - "github.com/spechtlabs/tka/pkg/operator/**"
+      - "github.com/gin-gonic/gin"
+
+  # ============================================
+  # LAYER: Models (Pure Data Structures)
+  # ============================================
+  # Models should be pure data, minimal dependencies
+  - package: "github.com/spechtlabs/tka/pkg/models"
+    shouldOnlyDependsOn:
+      - "github.com/sierrasoftworks/humane-errors-go"
+      - "encoding/json"
+      - "errors"
+    shouldNotDependsOn:
+      - "k8s.io/**"
+      - "sigs.k8s.io/**"
+      - "github.com/gin-gonic/gin"
+
+  # Service models are also pure
+  - package: "github.com/spechtlabs/tka/pkg/service/models"
+    shouldNotDependsOn:
+      - "k8s.io/**"
+      - "sigs.k8s.io/**"
+
+  # ============================================
+  # LAYER: Middleware (Cross-cutting Concerns)
+  # ============================================
+  # Middleware should be self-contained, not depend on business logic
+  - package: "github.com/spechtlabs/tka/pkg/middleware/**"
+    shouldNotDependsOn:
+      - "github.com/spechtlabs/tka/pkg/operator/**"
+      - "github.com/spechtlabs/tka/pkg/client/k8s"  # Can use models but not k8s client
+
+  # ============================================
+  # LAYER: tshttp (Tailscale HTTP Server)
+  # ============================================
+  # Infrastructure layer, no business logic dependencies
+  - package: "github.com/spechtlabs/tka/pkg/tshttp"
+    shouldNotDependsOn:
+      - "github.com/spechtlabs/tka/pkg/service/**"
+      - "github.com/spechtlabs/tka/pkg/operator/**"
+      - "github.com/spechtlabs/tka/pkg/client/**"
+      - "github.com/spechtlabs/tka/api/**"
+
+  # ============================================
+  # LAYER: Internal (Private Implementation)
+  # ============================================
+  # Internal packages shouldn't create circular dependencies
+  - package: "github.com/spechtlabs/tka/internal/**"
+    shouldNotDependsOn:
+      - "github.com/spechtlabs/tka/cmd/**"
+
+  # ============================================
+  # API Types (CRD Definitions)
+  # ============================================
+  # API types should only depend on k8s API machinery
+  - package: "github.com/spechtlabs/tka/api/**"
+    shouldOnlyDependsOn:
+      - "k8s.io/apimachinery/**"
+    shouldNotDependsOn:
+      - "github.com/spechtlabs/tka/pkg/**"
+      - "github.com/spechtlabs/tka/internal/**"
+
+# Content rules enforce structural patterns
+contentsRules:
+  # Mock packages should only contain mock implementations
+  - package: "github.com/spechtlabs/tka/**/mock"
+    shouldOnlyContainStructs: true
+
+# Function rules enforce code quality
+functionsRules:
+  # Keep functions focused and testable
+  - package: "github.com/spechtlabs/tka/pkg/**"
+    maxLines: 60
+    maxParameters: 5
+    maxReturnValues: 3
+
+  # API handlers should be small
+  - package: "github.com/spechtlabs/tka/pkg/service/api"
+    maxLines: 40
+    maxPublicFunctionPerFile: 5
+
+# Naming rules enforce conventions
+namingRules:
+  # Interface naming conventions
+  - package: "github.com/spechtlabs/tka/pkg/**"
+    interfaceImplementationNamingRule:
+      shouldHaveSimpleNameEndingWith:
+        - "Impl"
+        - "Service"
+        - "Client"
+        - "Handler"
+        - "Middleware"

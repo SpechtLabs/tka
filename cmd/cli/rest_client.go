@@ -1,17 +1,25 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spechtlabs/tka/pkg/service/api"
 )
 
-func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {
+// httpClient is a custom HTTP client with timeout for CLI requests.
+// Using a shared client allows connection reuse.
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
+func doRequestAndDecode[T any](ctx context.Context, method, uri string, body io.Reader, expectedStatus ...int) (*T, int, humane.Error) {
 	// Allow 200 OK by default if no status codes are passed in
 	okStatus := map[int]bool{}
 	if len(expectedStatus) == 0 {
@@ -26,23 +34,23 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	serverAddr := getServerAddr()
 	url := fmt.Sprintf("%s%s%s", serverAddr, api.ApiRouteV1Alpha1, uri)
 
-	// Create the request
-	req, err := http.NewRequest(method, url, body)
+	// Create the request with context
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
-		return nil, 0, humane.Wrap(err, "failed to create request")
+		return nil, 0, humane.Wrap(err, "failed to create request", "this indicates a bug in the CLI; please report it")
 	}
 
 	// Do the request
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, 0, humane.Wrap(err, "failed to perform request", "ensure the tailscale is reachable")
+		return nil, 0, humane.Wrap(err, "failed to perform request", "ensure tailscale is running and the TKA server is reachable")
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	// Grab the response
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp.StatusCode, humane.Wrap(err, "failed to read response body")
+		return nil, resp.StatusCode, humane.Wrap(err, "failed to read response body", "the server may have closed the connection unexpectedly")
 	}
 
 	// based on the HTTP response, handle the API error
@@ -53,7 +61,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 	// attempt parsing the response body
 	var result T
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return nil, resp.StatusCode, humane.Wrap(err, "failed to decode response body")
+		return nil, resp.StatusCode, humane.Wrap(err, "failed to decode response body", "the server returned an unexpected response format")
 	}
 
 	return &result, resp.StatusCode, nil
@@ -62,7 +70,7 @@ func doRequestAndDecode[T any](method, uri string, body io.Reader, expectedStatu
 func handleAPIError(resp *http.Response, body []byte) humane.Error {
 	var errBody models.ErrorResponse
 	if err := json.Unmarshal(body, &errBody); err == nil {
-		return humane.Wrap(errBody.AsHumaneError(), fmt.Sprintf("HTTP %d", resp.StatusCode))
+		return humane.Wrap(errBody.AsHumaneError(), fmt.Sprintf("HTTP %d", resp.StatusCode), "check the error details for more information")
 	}
 
 	var fallback map[string]any
@@ -76,9 +84,9 @@ func handleAPIError(resp *http.Response, body []byte) humane.Error {
 			cause = c
 		}
 
-		return humane.Wrap(humane.New(cause), msg)
+		return humane.Wrap(humane.New(cause, "check server logs for more details"), msg, "the server returned an error")
 	}
 
-	return humane.New(string(body))
+	return humane.New(string(body), "the server returned an unexpected error format")
 
 }

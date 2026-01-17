@@ -27,7 +27,7 @@ func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 	m.tea.ctx = ctx
 	m.tea.model.startedAt = time.Now()
 
-	var finalModel teaPollModel[T]
+	var finalModel teaPollModel[T] //nolint:golint-sl // assigned in loop below, used after loop
 
 	var msg tea.Msg = pollTriggerMsg{}
 
@@ -59,7 +59,7 @@ func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 		if errors.As(finalModel.model.err, &herr) {
 			return nil, herr
 		} else {
-			return nil, humane.Wrap(finalModel.model.err, "async operation failed")
+			return nil, humane.Wrap(finalModel.model.err, "async operation failed", "check the server logs for more details")
 		}
 	}
 

@@ -2,10 +2,10 @@ package tshttp_test
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"testing"
 
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/tshttp"
 	"github.com/spechtlabs/tka/pkg/tshttp/mock"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ func TestServer_ServeNetworks_Integration(t *testing.T) {
 			name:    "tcp network",
 			network: "tcp",
 			setupMock: func(m *mock.MockTSNet) {
-				m.ListenErr = errors.New("listen failed")
+				m.ListenErr = humane.New("listen failed", "check network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -37,7 +37,7 @@ func TestServer_ServeNetworks_Integration(t *testing.T) {
 			name:    "tls network",
 			network: "tls",
 			setupMock: func(m *mock.MockTSNet) {
-				m.TLSErr = errors.New("tls failed")
+				m.TLSErr = humane.New("tls failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -46,7 +46,7 @@ func TestServer_ServeNetworks_Integration(t *testing.T) {
 			name:    "funnel network",
 			network: "funnel",
 			setupMock: func(m *mock.MockTSNet) {
-				m.FunnelErr = errors.New("funnel failed")
+				m.FunnelErr = humane.New("funnel failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -55,7 +55,7 @@ func TestServer_ServeNetworks_Integration(t *testing.T) {
 			name:    "custom network",
 			network: "custom",
 			setupMock: func(m *mock.MockTSNet) {
-				m.ListenErr = errors.New("custom listen failed")
+				m.ListenErr = humane.New("custom listen failed", "check custom network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -101,7 +101,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 			name:   "ListenAndServe",
 			testFn: func(s *tshttp.Server) error { return s.ListenAndServe() },
 			setupMock: func(m *mock.MockTSNet) {
-				m.ListenErr = errors.New("listen failed")
+				m.ListenErr = humane.New("listen failed", "check network configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to create listener",
@@ -110,7 +110,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 			name:   "ListenAndServeTLS",
 			testFn: func(s *tshttp.Server) error { return s.ListenAndServeTLS("", "") },
 			setupMock: func(m *mock.MockTSNet) {
-				m.TLSErr = errors.New("tls failed")
+				m.TLSErr = humane.New("tls failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve TLS",
@@ -119,7 +119,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 			name:   "ListenAndServeFunnel",
 			testFn: func(s *tshttp.Server) error { return s.ListenAndServeFunnel() },
 			setupMock: func(m *mock.MockTSNet) {
-				m.FunnelErr = errors.New("funnel failed")
+				m.FunnelErr = humane.New("funnel failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve Funnel",
@@ -130,7 +130,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 				return s.ServeTLS(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			},
 			setupMock: func(m *mock.MockTSNet) {
-				m.TLSErr = errors.New("tls failed")
+				m.TLSErr = humane.New("tls failed", "check TLS configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve TLS",
@@ -141,7 +141,7 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 				return s.ServeFunnel(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 			},
 			setupMock: func(m *mock.MockTSNet) {
-				m.FunnelErr = errors.New("funnel failed")
+				m.FunnelErr = humane.New("funnel failed", "check funnel configuration")
 			},
 			wantErr: true,
 			errMsg:  "failed to serve Funnel",

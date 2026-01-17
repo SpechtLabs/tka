@@ -60,7 +60,7 @@ func fetchKubeConfig(quiet bool) (*api.Config, humane.Error) {
 	defer cancel()
 
 	pollFunc := func() (api.Config, humane.Error) {
-		if cfg, _, err := doRequestAndDecode[api.Config](http.MethodGet, tkaApi.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
+		if cfg, _, err := doRequestAndDecode[api.Config](ctx, http.MethodGet, tkaApi.KubeconfigApiRoute, nil, http.StatusOK); err == nil {
 			return *cfg, nil
 		} else {
 			return api.Config{}, err
@@ -76,7 +76,7 @@ func fetchKubeConfig(quiet bool) (*api.Config, humane.Error) {
 
 	result, err := operation.Run(ctx)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to fetch kubeconfig")
+		return nil, humane.Wrap(err, "failed to fetch kubeconfig", "ensure you are signed in and the TKA server is reachable")
 	}
 	return result, nil
 }
@@ -84,22 +84,22 @@ func fetchKubeConfig(quiet bool) (*api.Config, humane.Error) {
 func serializeKubeconfig(kubecfg *api.Config) (string, humane.Error) {
 	out, err := clientcmd.Write(*kubecfg)
 	if err != nil {
-		return "", humane.Wrap(err, "failed to serialize kubeconfig")
+		return "", humane.Wrap(err, "failed to serialize kubeconfig", "this is likely a bug; please report it")
 	}
 
 	tempFile, err := os.CreateTemp("", "kubeconfig-*.yaml")
 	if err != nil {
-		return "", humane.Wrap(err, "failed to create temp kubeconfig")
+		return "", humane.Wrap(err, "failed to create temp kubeconfig", "check you have write permissions to the temp directory")
 	}
 	defer func() { _ = tempFile.Close() }()
 
 	_, err = tempFile.Write(out)
 	if err != nil {
-		return "", humane.Wrap(err, "failed to write temp kubeconfig")
+		return "", humane.Wrap(err, "failed to write temp kubeconfig", "check disk space and permissions")
 	}
 
 	if err := os.Setenv("KUBECONFIG", tempFile.Name()); err != nil {
-		return "", humane.Wrap(err, "failed to set KUBECONFIG")
+		return "", humane.Wrap(err, "failed to set KUBECONFIG", "check environment variable permissions")
 	}
 
 	return tempFile.Name(), nil
@@ -124,8 +124,7 @@ func detectShell() shellType {
 	}
 
 	// Check SHELL environment variable first
-	shell := os.Getenv("SHELL")
-	if shell != "" {
+	if shell := os.Getenv("SHELL"); shell != "" {
 		shellName := filepath.Base(shell)
 		switch shellName {
 		case "bash":
@@ -176,6 +175,7 @@ func generateExportStatement(fileName string, shell shellType) string {
 	}
 }
 
+//nolint:golint-sl // CLI user output
 func printUseStatement(fileName string, quiet bool) {
 	shell := detectShell()
 	useStatement := generateExportStatement(fileName, shell)

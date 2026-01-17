@@ -13,6 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// InterruptHandler sets up a goroutine that listens for OS signals (SIGINT, SIGTERM, SIGQUIT)
+// and cancels the provided context when a signal is received, enabling graceful shutdown.
+//
+//nolint:golint-sl // Signal handler uses Debug logs; span attributes not meaningful for async signal events
 func InterruptHandler(ctx context.Context, cancelCtx context.CancelCauseFunc) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

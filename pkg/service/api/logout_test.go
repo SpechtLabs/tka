@@ -60,7 +60,7 @@ func TestLogoutHandler(t *testing.T) {
 				m.StatusFn = func(string) (*k8s.SignInInfo, humane.Error) {
 					return &k8s.SignInInfo{Username: "alice", Role: "dev", ValidityPeriod: "10m", Provisioned: false}, nil
 				}
-				m.LogoutFn = func(string) humane.Error { return humane.New("fail") }
+				m.LogoutFn = func(string) humane.Error { return humane.New("fail", "check server logs for details") }
 
 				return m
 			},

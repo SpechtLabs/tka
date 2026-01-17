@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -24,7 +25,7 @@ tka get cluster-info
 }
 
 func getClusterInfo(_ *cobra.Command, _ []string) error {
-	clusterInfo, _, err := doRequestAndDecode[models.TkaClusterInfo](http.MethodGet, api.ClusterInfoApiRoute, nil, http.StatusOK, http.StatusProcessing)
+	clusterInfo, _, err := doRequestAndDecode[models.TkaClusterInfo](context.Background(), http.MethodGet, api.ClusterInfoApiRoute, nil, http.StatusOK, http.StatusProcessing)
 	if err != nil {
 		pretty_print.PrintError(err.Cause())
 		os.Exit(1)

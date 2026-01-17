@@ -6,12 +6,12 @@ createTime: 2025/08/25 06:31:44
 
 This page lists all configuration keys, their defaults, and effects. Sources: flags, environment (`TKA_` prefix), or config files (`config.yaml`).
 
-### Conventions
+## Conventions
 
 - Env var mapping replaces `.` with `_` and uppercases keys, prefixed with `TKA_` (e.g., `tailscale.hostname` → `TKA_TAILSCALE_HOSTNAME`).
 - Default config search paths: `.`, `$HOME/.config/tka/`, `/etc/tka/`.
 
-### Common
+## Common
 
 - `debug` (bool, default `false`)
   - Enable debug logging.
@@ -20,7 +20,7 @@ This page lists all configuration keys, their defaults, and effects. Sources: fl
 - `otel.insecure` (bool, default `true`)
   - Whether to use insecure transport to the OTLP endpoint.
 
-### Tailscale
+## Tailscale
 
 - `tailscale.hostname` (string, default `tka`)
   - Hostname for the tsnet node; also used by the CLI to build `https://{hostname}.{tailnet}`.
@@ -34,7 +34,7 @@ This page lists all configuration keys, their defaults, and effects. Sources: fl
 - `tailscale.capName` (string, default `specht-labs.de/cap/tka`)
   - Capability name the server requires from Tailscale ACLs.
 
-#### Tailscale Environment variables
+### Tailscale Environment variables
 
 - `TS_AUTHKEY`
   - Auth key used to register/login the node to your tailnet without an interactive browser flow.
@@ -52,7 +52,7 @@ Notes:
 - TKA embeds Tailscale using `tsnet`. These variables are read by Tailscale when bringing the embedded node up; TKA itself does not parse them.
 - Variables commonly used with the standalone `tailscaled` daemon (e.g., `TS_STATE_DIR`, `TAILSCALE_*`) do not apply to the embedded `tsnet` client in this binary. Use `tailscale.stateDir` in TKA config or `--dir` to control state location.
 
-### Server HTTP timeouts
+## Server HTTP timeouts
 
 - `server.readTimeout` (duration, default `10s`)
 - `server.readHeaderTimeout` (duration, default `5s`)
@@ -61,7 +61,7 @@ Notes:
 
 These tune the embedded HTTP server created for `tsnet`.
 
-### Operator
+## Operator
 
 Defaults from code: `namespace=tka-dev`, `clusterName=tka-cluster`, `contextPrefix=tka-context-`, `userPrefix=tka-user-`.
 
@@ -74,12 +74,12 @@ Defaults from code: `namespace=tka-dev`, `clusterName=tka-cluster`, `contextPref
 - `operator.userPrefix` (string)
   - Prefix for kubeconfig user entry.
 
-### API behavior
+## API behavior
 
 - `api.retryAfterSeconds` (int, default `1`)
   - Hint for clients polling async operations (e.g., kubeconfig provisioning).
 
-### CLI Output Settings
+## CLI Output Settings
 
 These settings control how the TKA CLI displays information and are used by client commands:
 
@@ -92,7 +92,7 @@ These settings control how the TKA CLI displays information and are used by clie
 - `output.markdownlint-fix` (bool, default `false`)
   - Apply markdown formatting fixes to generated documentation
 
-### Cluster Information
+## Cluster Information
 
 The `clusterInfo` section configures the cluster connection details that TKA exposes to authenticated users through the cluster-info API endpoint. This information is used by users to configure their kubeconfig files and understand the cluster they're connecting to.
 
@@ -123,7 +123,7 @@ The `clusterInfo` section configures the cluster connection details that TKA exp
   - Common examples: `environment: production`, `region: us-west-2`, `project: webapp`, `team: platform`
   - These labels are exposed in the cluster-info API response and can be used by client tools
 
-#### ConfigMap Reference
+### ConfigMap Reference
 
 Use a Kubernetes ConfigMap to supply cluster connection details. This is useful for kubeadm clusters which expose a `cluster-info` ConfigMap in the `kube-public` namespace.
 
@@ -147,7 +147,7 @@ Use a Kubernetes ConfigMap to supply cluster connection details. This is useful 
 > [!NOTE]
 > You must provide exactly one of: explicit `clusterInfo.apiEndpoint` or `configMapRef.enabled: true` with a valid reference. If both are provided, TKA will refuse to start.
 
-### Flags
+## Flags
 
 Server and CLI share some flags via the root command:
 
@@ -170,7 +170,7 @@ Server-only flags:
 --labels                Cluster labels key=value list (maps to clusterInfo.labels)
 ```
 
-### Example config.yaml
+## Example config.yaml
 
 ```yaml
 # Enable debug logging (top-level, not under server)

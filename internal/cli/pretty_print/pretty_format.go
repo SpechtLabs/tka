@@ -6,14 +6,22 @@ import (
 	"time"
 )
 
+// PrintLevel represents the severity level of a printed message.
 type PrintLevel int
 
+// PrintLevel constants define the available message severity levels.
 const (
+	// NoOp indicates no operation/output should occur.
 	NoOp PrintLevel = iota
+	// DebugLvl is for debug-level messages.
 	DebugLvl
+	// InfoLvl is for informational messages.
 	InfoLvl
+	// OkLvl is for success messages.
 	OkLvl
+	// WarnLvl is for warning messages.
 	WarnLvl
+	// ErrLvl is for error messages.
 	ErrLvl
 )
 

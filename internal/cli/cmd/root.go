@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"slices"
 
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
+// NewRootCmd creates the base root command for the TKA CLI without any subcommands.
+// It sets up common configuration initialization and error handling.
 func NewRootCmd() *cobra.Command {
 	cobra.OnInitialize(initConfig)
 
@@ -32,14 +35,14 @@ func NewRootCmd() *cobra.Command {
 	})
 	cmdRoot.SetUsageFunc(func(cmd *cobra.Command) error {
 		initConfig()
-		fmt.Println("")
+		fmt.Println("") //nolint:golint-sl // CLI formatting
 		pretty_print.PrintUsageText(cmd, []string{})
 		return nil
 	})
 	cmdRoot.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
 		initConfig()
-		pretty_print.PrintErrorMessage(err.Error())
-		fmt.Println("")
+		pretty_print.PrintErrorMessage(err.Error()) //nolint:golint-sl // CLI error display
+		fmt.Println("")                             //nolint:golint-sl // CLI formatting
 		pretty_print.PrintHelpText(cmd, []string{})
 		return nil
 	})
@@ -47,6 +50,8 @@ func NewRootCmd() *cobra.Command {
 	return &cmdRoot
 }
 
+// NewCliRootCmd creates the root command configured for the TKA client CLI
+// with client-specific flags and theming support.
 func NewCliRootCmd() *cobra.Command {
 	cmdRoot := NewRootCmd()
 	addClientFlags(cmdRoot)
@@ -85,7 +90,7 @@ $ tka --theme notty login
 		}
 		if !slices.Contains(pretty_print.AllThemeNames(), theme) {
 			viper.Set("output.theme", pretty_print.TokyoNightStyle)
-			return fmt.Errorf("invalid theme: %s", theme)
+			return humane.New("invalid theme: "+theme, "use one of the supported themes: "+fmt.Sprintf("%v", pretty_print.AllThemeNames()))
 		}
 		return nil
 	}
@@ -93,6 +98,8 @@ $ tka --theme notty login
 	return cmdRoot
 }
 
+// NewServerRootCmd creates the root command configured for the TKA server
+// with server-specific flags for running the operator and API.
 func NewServerRootCmd() *cobra.Command {
 	cmdRoot := NewRootCmd()
 	addServerFlags(cmdRoot)

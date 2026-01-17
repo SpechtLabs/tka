@@ -2,18 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
-	"encoding/base64"
-
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	"github.com/spechtlabs/tka/internal/utils"
 	"github.com/spechtlabs/tka/pkg/client/k8s"
@@ -26,6 +25,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -40,7 +42,7 @@ func init() {
 	viper.SetDefault("health.port", 8080)
 	err := viper.BindPFlag("health.port", serveCmd.PersistentFlags().Lookup("health-port"))
 	if err != nil {
-		panic(fmt.Errorf("fatal binding flag: %w", err))
+		panic(humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key"))
 	}
 
 	serveCmd.PersistentFlags().String("api-endpoint", "", "API endpoint for the Kubernetes cluster")
@@ -146,38 +148,38 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 		name := viper.GetString("clusterInfo.configMapRef.name")
 		namespace := viper.GetString("clusterInfo.configMapRef.namespace")
 		if name == "" || namespace == "" {
-			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true")
+			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true", "set CLUSTER_INFO_CONFIGMAP_REF_NAME and CLUSTER_INFO_CONFIGMAP_REF_NAMESPACE environment variables")
 		}
 
-		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")
-		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")
-		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")
-		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig")
+		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")       //nolint:golint-sl // config keys grouped for readability
+		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")             //nolint:golint-sl // config keys grouped for readability
+		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")     //nolint:golint-sl // config keys grouped for readability
+		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig") //nolint:golint-sl // config keys grouped for readability
 
 		restCfg, err := ctrl.GetConfig()
 		if err != nil {
-			return nil, humane.Wrap(err, "failed to get Kubernetes rest config")
+			return nil, humane.Wrap(err, "failed to get Kubernetes rest config", "ensure the server is running inside a Kubernetes cluster")
 		}
 		clientset, err := kubernetes.NewForConfig(restCfg)
 		if err != nil {
-			return nil, humane.Wrap(err, "failed to create Kubernetes clientset")
+			return nil, humane.Wrap(err, "failed to create Kubernetes clientset", "check cluster connectivity and authentication")
 		}
 
 		cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			return nil, humane.Wrap(err, "failed to read configMapRef ConfigMap")
+			return nil, humane.Wrap(err, "failed to read configMapRef ConfigMap", "verify the ConfigMap exists and the server has read permissions")
 		}
 
 		serverURL := cm.Data[keyAPI]
 		caData := cm.Data[keyCA]
-		insecure := parseBoolish(cm.Data[keyInsecure])
+		insecure := parseBoolish(cm.Data[keyInsecure]) //nolint:golint-sl // insecure used in struct below
 
 		// kubeadm cluster-info configmap supports embedding a kubeconfig in a single key
 		if serverURL == "" && caData == "" && kubeconfigKey != "" {
 			if yamlKubeconfig, ok := cm.Data[kubeconfigKey]; ok && yamlKubeconfig != "" {
 				cfg, err := clientcmd.Load([]byte(yamlKubeconfig))
 				if err != nil {
-					return nil, humane.Wrap(err, "failed to parse kubeconfig from ConfigMap")
+					return nil, humane.Wrap(err, "failed to parse kubeconfig from ConfigMap", "verify the kubeconfig data in the ConfigMap is valid YAML")
 				}
 				// Use the first cluster entry
 				for _, cluster := range cfg.Clusters {
@@ -236,6 +238,7 @@ func getHealthPort() int {
 	return localPort
 }
 
+//nolint:golint-sl // Server lifecycle: startup info, component-specific Fatal logs in goroutines, shutdown wide event
 func runE(cmd *cobra.Command, _ []string) humane.Error {
 	debug := viper.GetBool("debug")
 	configureGinMode(debug)
@@ -247,20 +250,22 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 
 	clusterInfo, err := loadClusterInfo(ctx)
 	if err != nil {
-		cancelFn(err)
-		return err
+		herr := humane.Wrap(err, "failed to load cluster info", "ensure the server is running inside a Kubernetes cluster or has valid kubeconfig")
+		cancelFn(herr)
+		return herr
 	}
 
-	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts)
+	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts) //nolint:golint-sl // part of init sequence, used in LoadApiRoutes
 	if err != nil {
-		cancelFn(err)
-		return err
+		herr := humane.Wrap(err, "failed to initialize Kubernetes operator", "check cluster connectivity and permissions")
+		cancelFn(herr)
+		return herr
 	}
 
 	// Create Tailscale server
 	srv := newTailscaleServer(debug)
 
-	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, tailcfg.PeerCapability(viper.GetString("tailscale.capName")))
+	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, tailcfg.PeerCapability(viper.GetString("tailscale.capName"))) //nolint:golint-sl // part of init sequence
 
 	// Start the Tailscale connection
 	if err := srv.Start(ctx); err != nil {
@@ -309,7 +314,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		otelzap.L().InfoContext(ctx, "Starting local metrics server", zap.String("addr", healthSrv.Addr))
 
 		if err := healthSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			cancelFn(fmt.Errorf("local metrics server failed: %w", err))
+			cancelFn(humane.Wrap(err, "local metrics server failed", "check that the health port is not already in use"))
 			otelzap.L().WithError(err).FatalContext(ctx, "Failed to start local metrics server")
 		}
 	}()
@@ -329,30 +334,54 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	<-ctx.Done()
 	// No more logging to ctx from here onwards
 
-	// Graceful shutdown with timeout
+	// Graceful shutdown with timeout and trace context
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	otelzap.L().Info("Shutting down servers...")
+	tracer := otel.Tracer("tka_server")
+	shutdownCtx, span := tracer.Start(shutdownCtx, "server.shutdown")
+
+	// Track shutdown status for wide event
+	var (
+		healthShutdownErr error
+		tsShutdownErr     humane.Error
+	)
 
 	// Shutdown local metrics server first
-	if err := healthSrv.Shutdown(shutdownCtx); err != nil {
-		otelzap.L().WithError(err).Error("Failed to shutdown local metrics server gracefully")
-		// Continue with other shutdowns even if local server shutdown failed
-	}
+	healthShutdownErr = healthSrv.Shutdown(shutdownCtx)
 
 	// Shutdown Tailscale server
-	if err := srv.Stop(shutdownCtx); err != nil {
-		otelzap.L().WithError(err).Error("Failed to shutdown Tailscale server gracefully")
-		return err
+	tsShutdownErr = srv.Stop(shutdownCtx)
+
+	// Set span attributes for shutdown wide event
+	span.SetAttributes(
+		attribute.Bool("shutdown.health_ok", healthShutdownErr == nil),
+		attribute.Bool("shutdown.tailscale_ok", tsShutdownErr == nil),
+	)
+
+	if healthShutdownErr != nil {
+		span.SetAttributes(attribute.String("shutdown.health_err", healthShutdownErr.Error()))
+	}
+	if tsShutdownErr != nil {
+		span.SetAttributes(attribute.String("shutdown.tailscale_err", tsShutdownErr.Error()))
+		span.SetStatus(codes.Error, "shutdown failed")
 	}
 
-	otelzap.L().Info("Servers shut down successfully")
+	// Log summary
+	otelzap.L().InfoContext(shutdownCtx, "servers shutdown completed",
+		zap.Bool("health_ok", healthShutdownErr == nil),
+		zap.Bool("tailscale_ok", tsShutdownErr == nil),
+	)
+
+	span.End()
+
+	if tsShutdownErr != nil {
+		return humane.Wrap(tsShutdownErr, "tailscale server shutdown failed", "check tailscale logs for details")
+	}
 
 	// Check termination cause
-	cause := context.Cause(ctx)
-	if cause != nil && !errors.Is(cause, context.Canceled) {
-		return humane.Wrap(cause, "server terminated due to error")
+	if cause := context.Cause(ctx); cause != nil && !errors.Is(cause, context.Canceled) {
+		return humane.Wrap(cause, "server terminated due to error", "check the server logs for the root cause")
 	}
 
 	return nil

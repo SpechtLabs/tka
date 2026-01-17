@@ -9,7 +9,11 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/models"
 )
 
+// PrintLoginInformation prints user login information in a styled box format to stdout.
 func PrintLoginInformation(respBody *models.UserLoginResponse) {
+	if respBody == nil {
+		return
+	}
 	options := DefaultOptions()
 
 	// Parse time (optional formatting)
@@ -34,7 +38,12 @@ func PrintLoginInformation(respBody *models.UserLoginResponse) {
 	_, _ = fmt.Fprintln(os.Stdout, boxStyle.Render(content))
 }
 
+// PrintLoginInfoWithProvisioning prints user login information with provisioning status
+// in a styled box format to stdout. The httpCode determines the provisioned status display.
 func PrintLoginInfoWithProvisioning(respBody *models.UserLoginResponse, httpCode int) {
+	if respBody == nil {
+		return
+	}
 	options := DefaultOptions()
 	// Parse time (optional formatting)
 	untilTime, _ := time.Parse(time.RFC3339, respBody.Until)

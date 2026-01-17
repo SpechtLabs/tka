@@ -8,6 +8,8 @@ import (
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 )
 
+// Spinner is an interface for running a polling operation with visual feedback.
+// The generic type T represents the result type returned by the polling function.
 type Spinner[T any] interface {
 	Run(context.Context) (*T, humane.Error)
 }
@@ -25,10 +27,15 @@ type spinnerImpl[T any] struct {
 	spinner Spinner[T]
 }
 
+// PollFunc is a function type that performs a polling operation and returns
+// a result of type T or an error.
 type PollFunc[T any] func() (T, humane.Error)
 
+// NewSpinner creates a new Spinner instance configured with the given polling function
+// and options. It automatically selects between a terminal-based or text-based spinner
+// depending on whether the output is a TTY.
 func NewSpinner[T any](pollFunc PollFunc[T], opts ...PollModelOption) Spinner[T] {
-	s := &spinnerImpl[T]{
+	s := &spinnerImpl[T]{ //nolint:golint-sl // s.model is passed to spinner constructors below
 		spinner: nil,
 		model: spinnerModel[T]{
 			err:          nil,

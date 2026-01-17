@@ -86,7 +86,7 @@ func (m teaPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 	finalModel, err := prog.Run()
 
 	if err != nil {
-		return nil, humane.Wrap(err, "UI error while polling")
+		return nil, humane.Wrap(err, "UI error while polling", "try running with --quiet flag to disable the spinner")
 	}
 
 	final := finalModel.(teaPollModel[T])
@@ -95,7 +95,7 @@ func (m teaPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 		if errors.As(final.model.err, &herr) {
 			return nil, herr
 		} else {
-			return nil, humane.Wrap(final.model.err, "async operation failed")
+			return nil, humane.Wrap(final.model.err, "async operation failed", "check the server logs for more details")
 		}
 	}
 
@@ -208,7 +208,7 @@ func pollOnceCmd[T any](m teaPollModel[T]) tea.Cmd {
 		// Wait for either context done or pollFunc to complete
 		select {
 		case <-m.ctx.Done():
-			return pollResultMsg[T]{err: humane.New(m.opts.timeoutMessage)}
+			return pollResultMsg[T]{err: humane.New(m.opts.timeoutMessage, "try increasing the timeout or check the server status")}
 		case msg := <-resultCh:
 			return msg
 		}

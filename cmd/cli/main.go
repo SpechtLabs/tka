@@ -15,7 +15,7 @@ var (
 )
 
 func main() {
-	cmdGet := &cobra.Command{
+	cmdGet := &cobra.Command{ //nolint:golint-sl // cobra pattern: define commands, then connect them
 		Use:   "get <command>",
 		Short: "Retrieve read-only resources from TKA.",
 		Long:  `The get command retrieves resources from your Tailscale Kubernetes Auth service`,
@@ -27,7 +27,7 @@ tka get kubeconfig
 tka get login`,
 	}
 
-	cmdSet := &cobra.Command{
+	cmdSet := &cobra.Command{ //nolint:golint-sl // cobra pattern: define commands, then connect them
 		Use:   "set <command>",
 		Short: "Set resources in TKA.",
 		Long:  `The set command sets resources in your Tailscale Kubernetes Auth service`,

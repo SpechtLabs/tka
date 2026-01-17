@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,7 +27,7 @@ func init() {
 	viper.SetDefault("output.markdownlint-fix", false)
 	err := viper.BindPFlag("output.markdownlint-fix", cmdDocumentation.Flags().Lookup("markdownlint-fix"))
 	if err != nil {
-		panic(fmt.Errorf("fatal binding flag: %w", err))
+		panic(humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key"))
 	}
 
 	cmdDocumentation.Flags().BoolVar(&useFrontMatter, "front-matter", false, "Use front matter")

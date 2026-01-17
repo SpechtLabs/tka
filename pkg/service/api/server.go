@@ -24,11 +24,17 @@ import (
 	// tka
 )
 
+// API route constants define the URL paths for the TKA REST API.
 const (
-	ApiRouteV1Alpha1    = "/api/v1alpha1"
-	LoginApiRoute       = "/login"
-	KubeconfigApiRoute  = "/kubeconfig"
-	LogoutApiRoute      = "/logout"
+	// ApiRouteV1Alpha1 is the base path for the v1alpha1 API version.
+	ApiRouteV1Alpha1 = "/api/v1alpha1"
+	// LoginApiRoute is the path for user login operations.
+	LoginApiRoute = "/login"
+	// KubeconfigApiRoute is the path for retrieving kubeconfig files.
+	KubeconfigApiRoute = "/kubeconfig"
+	// LogoutApiRoute is the path for user logout operations.
+	LogoutApiRoute = "/logout"
+	// ClusterInfoApiRoute is the path for retrieving cluster information.
 	ClusterInfoApiRoute = "/cluster-info"
 )
 

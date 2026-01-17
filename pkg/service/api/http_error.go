@@ -19,13 +19,11 @@ func writeHumaneError(c *gin.Context, err humane.Error, notFoundStatus int) {
 
 	status := http.StatusInternalServerError
 
-	if cause := err.Cause(); cause != nil {
-		if k8serrors.IsNotFound(cause) {
-			if notFoundStatus > 0 {
-				status = notFoundStatus
-			} else {
-				status = http.StatusNotFound
-			}
+	if cause := err.Cause(); cause != nil && k8serrors.IsNotFound(cause) {
+		if notFoundStatus > 0 {
+			status = notFoundStatus
+		} else {
+			status = http.StatusNotFound
 		}
 	}
 

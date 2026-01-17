@@ -19,9 +19,8 @@ func InitObservability() func() {
 	var tracerOptions []otelprovider.TracerOption
 
 	otelEndpoint := viper.GetString("otel.endpoint")
-	otelInsecure := viper.GetBool("otel.insecure")
 
-	if otelInsecure {
+	if otelInsecure := viper.GetBool("otel.insecure"); otelInsecure {
 		loggerOptions = append(loggerOptions, otelprovider.WithLogInsecure())
 		tracerOptions = append(tracerOptions, otelprovider.WithTraceInsecure())
 	}
@@ -49,7 +48,7 @@ func InitObservability() func() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	if err != nil {
-		fmt.Printf("failed to initialize logger: %v", err)
+		fmt.Printf("failed to initialize logger: %v", err) //nolint:golint-sl // Pre-logger init output
 		os.Exit(1)
 	}
 
@@ -73,21 +72,30 @@ func InitObservability() func() {
 	undoOtelZapGlobals := otelzap.ReplaceGlobals(otelZapLogger)
 
 	return func() {
-		if err := traceProvider.ForceFlush(context.Background()); err != nil {
-			otelzap.L().Warn("failed to flush traces")
-		}
+		// Capture errors for wide event
+		var (
+			traceFlushErr    error
+			logFlushErr      error
+			traceShutdownErr error
+			logShutdownErr   error
+		)
 
-		if err := logProvider.ForceFlush(context.Background()); err != nil {
-			otelzap.L().Warn("failed to flush logs")
-		}
+		traceFlushErr = traceProvider.ForceFlush(context.Background())
+		logFlushErr = logProvider.ForceFlush(context.Background())
+		traceShutdownErr = traceProvider.Shutdown(context.Background())
+		logShutdownErr = logProvider.Shutdown(context.Background())
 
-		if err := traceProvider.Shutdown(context.Background()); err != nil {
-			panic(err)
-		}
-
-		if err := logProvider.Shutdown(context.Background()); err != nil {
-			panic(err)
-		}
+		// Emit single wide event for observability shutdown with all error details
+		otelzap.L().Info("observability shutdown",
+			zap.Bool("trace_flush_ok", traceFlushErr == nil),
+			zap.Bool("log_flush_ok", logFlushErr == nil),
+			zap.Bool("trace_shutdown_ok", traceShutdownErr == nil),
+			zap.Bool("log_shutdown_ok", logShutdownErr == nil),
+			zap.NamedError("trace_flush_err", traceFlushErr),
+			zap.NamedError("log_flush_err", logFlushErr),
+			zap.NamedError("trace_shutdown_err", traceShutdownErr),
+			zap.NamedError("log_shutdown_err", logShutdownErr),
+		)
 
 		undoStdLogRedirect()
 		undoOtelZapGlobals()

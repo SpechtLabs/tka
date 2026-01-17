@@ -12,6 +12,9 @@ import (
 	"tailscale.com/ipn/ipnstate"
 )
 
+// Compile-time interface verification
+var _ ts.TSNet = &MockTSNet{}
+
 // MockTSNet implements ts.TSNet for unit tests with enhanced testability.
 // It provides configurable behavior for all TSNet methods and tracks method calls.
 type MockTSNet struct {
@@ -114,6 +117,9 @@ func (nopListener) Close() error { return nil }
 // Addr returns a dummy IP address.
 func (nopListener) Addr() net.Addr { return &net.IPAddr{} }
 
+// Compile-time interface verification
+var _ ts.WhoIsResolver = &MockWhoIs{}
+
 // MockWhoIs is a configurable WhoIsResolver implementation for tests.
 // It can be configured to return specific responses or errors.
 type MockWhoIs struct {
@@ -125,7 +131,7 @@ type MockWhoIs struct {
 // It returns the configured Resp or Err, or a default test response.
 func (m *MockWhoIs) WhoIs(ctx context.Context, remoteAddr string) (*ts.WhoIsInfo, humane.Error) {
 	if m.Err != nil {
-		return nil, humane.Wrap(m.Err, "mock error")
+		return nil, humane.Wrap(m.Err, "mock error", "this is a test mock error")
 	}
 	if m.Resp != nil {
 		return m.Resp, nil

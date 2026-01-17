@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -51,7 +52,7 @@ func doReq(t *testing.T, ts *httptest.Server, method, path string, headers map[s
 		require.NoError(t, err)
 		rdr = bytes.NewReader(b)
 	}
-	req, err := http.NewRequest(method, ts.URL+path, rdr)
+	req, err := http.NewRequestWithContext(context.Background(), method, ts.URL+path, rdr)
 	require.NoError(t, err)
 	for k, v := range headers {
 		req.Header.Set(k, v)
@@ -59,7 +60,7 @@ func doReq(t *testing.T, ts *httptest.Server, method, path string, headers map[s
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req) //nolint:golint-sl // DefaultClient is acceptable in tests
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = resp.Body.Close() })
 	data, _ := io.ReadAll(resp.Body)
@@ -73,8 +74,8 @@ func requireErrorMessage(t *testing.T, body []byte, want string) {
 	require.Equal(t, want, er.Message)
 }
 
-var missingError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "missing")
-var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "no signin")
+var missingError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "missing", "verify the resource exists")
+var noSigninError = humane.Wrap(k8serrors.NewNotFound(schema.GroupResource{Group: "x", Resource: "y"}, "name"), "no signin", "please sign in first")
 
 func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 	gin.SetMode(gin.TestMode)

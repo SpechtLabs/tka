@@ -9,18 +9,28 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
+// Theme represents a color theme for CLI output styling.
 type Theme string
 
+// Theme constants define the available color themes for CLI output.
 const (
-	AsciiStyle      Theme = "ascii"
-	DarkStyle       Theme = "dark"
-	DraculaStyle    Theme = "dracula"
+	// AsciiStyle uses ASCII-only characters without colors.
+	AsciiStyle Theme = "ascii"
+	// DarkStyle uses colors optimized for dark terminal backgrounds.
+	DarkStyle Theme = "dark"
+	// DraculaStyle uses the Dracula color scheme.
+	DraculaStyle Theme = "dracula"
+	// TokyoNightStyle uses the Tokyo Night color scheme.
 	TokyoNightStyle Theme = "tokyo-night"
-	LightStyle      Theme = "light"
-	NoTTYStyle      Theme = "notty"
-	MarkdownStyle   Theme = "markdown"
+	// LightStyle uses colors optimized for light terminal backgrounds.
+	LightStyle Theme = "light"
+	// NoTTYStyle disables colors for non-TTY output.
+	NoTTYStyle Theme = "notty"
+	// MarkdownStyle outputs raw markdown without rendering.
+	MarkdownStyle Theme = "markdown"
 )
 
+// AllThemes returns a slice containing all available themes.
 func AllThemes() []Theme {
 	return []Theme{
 		AsciiStyle,
@@ -33,6 +43,7 @@ func AllThemes() []Theme {
 	}
 }
 
+// AllThemeNames returns a slice of theme names as strings.
 func AllThemeNames() []string {
 	themes := AllThemes()
 	names := make([]string, len(themes))
@@ -54,6 +65,7 @@ var (
 	}
 )
 
+// IsTerminal returns true if stdout is connected to an interactive terminal.
 func IsTerminal() bool {
 	if os.Getenv("TERM") == "dumb" {
 		return false

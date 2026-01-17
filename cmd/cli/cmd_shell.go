@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/internal/cli/pretty_print"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -66,7 +66,7 @@ func forkShell(cmd *cobra.Command, args []string) error {
 	// 1. Login and get kubeconfig path
 	kubeCfgPath, err := signIn(quiet)
 	if err != nil {
-		return err
+		return err //nolint:golint-sl // already wrapped by signIn
 	}
 
 	// 2. Run subshell
@@ -74,7 +74,10 @@ func forkShell(cmd *cobra.Command, args []string) error {
 
 	// 3. Do cleanup
 	cleanup(quiet, kubeCfgPath)
-	return err
+	if err != nil {
+		return humane.Wrap(err, "shell execution failed", "the subshell exited with an error")
+	}
+	return nil
 }
 
 func cleanup(quiet bool, kubeCfgPath string) {
@@ -84,10 +87,8 @@ func cleanup(quiet bool, kubeCfgPath string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := signOut(nil, nil); err != nil {
-			if !quiet {
-				pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly"))
-			}
+		if err := signOut(nil, nil); err != nil && !quiet {
+			pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly", "your session may still be active; run 'tka logout' to sign out manually"))
 		}
 	}()
 
@@ -96,7 +97,7 @@ func cleanup(quiet bool, kubeCfgPath string) {
 	go func() {
 		defer wg.Done()
 		if err := os.Remove(kubeCfgPath); err != nil && !quiet {
-			pretty_print.PrintError(humane.Wrap(err, "failed to remove temporary kubeconfig"))
+			pretty_print.PrintError(humane.Wrap(err, "failed to remove temporary kubeconfig", "remove it manually: "+kubeCfgPath))
 		}
 	}()
 

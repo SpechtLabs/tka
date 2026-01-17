@@ -10,6 +10,7 @@ KUBECTL ?= kubectl
 KIND ?= kind
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+TKALINT ?= $(LOCALBIN)/tkalint
 
 .PHONY: build
 build: generate
@@ -53,3 +54,44 @@ pre-commit:
 
 .PHONY: all
 all: generate manifests pre-commit test
+
+##@ Custom Analyzers (TKA-specific linting)
+
+.PHONY: build-analyzers
+build-analyzers: $(LOCALBIN) ## Build the custom TKA analyzers
+	cd tools/analyzers && go build -o ../../$(LOCALBIN)/tkalint ./cmd/tkalint
+
+.PHONY: tkalint
+tkalint: build-analyzers ## Run TKA-specific linters on the codebase
+	$(TKALINT) ./...
+
+.PHONY: tkalint-fix
+tkalint-fix: build-analyzers ## Run TKA linters and show detailed output
+	$(TKALINT) -json ./... | jq .
+
+.PHONY: lint-all
+lint-all: lint tkalint ## Run both standard and TKA-specific linters
+
+##@ Architecture Checks
+
+.PHONY: arch
+arch: ## Run arch-go architecture checks
+	arch-go
+
+.PHONY: arch-verbose
+arch-verbose: ## Run arch-go with verbose output
+	arch-go -v
+
+.PHONY: install-arch-go
+install-arch-go: ## Install arch-go tool
+	go install github.com/fdaines/arch-go@latest
+
+##@ Analyzer Development
+
+.PHONY: test-analyzers
+test-analyzers: ## Run tests for custom analyzers
+	cd tools/analyzers && go test -v ./...
+
+.PHONY: analyzer-coverage
+analyzer-coverage: ## Run analyzer tests with coverage
+	cd tools/analyzers && go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out

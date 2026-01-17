@@ -11,9 +11,9 @@ This guide covers both development and production deployments with detailed expl
 
 :::: steps
 
-1. ### Step 1: Prepare Your Environment
+1. ## Step 1: Prepare Your Environment
 
-   #### Option A: Use Existing Cluster
+   ### Option A: Use Existing Cluster
 
    If you have a Kubernetes cluster, ensure you can connect:
 
@@ -25,7 +25,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Option B: Create Test Cluster with kind
+   ### Option B: Create Test Cluster with kind
 
    If you need a test cluster:
 
@@ -46,9 +46,9 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-2. ### Step 2: Install TKA CLI
+2. ## Step 2: Install TKA CLI
 
-   #### Option A: Download Release (Recommended)
+   ### Option A: Download Release (Recommended)
 
    ::: terminal Download and install TKA CLI
 
@@ -66,7 +66,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Option B: Build from Source
+   ### Option B: Build from Source
 
    ::: terminal Build TKA CLI from source
 
@@ -84,9 +84,9 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-3. ### Step 3: Install TKA Server with Helm
+3. ## Step 3: Install TKA Server with Helm
 
-   #### Add Helm Repository
+   ### Add Helm Repository
 
    ::: terminal Add Helm repository
 
@@ -101,7 +101,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Create Namespace
+   ### Create Namespace
 
    ::: terminal Create namespace
 
@@ -112,7 +112,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Verify Helm Chart
+   ### Verify Helm Chart
 
    ::: terminal Verify Helm chart
 
@@ -126,9 +126,9 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-4. ### Step 4: Configure TKA Server
+4. ## Step 4: Configure TKA Server
 
-   #### Gather Cluster Information
+   ### Gather Cluster Information
 
    First, collect the necessary cluster connection details:
 
@@ -149,7 +149,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Create Helm Values File
+   ### Create Helm Values File
 
    Create a values file for your TKA deployment:
 
@@ -208,7 +208,7 @@ This guide covers both development and production deployments with detailed expl
        authKey: ""  # Set this or create secret manually
    ```
 
-   #### Create Tailscale Secret
+   ### Create Tailscale Secret
 
    ::: terminal Create Tailscale secret
 
@@ -219,9 +219,9 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-5. ### Step 5: Configure Tailscale ACLs
+5. ## Step 5: Configure Tailscale ACLs
 
-   #### Understanding Capability Grants
+   ### Understanding Capability Grants
 
    TKA uses Tailscale's [capability grants](https://tailscale.com/kb/1324/grants) to map users to Kubernetes roles:
 
@@ -265,7 +265,7 @@ This guide covers both development and production deployments with detailed expl
    }
    ```
 
-   #### Key Points
+   ### Key Points
 
    - **`tag:tka`**: Tag your TKA servers with this
    - **`src`**: Users/groups who can access TKA
@@ -274,9 +274,9 @@ This guide covers both development and production deployments with detailed expl
    - **`role`**: Must be a valid Kubernetes ClusterRole
    - **`period`**: How long tokens remain valid
 
-6. ### Step 6: Deploy TKA Server
+6. ## Step 6: Deploy TKA Server
 
-   #### Install with Helm
+   ### Install with Helm
 
    ::: terminal Deploy TKA with Helm
 
@@ -290,7 +290,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Verify Deployment
+   ### Verify Deployment
 
    ::: terminal Verify deployment
 
@@ -316,7 +316,7 @@ This guide covers both development and production deployments with detailed expl
    INFO[0003] Kubernetes operator started
    ```
 
-   #### Production Deployment Considerations
+   ### Production Deployment Considerations
 
    For production environments, consider these additional configurations:
 
@@ -329,7 +329,7 @@ This guide covers both development and production deployments with detailed expl
 
    See the production configuration section below for detailed setup.
 
-7. ### Step 7: Configure the CLI
+7. ## Step 7: Configure the CLI
 
    Create a CLI configuration file and install shell integration:
 
@@ -353,7 +353,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Alternative: Environment Variables
+   ### Alternative: Environment Variables
 
    You can also configure via environment variables (but still need shell integration):
 
@@ -370,7 +370,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### URL Construction
+   ### URL Construction
 
    The CLI builds the server URL as:
 
@@ -378,9 +378,9 @@ This guide covers both development and production deployments with detailed expl
    - **HTTP** for other ports: `http://tka.your-tailnet.ts.net:8080`
    - **Custom scheme**: prefix hostname with `https://` to force HTTPS
 
-8. ### Step 8: Authenticate and Test
+8. ## Step 8: Authenticate and Test
 
-   #### Basic Authentication Flow
+   ### Basic Authentication Flow
 
    ::: terminal Basic authentication flow
 
@@ -408,7 +408,7 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-   #### Alternative: Use Subshell
+   ### Alternative: Use Subshell
 
    For isolated access that automatically cleans up:
 
@@ -429,9 +429,9 @@ This guide covers both development and production deployments with detailed expl
 
    :::
 
-9. ### Step 9: Verify Everything Works
+9. ## Step 9: Verify Everything Works
 
-   #### Check TKA Resources
+   ### Check TKA Resources
 
      ::: terminal Check TKA resources
 
@@ -448,7 +448,7 @@ This guide covers both development and production deployments with detailed expl
 
      :::
 
-   #### Test RBAC
+   ### Test RBAC
 
      ::: terminal Test RBAC permissions
 

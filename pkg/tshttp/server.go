@@ -82,11 +82,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sierrasoftworks/humane-errors-go"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
-
-	// Tailscale
 	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tsnet"
 )
@@ -150,7 +150,7 @@ type Server struct {
 // stopped with Shutdown().
 func NewServer(hostname string, opts ...Option) *Server {
 	// Initialize Tailscale server
-	ts := &tsnet.Server{Hostname: hostname}
+	ts := &tsnet.Server{Hostname: hostname} //nolint:golint-sl // used in Server struct below
 
 	// Construct the underlying http.Server with sane defaults
 	httpSrv := &http.Server{
@@ -226,7 +226,7 @@ func (s *Server) Start(ctx context.Context) humane.Error {
 	}
 
 	if err := s.connectTailnet(ctx); err != nil {
-		return err
+		return humane.Wrap(err, "failed to connect to tailnet", "check TS_AUTH_KEY and network connectivity")
 	}
 
 	s.started = true
@@ -276,11 +276,11 @@ func (s *Server) ListenTCP(address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+		return nil, humane.New("server not started", "call Start() before Listen()")
 	}
 	listener, err := s.ts.Listen(network, address)
 	if err != nil {
-		return nil, humane.Wrap(err, fmt.Sprintf("failed to create %s listener", network))
+		return nil, humane.Wrap(err, fmt.Sprintf("failed to create %s listener", network), "check tailscale connection and network configuration")
 	}
 	return listener, nil
 }
@@ -304,11 +304,11 @@ func (s *Server) Listen(network, address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+		return nil, humane.New("server not started: call Start() before ListenTLS()", "ensure Start() is called before ListenTLS()")
 	}
 	listener, err := s.ts.ListenTLS("tcp", address)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create TLS listener")
+		return nil, humane.Wrap(err, "failed to create TLS listener", "check tailscale connection and TLS configuration")
 	}
 	return listener, nil
 }
@@ -332,11 +332,11 @@ func (s *Server) ListenTLS(address string) (net.Listener, humane.Error) {
 //	go httpServer.Serve(listener)
 func (s *Server) ListenFunnel(address string) (net.Listener, humane.Error) {
 	if !s.started {
-		return nil, humane.Wrap(fmt.Errorf("server not started"), "call Start() first")
+		return nil, humane.New("server not started: call Start() before ListenFunnel()", "ensure Start() is called before ListenFunnel()")
 	}
 	listener, err := s.ts.ListenFunnel("tcp", address)
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create Funnel listener")
+		return nil, humane.Wrap(err, "failed to create Funnel listener", "check tailscale connection and Funnel configuration in ACLs")
 	}
 	return listener, nil
 }
@@ -384,7 +384,7 @@ func (s *Server) Stop(ctx context.Context) humane.Error {
 //	if err := server.Serve(ctx, handler, "tcp"); err != nil {
 //		log.Printf("Server error: %v", err)
 //	}
-func (s *Server) Serve(ctx context.Context, handler http.Handler, network string) humane.Error {
+func (s *Server) Serve(ctx context.Context, handler http.Handler, network string) humane.Error { //nolint:golint-sl // ctx reserved for graceful shutdown (TODO: implement)
 	var listener net.Listener
 	var err humane.Error
 
@@ -401,7 +401,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler, network string
 	}
 
 	if err != nil {
-		return humane.Wrap(err, "failed to create listener")
+		return humane.Wrap(err, "failed to create listener", "check tailscale connection and network configuration")
 	}
 
 	// Set handler and serve
@@ -410,7 +410,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler, network string
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return humane.Wrap(err, "failed to serve HTTP")
+		return humane.Wrap(err, "failed to serve HTTP", "check server configuration and port availability")
 	}
 
 	return nil
@@ -419,7 +419,7 @@ func (s *Server) Serve(ctx context.Context, handler http.Handler, network string
 // ServeTLS serves over the Tailscale network using the TLS protocol.
 func (s *Server) ServeTLS(ctx context.Context, handler http.Handler) humane.Error {
 	if err := s.Serve(ctx, handler, "tls"); err != nil {
-		return humane.Wrap(err, "failed to serve TLS")
+		return humane.Wrap(err, "failed to serve TLS", "check TLS configuration and certificate validity")
 	}
 	return nil
 }
@@ -428,7 +428,7 @@ func (s *Server) ServeTLS(ctx context.Context, handler http.Handler) humane.Erro
 // See the funnel documentation for more details: https://tailscale.com/kb/1223/funnel
 func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.Error {
 	if err := s.Serve(ctx, handler, "funnel"); err != nil {
-		return humane.Wrap(err, "failed to serve Funnel")
+		return humane.Wrap(err, "failed to serve Funnel", "check Funnel configuration in Tailscale ACLs")
 	}
 	return nil
 }
@@ -436,9 +436,8 @@ func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.E
 // Shutdown gracefully shuts down the tailscale server
 func (s *Server) Shutdown(ctx context.Context) humane.Error {
 	if s.Server != nil {
-		if err := s.Server.Shutdown(ctx); err != nil {
-			otelzap.L().Error("failed to shutdown HTTP server", zap.Error(err))
-			return humane.Wrap(err, "failed to shutdown HTTP server")
+		if err := s.Server.Shutdown(ctx); err != nil { //nolint:golint-sl // nested if needed for error capture
+			return humane.Wrap(err, "failed to shutdown HTTP server", "consider extending the shutdown timeout")
 		}
 	}
 	s.started = false
@@ -446,9 +445,14 @@ func (s *Server) Shutdown(ctx context.Context) humane.Error {
 }
 
 func (s *Server) connectTailnet(ctx context.Context) humane.Error {
+	tracer := otel.Tracer("tshttp")
+	ctx, span := tracer.Start(ctx, "Server.connectTailnet")
+	defer span.End()
+
 	var err error
 	s.st, err = s.ts.Up(ctx)
 	if err != nil {
+		span.RecordError(err)
 		return humane.Wrap(err, "failed to start api tailscale", "check (debug) logs for more details")
 	}
 
@@ -463,9 +467,18 @@ func (s *Server) connectTailnet(ctx context.Context) humane.Error {
 
 	if s.whois == nil {
 		if s.whois, err = s.ts.LocalWhoIs(); err != nil {
+			span.RecordError(err)
 			return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
 		}
 	}
+
+	// Set span attributes for connection info
+	span.SetAttributes(
+		attribute.String("tailnet.url", s.serverURL),
+		attribute.String("tailnet.dns_name", s.st.Self.DNSName),
+		attribute.Int("tailnet.port", s.port),
+		attribute.String("tailnet.protocol", protocol),
+	)
 
 	otelzap.L().InfoContext(ctx, "tka tailscale running", zap.String("url", s.serverURL))
 	return nil

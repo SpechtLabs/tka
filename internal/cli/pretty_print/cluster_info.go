@@ -10,7 +10,11 @@ import (
 	"github.com/spechtlabs/tka/pkg/service/models"
 )
 
+// PrintClusterInfo prints cluster information in a styled box format to stdout.
 func PrintClusterInfo(respBody *models.TkaClusterInfo) {
+	if respBody == nil {
+		return
+	}
 	options := DefaultOptions()
 
 	// print the first line with no leading spaces and the other lines with 2 leading spaces

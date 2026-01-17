@@ -27,12 +27,15 @@ import (
 
 var scheme = runtime.NewScheme()
 
+// KubeOperator is the Kubernetes controller that manages TkaSignin custom resources.
+// It handles provisioning and deprovisioning of user credentials based on sign-in requests.
 type KubeOperator struct {
 	mgr    ctrl.Manager
 	tracer trace.Tracer
 	client k8s.TkaClient
 }
 
+//nolint:golint-sl // Startup validation: Fatal terminates on config error, no context available
 func getConfigOrDie() *rest.Config {
 	config, err := ctrl.GetConfig()
 	if err != nil {
@@ -41,7 +44,7 @@ func getConfigOrDie() *rest.Config {
 			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
 		)
 
-		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config")
+		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config") //nolint:golint-sl // Startup Fatal, no context available
 	}
 
 	return config
@@ -67,7 +70,7 @@ func newControllerManagedBy() (ctrl.Manager, humane.Error) {
 		},
 	})
 	if err != nil {
-		return nil, humane.Wrap(err, "failed to create manager")
+		return nil, humane.Wrap(err, "failed to create manager", "check Kubernetes cluster connectivity and RBAC permissions")
 	}
 
 	return mgr, nil
@@ -81,20 +84,22 @@ func newKubeOperator(mgr ctrl.Manager, clusterInfo *models.TkaClusterInfo, clien
 	}
 
 	if err := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.TkaSignin{}).Named("TkaSignin").Complete(op); err != nil {
-		return nil, humane.Wrap(err, "failed to register controller manager")
+		return nil, humane.Wrap(err, "failed to register controller manager", "check that the TkaSignin CRD is installed in the cluster")
 	}
 
 	return op, nil
 }
 
+// NewK8sOperator creates and initializes a new KubeOperator with the provided
+// cluster information and client configuration options.
 func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOptions) (*KubeOperator, humane.Error) {
 	// Register the schemes
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme")
+		return nil, humane.Wrap(err, "failed to add clientgoscheme to scheme", "this is an internal error; please report it")
 	}
 
 	if err := v1alpha1.AddToScheme(scheme); err != nil {
-		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme")
+		return nil, humane.Wrap(err, "failed to add v1alpha1 to scheme", "this is an internal error; please report it")
 	}
 
 	ctrl.SetLogger(zapr.NewLogger(otelzap.L().Logger))
@@ -107,12 +112,11 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 	if ok, err := utils.IsK8sVerAtLeast(1, 24); err != nil {
 		return nil, err
 	} else if !ok {
-		return nil, humane.New("k8s version must be at least 1.24")
+		return nil, humane.New("k8s version must be at least 1.24", "upgrade your Kubernetes cluster to version 1.24 or later")
 	}
 
 	op, err := newKubeOperator(mgr, clusterInfo, clientOpts)
 	if err != nil {
-		otelzap.L().WithError(err).Error("failed to create kube operator")
 		return nil, err
 	}
 
@@ -121,8 +125,7 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 
 func (t *KubeOperator) Start(ctx context.Context) humane.Error {
 	if err := t.mgr.Start(ctx); err != nil {
-		otelzap.L().WithError(err).Error("failed to start manager")
-		return humane.Wrap(err, "failed to start manager")
+		return humane.Wrap(err, "failed to start manager", "check Kubernetes connectivity and operator permissions")
 	}
 
 	return nil
