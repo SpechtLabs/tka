@@ -12,8 +12,8 @@ import (
 	mwauth "github.com/spechtlabs/tka/pkg/middleware/auth"
 	"github.com/spechtlabs/tka/pkg/models"
 	"github.com/spechtlabs/tka/pkg/service/capability"
-	ts "github.com/spechtlabs/tka/pkg/tshttp"
-	"github.com/spechtlabs/tka/pkg/tshttp/mock"
+	"github.com/spechtlabs/tka/pkg/tsnet"
+	"github.com/spechtlabs/tka/pkg/tsnet/mock"
 	"github.com/stretchr/testify/require"
 	nooptrace "go.opentelemetry.io/otel/trace/noop"
 	"tailscale.com/tailcfg"
@@ -55,7 +55,7 @@ func setupRouter(t *testing.T, mw mw.Middleware) (*gin.Engine, *httptest.Respons
 }
 
 type whoisResponse struct {
-	ts.WhoIsInfo
+	tsnet.WhoIsInfo
 	whoisErr error
 }
 
@@ -84,7 +84,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "success single rule extracts user and passes",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    buildCap(t, capName, viewer),
@@ -99,7 +99,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "funnel request is forbidden",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    buildCap(t, capName, viewer),
@@ -114,7 +114,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "funnel request is allowed, only if allowed",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    buildCap(t, capName, viewer),
@@ -129,7 +129,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "whois error yields 500",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    buildCap(t, capName, viewer),
@@ -142,7 +142,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "tagged nodes are rejected",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{"tag:test"},
 					CapMap:    buildCap(t, capName, viewer),
@@ -156,7 +156,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "tagged nodes are allowed, only if allowed",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{"tag:test"},
 					CapMap:    buildCap(t, capName, viewer),
@@ -170,7 +170,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "no rule found -> 403",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    tailcfg.PeerCapMap{},
@@ -184,7 +184,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "malformed rule -> 400",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    tailcfg.PeerCapMap{capName: []tailcfg.RawMessage{tailcfg.RawMessage("not-json")}},
@@ -198,7 +198,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "multiple rules -> use highest priority rule",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    tailcfg.PeerCapMap{capName: []tailcfg.RawMessage{tailcfg.RawMessage(viewerB), tailcfg.RawMessage(adminB)}},
@@ -213,7 +213,7 @@ func TestGinAuthMiddleware(t *testing.T) {
 		{
 			name: "multiple rules with same priority -> 400",
 			whoisResponse: whoisResponse{
-				WhoIsInfo: ts.WhoIsInfo{
+				WhoIsInfo: tsnet.WhoIsInfo{
 					LoginName: "alice@example.com",
 					Tags:      []string{},
 					CapMap:    tailcfg.PeerCapMap{capName: []tailcfg.RawMessage{tailcfg.RawMessage(viewerB), tailcfg.RawMessage(admin2B)}},

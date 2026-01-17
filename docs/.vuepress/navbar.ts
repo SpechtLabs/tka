@@ -6,13 +6,7 @@ export const navbar = defineNavbarConfig([
   {
     text: "Getting Started",
     icon: "mdi:rocket-launch",
-    items: [
-      { text: "Overview", link: "/getting-started/overview", icon: "mdi:eye" },
-      { text: "Prerequisites", link: "/getting-started/prerequisites", icon: "mdi:check-circle" },
-      { text: "Quick Start", link: "/getting-started/quick", icon: "mdi:flash" },
-      { text: "Comprehensive Guide", link: "/getting-started/comprehensive", icon: "mdi:book-open-page-variant" },
-      { text: "Troubleshooting", link: "/getting-started/troubleshooting", icon: "mdi:wrench" },
-    ],
+    link: "/getting-started/overview",
   },
 
   {
@@ -31,19 +25,16 @@ export const navbar = defineNavbarConfig([
   {
     text: "Understanding",
     icon: "mdi:lightbulb",
-    items: [
-      { text: "Architecture", link: "/understanding/architecture", icon: "mdi:sitemap" },
-      { text: "Security Model", link: "/understanding/security", icon: "mdi:security" },
-    ],
+    link: "/understanding/architecture",
   },
 
   {
     text: "Reference",
     icon: "mdi:book",
     items: [
+      { text: "Configuration", link: "/reference/configuration", icon: "mdi:file-cog" },
       { text: "API Reference", link: "/reference/api", icon: "mdi:api" },
       { text: "CLI Reference", link: "/reference/cli", icon: "mdi:terminal" },
-      { text: "Configuration", link: "/reference/configuration", icon: "mdi:file-cog" },
       { text: "Developer Docs", link: "/reference/developer/architecture", icon: "mdi:code-braces" },
     ],
   },

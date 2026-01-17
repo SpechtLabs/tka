@@ -98,8 +98,6 @@ func TestNewTKAServer_RoutesRegistered(t *testing.T) {
 		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.LoginApiRoute:      {Expected: true, Seen: false},
 		http.MethodGet + " " + api.ApiRouteV1Alpha1 + api.KubeconfigApiRoute: {Expected: true, Seen: false},
 		http.MethodPost + " " + api.ApiRouteV1Alpha1 + api.LogoutApiRoute:    {Expected: true, Seen: false},
-		http.MethodGet + " /orchestrator/v1alpha1/clusters":                  {Expected: false, Seen: false},
-		http.MethodPost + " /orchestrator/v1alpha1/clusters":                 {Expected: false, Seen: false},
 		http.MethodGet + " /swagger":                                         {Expected: true, Seen: false},
 	}
 

@@ -10,7 +10,8 @@ import (
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/tshttp"
-	"github.com/spechtlabs/tka/pkg/tshttp/mock"
+	"github.com/spechtlabs/tka/pkg/tsnet"
+	"github.com/spechtlabs/tka/pkg/tsnet/mock"
 	"github.com/stretchr/testify/require"
 	"tailscale.com/ipn"
 	"tailscale.com/ipn/ipnstate"
@@ -67,7 +68,8 @@ func TestNewServer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			s := tshttp.NewServer(tt.hostname, tt.opts...)
+			mockTS := mock.NewMockTSNet(tt.hostname)
+			s := tshttp.NewServer(mockTS, tt.opts...)
 
 			require.NotNil(t, s.Server)
 			require.Equal(t, tt.wantAddr, s.Addr)
@@ -112,22 +114,13 @@ func TestServer_Start(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "up fails",
-			setupMock: func(t *testing.T, m *mock.MockTSNet) {
-				t.Helper()
-				m.UpErr = humane.New("connection failed", "check your Tailscale connection")
-			},
-			wantErr: true,
-			errMsg:  "failed to connect to tailnet",
-		},
-		{
 			name: "whois setup fails",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
 				m.WhoIsErr = humane.New("whois failed", "check Tailscale API access")
 			},
 			wantErr: true,
-			errMsg:  "failed to connect to tailnet",
+			errMsg:  "failed to get local api client",
 		},
 		{
 			name: "idempotent start",
@@ -142,10 +135,10 @@ func TestServer_Start(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			tt.setupMock(t, mockTS)
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 			ctx := context.Background()
 
 			err := s.Start(ctx)
@@ -157,7 +150,8 @@ func TestServer_Start(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.True(t, mockTS.UpCalled)
+			// Up() is now called outside of Start()
+			// require.True(t, mockTS.UpCalled)
 			require.True(t, mockTS.WhoIsCalled)
 
 			// Test idempotent behavior
@@ -181,13 +175,13 @@ func TestServer_ConnectionState(t *testing.T) {
 		wantErr       bool
 		errMsg        string
 		wantConnected bool
-		wantState     string
+		wantState     tsnet.BackendState
 	}{
 		{
 			name:          "initial state - not started",
 			started:       false,
 			wantConnected: false,
-			wantState:     "NoState",
+			wantState:     tsnet.BackendStateNoState,
 		},
 		{
 			name:    "successful connection with default port",
@@ -203,7 +197,7 @@ func TestServer_ConnectionState(t *testing.T) {
 			},
 			port:          443,
 			wantConnected: true,
-			wantState:     "Running",
+			wantState:     tsnet.BackendStateRunning,
 		},
 		{
 			name:    "successful connection with custom port",
@@ -219,7 +213,7 @@ func TestServer_ConnectionState(t *testing.T) {
 			},
 			port:          8080,
 			wantConnected: true,
-			wantState:     "Running",
+			wantState:     tsnet.BackendStateRunning,
 		},
 		{
 			name:    "stopped state",
@@ -229,7 +223,7 @@ func TestServer_ConnectionState(t *testing.T) {
 				m.UpStatus.BackendState = "Stopped"
 			},
 			wantConnected: false,
-			wantState:     "Stopped",
+			wantState:     tsnet.BackendStateStopped,
 		},
 		{
 			name:    "up fails",
@@ -239,28 +233,36 @@ func TestServer_ConnectionState(t *testing.T) {
 				m.UpErr = humane.New("tailscale up failed", "check your Tailscale connection")
 			},
 			wantErr: true,
-			errMsg:  "failed to connect to tailnet",
+			errMsg:  "tailscale up failed",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("myapp")
 			if tt.setupMock != nil {
 				tt.setupMock(t, mockTS)
 			}
 
-			opts := []tshttp.Option{tshttp.WithTSNet(mockTS)}
+			opts := []tshttp.Option{}
 			if tt.port != 0 {
 				opts = append(opts, tshttp.WithPort(tt.port))
 			}
 
-			s := tshttp.NewServer("myapp", opts...)
+			s := tshttp.NewServer(mockTS, opts...)
 			ctx := context.Background()
 
 			if tt.started {
-				err := s.Start(ctx)
+				// Start the mock TSNet first as in production
+				_, err := mockTS.Up(ctx)
+				if tt.wantErr && (tt.errMsg == "connection failed" || tt.errMsg == "tailscale up failed") {
+					require.Error(t, err)
+					// If Up fails, we don't need to start the server for this test case
+					return
+				}
+				require.NoError(t, err)
+
+				err = s.Start(ctx)
 				if tt.wantErr {
 					require.Error(t, err)
 					require.Contains(t, err.Error(), tt.errMsg)
@@ -269,8 +271,8 @@ func TestServer_ConnectionState(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			require.Equal(t, tt.wantConnected, s.IsConnected())
-			require.Equal(t, tt.wantState, s.BackendState())
+			require.Equal(t, tt.wantConnected, mockTS.IsConnected())
+			require.Equal(t, tt.wantState, mockTS.BackendState())
 		})
 	}
 }
@@ -383,12 +385,12 @@ func TestServer_ListenMethods(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			if tt.setupMock != nil {
 				tt.setupMock(t, mockTS)
 			}
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 
 			if tt.started {
 				err := s.Start(context.Background())
@@ -445,7 +447,7 @@ func TestServer_WhoIs(t *testing.T) {
 		addr      string
 		wantErr   bool
 		errMsg    string
-		wantInfo  *tshttp.WhoIsInfo
+		wantInfo  *tsnet.WhoIsInfo
 	}{
 		{
 			name:    "requires start",
@@ -460,7 +462,7 @@ func TestServer_WhoIs(t *testing.T) {
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
 				m.Whois = &mock.MockWhoIs{
-					Resp: &tshttp.WhoIsInfo{
+					Resp: &tsnet.WhoIsInfo{
 						LoginName: "alice@example.com",
 						Tags:      []string{},
 					},
@@ -468,7 +470,7 @@ func TestServer_WhoIs(t *testing.T) {
 			},
 			addr:    "100.100.100.100:443",
 			wantErr: false,
-			wantInfo: &tshttp.WhoIsInfo{
+			wantInfo: &tsnet.WhoIsInfo{
 				LoginName: "alice@example.com",
 				Tags:      []string{},
 			},
@@ -491,12 +493,12 @@ func TestServer_WhoIs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			if tt.setupMock != nil {
 				tt.setupMock(t, mockTS)
 			}
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 
 			if tt.started {
 				err := s.Start(context.Background())
@@ -574,10 +576,10 @@ func TestServer_ServeNetworks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			tt.setupMock(t, mockTS)
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := s.Serve(context.Background(), handler, tt.network)
@@ -674,10 +676,10 @@ func TestServer_HighLevelMethods(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			tt.setupMock(t, mockTS)
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 			s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := tt.testFn(t, s)
@@ -714,8 +716,8 @@ func TestServer_Shutdown(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			mockTS := mock.NewMockTSNet("test")
+			s := tshttp.NewServer(mockTS)
 
 			if tt.started {
 				err := s.Start(context.Background())
@@ -741,7 +743,8 @@ func TestServer_HTTPCompatibility(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
-	s := tshttp.NewServer("test")
+	mockTS := mock.NewMockTSNet("test")
+	s := tshttp.NewServer(mockTS)
 
 	// Should embed http.Server
 	require.NotNil(t, s.Server)
@@ -762,7 +765,8 @@ func TestServer_HandlerAssignment(t *testing.T) {
 
 	t.Run("handler assignment", func(t *testing.T) {
 		t.Helper()
-		s := tshttp.NewServer("test")
+		mockTS := mock.NewMockTSNet("test")
+		s := tshttp.NewServer(mockTS)
 
 		// Initially no handler
 		require.Nil(t, s.Handler)
@@ -785,10 +789,10 @@ func TestServer_HandlerAssignment(t *testing.T) {
 
 	t.Run("serve does not set handler when listener fails", func(t *testing.T) {
 		t.Helper()
-		mockTS := mock.NewMockTSNet()
+		mockTS := mock.NewMockTSNet("test")
 		mockTS.ListenErr = humane.New("listen failed", "check network configuration")
 
-		s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+		s := tshttp.NewServer(mockTS)
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 		require.Nil(t, s.Handler)
@@ -874,11 +878,11 @@ func TestIsFunnelRequest(t *testing.T) {
 			}
 
 			if tt.ctxConn != nil {
-				ctx := context.WithValue(req.Context(), tshttp.CtxConnKey{}, tt.ctxConn)
+				ctx := context.WithValue(req.Context(), tsnet.CtxConnKey{}, tt.ctxConn)
 				req = req.WithContext(ctx)
 			}
 
-			got := tshttp.IsFunnelRequest(req)
+			got := tsnet.IsFunnelRequest(req)
 			require.Equal(t, tt.wantFunnel, got)
 		})
 	}
@@ -903,7 +907,7 @@ func TestWhoIsInfo_IsTagged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			info := tshttp.WhoIsInfo{Tags: tt.tags}
+			info := tsnet.WhoIsInfo{Tags: tt.tags}
 			require.Equal(t, tt.want, info.IsTagged())
 		})
 	}
@@ -913,7 +917,7 @@ func TestWhoIsInfo_Fields(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
-	info := tshttp.WhoIsInfo{
+	info := tsnet.WhoIsInfo{
 		LoginName: "alice@example.com",
 		Tags:      []string{"tag:web", "tag:prod"},
 	}
@@ -952,9 +956,8 @@ func TestServer_AddressHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
-			s := tshttp.NewServer("test",
-				tshttp.WithTSNet(mockTS),
+			mockTS := mock.NewMockTSNet("test")
+			s := tshttp.NewServer(mockTS,
 				tshttp.WithPort(tt.port),
 			)
 

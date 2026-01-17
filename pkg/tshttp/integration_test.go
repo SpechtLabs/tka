@@ -7,7 +7,7 @@ import (
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/tka/pkg/tshttp"
-	"github.com/spechtlabs/tka/pkg/tshttp/mock"
+	"github.com/spechtlabs/tka/pkg/tsnet/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,10 +65,10 @@ func TestServer_ServeNetworks_Integration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			tt.setupMock(mockTS)
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := s.Serve(context.Background(), handler, tt.network)
@@ -151,10 +151,10 @@ func TestServer_HighLevelMethods_Integration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
+			mockTS := mock.NewMockTSNet("test")
 			tt.setupMock(mockTS)
 
-			s := tshttp.NewServer("test", tshttp.WithTSNet(mockTS))
+			s := tshttp.NewServer(mockTS)
 			s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 			err := tt.testFn(s)
@@ -201,9 +201,8 @@ func TestServer_AddressHandling_Integration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Helper()
-			mockTS := mock.NewMockTSNet()
-			s := tshttp.NewServer("test",
-				tshttp.WithTSNet(mockTS),
+			mockTS := mock.NewMockTSNet("test")
+			s := tshttp.NewServer(mockTS,
 				tshttp.WithPort(tt.port),
 			)
 

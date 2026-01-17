@@ -1,6 +1,6 @@
 # arch-go configuration file
 # Run: arch-go
-# Install: go install github.com/fdaines/arch-go@latest
+# Install: go install github.com/arch-go/arch-go@latest
 #
 # This enforces clean architecture boundaries in the TKA codebase.
 

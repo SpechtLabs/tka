@@ -4,7 +4,7 @@ createTime: 2025/09/07 23:05:53
 permalink: /getting-started/troubleshooting
 ---
 
-If something isn't working, check our [troubleshooting guide](../how-to/troubleshooting.md) for common issues:
+If something isn't working, check our [troubleshooting guide](../guides/troubleshooting.md) for common issues:
 
 - **403 errors**: Ensure you're on the tailnet, not using Funnel
 - **400 capability errors**: Check for multiple or malformed ACL rules
@@ -16,9 +16,8 @@ If something isn't working, check our [troubleshooting guide](../how-to/troubles
 Now that TKA is working:
 
 1. **Production Setup**: Follow the [production deployment section](./comprehensive.md#production-deployment) in the comprehensive guide
-2. **Shell Integration**: Set up [automatic environment updates](../how-to/shell-integration.md)
-3. **Multi-cluster**: Configure [multiple clusters](../how-to/multi-cluster-setup.md)
-4. **Advanced ACLs**: Learn more about [ACL configuration](../how-to/configure-acl.md)
+2. **Shell Integration**: Set up [automatic environment updates](../guides/shell-integration.md)
+3. **Advanced ACLs**: Learn more about [ACL configuration](../guides/configure-acl.md)
 
 ## Understanding What Happened
 

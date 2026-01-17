@@ -1,45 +1,96 @@
+# tailscale:
+#   hostname: tka
+#   port: 443
+#   tailnet: sphinx-map.ts.net
+#   stateDir: /tmp/tka-ts-state
+
+# server:
+#   debug: true
+#   readTimeout: 10s
+#   readHeaderTimeout: 5s
+#   writeTimeout: 20s
+#   idleTimeout: 120s
+
+# otel:
+#   endpoint: localhost:4317
+#   insecure: true
+
+# operator:
+#   namespace: tka-dev
+#   clusterName: tka-cluster
+#   contextPrefix: tka-context-
+#   userPrefix: tka-user-
+
+# api:
+#   retryAfterSeconds: 1
+
+# health:
+#   port: 8080
+
+# gossip:
+#   enabled: true
+#   port: 9090
+#   bootstrapPeers: []
+#   interval: 1s
+#   factor: 3
+
+# clusterInfo:
+#   apiEndpoint: ""
+#   caData: ""
+#   insecureSkipTLSVerify: false
+#   labels:
+#     environment: development
+#     project: tka
+#     owner: specht-labs
+#   configMapRef:
+#     enabled: false
+#     name: ""
+#     namespace: ""
+#     keys:
+#       apiEndpoint: "apiEndpoint"
+#       caData: "caData"
+#       insecure: "insecure"
+
+
+debug: true
+
 tailscale:
-  hostname: tka
-  port: 443
-  tailnet: sphinx-map.ts.net
-  stateDir: /tmp/tka-ts-state
+  hostname: "tka-lab-dev"
+  port: 8123
+  stateDir: "/var/lib/tka/tsnet-state"
+  tailnet: "sphinx-map.ts.net"
+  capName: "specht-labs.de/cap/tka"
 
 server:
-  debug: true
-  readTimeout: 10s
-  readHeaderTimeout: 5s
-  writeTimeout: 20s
-  idleTimeout: 120s
-
-otel:
-  endpoint: localhost:4317
-  insecure: true
+  readTimeout: "10s"
+  readHeaderTimeout: "5s"
+  writeTimeout: "20s"
+  idleTimeout: "120s"
 
 operator:
-  namespace: tka-dev
-  clusterName: tka-cluster
-  contextPrefix: tka-context-
-  userPrefix: tka-user-
+  namespace: "tka-system"
+  clusterName: "tka-cluster"
+  contextPrefix: "tka-context-"
+  userPrefix: "tka-user-"
+
+health:
+  port: 8081
+
+gossip:
+  enabled: true
+  port: 9092
+  bootstrapPeers: []
+  interval: 1s
+  factor: 3
 
 api:
   retryAfterSeconds: 1
 
-health:
-  port: 8080
-
 clusterInfo:
-  apiEndpoint: ""
-  caData: ""
-  insecureSkipTLSVerify: false
-  labels:
-    environment: development
-    project: tka
-    owner: specht-labs
-  configMapRef:
-    enabled: false
-    name: ""
-    namespace: ""
-    keys:
-      apiEndpoint: "apiEndpoint"
-      caData: "caData"
-      insecure: "insecure"
+    apiEndpoint: "https://clusterpi-leader:6443"
+    caData: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTXpBMU1EWXlNRGt3SGhjTk1qUXhNVEF5TURBeE1EQTVXaGNOTXpReE1ETXhNREF4TURBNQpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTXpBMU1EWXlNRGt3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTYzJVMUp0alRKam0yd0Z0bEhsRVhlaWV2SjdPUkdvZ0Npd3JrSWRaSUUKbjNFUlAwK1dsNHFjUHF4UDZIVnhaYkpJdHFrOVVQclo3VEtjNjZESHNkdDVvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVWRtWkJIVFlTL053dkg5ZTNmdnNOCjN4NVR1cXN3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnWlo1QyttNXBmNjdtTGlvMlk0RGl4bWhWdzdSbG15Y2kKY2pWbmdiRk9lREVDSVFDcEtrYjNiTmM2TlgrV3pmLzg4WWFGZHpKSFRQM0MraTdiVjYxaktXQys4QT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+    labels:
+        environment: "dev"
+        owner: "specht-labs"
+        flavor: "k3s"
+

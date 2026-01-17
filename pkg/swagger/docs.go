@@ -246,6 +246,36 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1alpha1/memberlist": {
+            "get": {
+                "description": "Returns the list of all clusters known via the gossip protocol. Each entry contains the cluster's API endpoint, TKA port, and labels. Use this endpoint to discover all available clusters in the mesh.",
+                "produces": [
+                    "application/json",
+                    "text/html"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Get cluster memberlist",
+                "responses": {
+                    "200": {
+                        "description": "List of clusters with their connection details",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.NodeMetadata"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Gossip not enabled on this server",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -263,6 +293,32 @@ const docTemplate = `{
                 "message": {
                     "description": "Primary error message\nexample: Failed to authenticate user",
                     "type": "string"
+                }
+            }
+        },
+        "models.NodeMetadata": {
+            "type": "object",
+            "properties": {
+                "apiEndpoint": {
+                    "description": "APIEndpoint is the Kubernetes API server URL for this cluster",
+                    "type": "string",
+                    "example": "https://api.prod-us.example.com:6443"
+                },
+                "apiPort": {
+                    "description": "APIPort is the port of the TKA API server",
+                    "type": "integer",
+                    "example": 443
+                },
+                "labels": {
+                    "description": "Labels are key-value pairs used to identify and categorize the cluster",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "example": {
+                        "environment": "production",
+                        "region": "us-west-2"
+                    }
                 }
             }
         },

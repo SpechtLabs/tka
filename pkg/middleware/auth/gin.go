@@ -14,7 +14,7 @@ import (
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 	mw "github.com/spechtlabs/tka/pkg/middleware"
 	"github.com/spechtlabs/tka/pkg/models"
-	"github.com/spechtlabs/tka/pkg/tshttp"
+	"github.com/spechtlabs/tka/pkg/tsnet"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -32,9 +32,9 @@ import (
 //  3. Rejects tagged nodes (service accounts)
 //  4. Extracts and validates capability rules from Tailscale ACLs
 //  5. Stores username and capability in Gin context for handlers
-type ginAuthMiddleware[capRule tshttp.TailscaleCapability] struct {
+type ginAuthMiddleware[capRule tsnet.TailscaleCapability] struct {
 	capName     tailcfg.PeerCapability
-	resolver    tshttp.WhoIsResolver
+	resolver    tsnet.WhoIsResolver
 	allowTagged bool
 	allowFunnel bool
 }
@@ -43,7 +43,7 @@ type ginAuthMiddleware[capRule tshttp.TailscaleCapability] struct {
 // The middleware extracts capability rules from Tailscale ACL for each request,
 // makes username and rule available via GetUsername() and GetCapability(),
 // and rejects unauthorized users with appropriate HTTP status codes.
-func NewGinAuthMiddleware[capRule tshttp.TailscaleCapability](resolver tshttp.WhoIsResolver, capName tailcfg.PeerCapability, opts ...Option[capRule]) mw.Middleware {
+func NewGinAuthMiddleware[capRule tsnet.TailscaleCapability](resolver tsnet.WhoIsResolver, capName tailcfg.PeerCapability, opts ...Option[capRule]) mw.Middleware {
 	mw := &ginAuthMiddleware[capRule]{
 		capName:     capName,
 		resolver:    resolver,
@@ -117,7 +117,7 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 		// This URL is visited by the user who is being authenticated. If they are
 		// visiting the URL over Funnel, that means they are not part of the
 		// tailnet that they are trying to be authenticated for.
-		if tshttp.IsFunnelRequest(ct.Request) && !m.allowFunnel {
+		if tsnet.IsFunnelRequest(ct.Request) && !m.allowFunnel {
 			success, rejectReason, statusCode = false, "funnel_not_allowed", http.StatusForbidden
 			ct.JSON(http.StatusForbidden, models.NewErrorResponse("Unauthorized request from Funnel"))
 			ct.Abort()

@@ -87,8 +87,9 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
-	"tailscale.com/ipn/ipnstate"
-	"tailscale.com/tsnet"
+
+	// Tailscale
+	"github.com/spechtlabs/tka/pkg/tsnet"
 )
 
 // Server provides an HTTP server that is only accessible via Tailscale network.
@@ -120,16 +121,15 @@ type Server struct {
 	hostname string
 
 	// Tailscale components
-	ts        TSNet            // Abstracted tsnet server for testability
-	whois     WhoIsResolver    // Resolver for WhoIs lookups
-	st        *ipnstate.Status // Connection status
-	serverURL string           // Full server URL (e.g., "https://myapp.tailnet.ts.net:443")
-	started   bool             // Track if Start() has been called
+	ts        tsnet.TSNet         // Abstracted tsnet server for testability
+	whois     tsnet.WhoIsResolver // Resolver for WhoIs lookups
+	serverURL string              // Full server URL (e.g., "https://myapp.tailnet.ts.net:443")
+	started   bool                // Track if Start() has been called
 }
 
-// NewServer creates a new Tailscale HTTP server with the given hostname and options.
+// NewServer creates a new Tailscale HTTP server with the given TSNet instance and options.
 //
-// The hostname parameter specifies the Tailscale hostname for this server (e.g., "myapp").
+// The ts parameter is the Tailscale network interface to use for this server.
 // The server will be accessible at https://hostname.tailnet.ts.net (or the configured port).
 //
 // Configuration options can be provided to customize the server behavior:
@@ -140,7 +140,7 @@ type Server struct {
 //
 // Example:
 //
-//	server := tshttp.NewServer("myapp",
+//	server := tshttp.NewServer(tsnetServer,
 //		tshttp.WithPort(443),
 //		tshttp.WithStateDir("/var/lib/myapp/ts-state"),
 //		tshttp.WithDebug(false),
@@ -148,10 +148,7 @@ type Server struct {
 //
 // The returned server must be started with Serve() and can be gracefully
 // stopped with Shutdown().
-func NewServer(hostname string, opts ...Option) *Server {
-	// Initialize Tailscale server
-	ts := &tsnet.Server{Hostname: hostname} //nolint:golint-sl // used in Server struct below
-
+func NewServer(ts tsnet.TSNet, opts ...Option) *Server {
 	// Construct the underlying http.Server with sane defaults
 	httpSrv := &http.Server{
 		ReadTimeout:       10 * time.Second,
@@ -165,10 +162,9 @@ func NewServer(hostname string, opts ...Option) *Server {
 		debug:     false,
 		port:      443,
 		stateDir:  "",
-		hostname:  hostname,
-		ts:        &tsnetAdapter{s: ts},
+		hostname:  ts.Hostname(),
+		ts:        ts,
 		whois:     nil,
-		st:        nil,
 		serverURL: "",
 		started:   false,
 	}
@@ -193,7 +189,7 @@ func NewServer(hostname string, opts ...Option) *Server {
 
 	// Ensure ConnContext stashes the connection for later inspection (e.g., Funnel detection)
 	server.ConnContext = func(ctx context.Context, c net.Conn) context.Context {
-		return context.WithValue(ctx, CtxConnKey{}, c)
+		return context.WithValue(ctx, tsnet.CtxConnKey{}, c)
 	}
 
 	return server
@@ -202,13 +198,16 @@ func NewServer(hostname string, opts ...Option) *Server {
 // Start connects to the Tailscale network and prepares the server for accepting connections.
 // This method separates connection setup from serving.
 //
+// Note: The TSNet instance must have been started with Up() before calling this method.
+//
 // After calling Start(), you can:
 //   - Use ListenTCP() to get listeners for standard http.Server
 //   - Use Serve() for a high-level all-in-one solution
 //
 // Example usage:
 //
-//	server := tshttp.NewServer("myapp")
+//	server := tshttp.NewServer(tsnetServer)
+//	// tsnetServer.Up(ctx) should have been called first
 //	if err := server.Start(ctx); err != nil {
 //		log.Fatal(err)
 //	}
@@ -225,9 +224,37 @@ func (s *Server) Start(ctx context.Context) humane.Error {
 		return nil // Already started
 	}
 
-	if err := s.connectTailnet(ctx); err != nil {
-		return humane.Wrap(err, "failed to connect to tailnet", "check TS_AUTH_KEY and network connectivity")
+	tracer := otel.Tracer("tshttp")
+	ctx, span := tracer.Start(ctx, "Server.Start")
+	defer span.End()
+
+	portSuffix := ""
+	protocol := "https"
+	if s.port != 443 {
+		portSuffix = fmt.Sprintf(":%d", s.port)
+		protocol = "http"
 	}
+
+	peerState := s.ts.GetPeerState()
+	s.serverURL = fmt.Sprintf("%s://%s%s", protocol, strings.TrimSuffix(peerState.DNSName, "."), portSuffix)
+
+	if s.whois == nil {
+		var err error
+		if s.whois, err = s.ts.LocalWhoIs(); err != nil {
+			span.RecordError(err)
+			return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
+		}
+	}
+
+	// Set span attributes for connection info
+	span.SetAttributes(
+		attribute.String("tailnet.url", s.serverURL),
+		attribute.String("tailnet.dns_name", peerState.DNSName),
+		attribute.Int("tailnet.port", s.port),
+		attribute.String("tailnet.protocol", protocol),
+	)
+
+	otelzap.L().InfoContext(ctx, "tka tailscale running", zap.String("url", s.serverURL))
 
 	s.started = true
 	return nil
@@ -444,46 +471,6 @@ func (s *Server) Shutdown(ctx context.Context) humane.Error {
 	return nil
 }
 
-func (s *Server) connectTailnet(ctx context.Context) humane.Error {
-	tracer := otel.Tracer("tshttp")
-	ctx, span := tracer.Start(ctx, "Server.connectTailnet")
-	defer span.End()
-
-	var err error
-	s.st, err = s.ts.Up(ctx)
-	if err != nil {
-		span.RecordError(err)
-		return humane.Wrap(err, "failed to start api tailscale", "check (debug) logs for more details")
-	}
-
-	portSuffix := ""
-	protocol := "https"
-	if s.port != 443 {
-		portSuffix = fmt.Sprintf(":%d", s.port)
-		protocol = "http"
-	}
-
-	s.serverURL = fmt.Sprintf("%s://%s%s", protocol, strings.TrimSuffix(s.st.Self.DNSName, "."), portSuffix)
-
-	if s.whois == nil {
-		if s.whois, err = s.ts.LocalWhoIs(); err != nil {
-			span.RecordError(err)
-			return humane.Wrap(err, "failed to get local api client", "check (debug) logs for more details")
-		}
-	}
-
-	// Set span attributes for connection info
-	span.SetAttributes(
-		attribute.String("tailnet.url", s.serverURL),
-		attribute.String("tailnet.dns_name", s.st.Self.DNSName),
-		attribute.Int("tailnet.port", s.port),
-		attribute.String("tailnet.protocol", protocol),
-	)
-
-	otelzap.L().InfoContext(ctx, "tka tailscale running", zap.String("url", s.serverURL))
-	return nil
-}
-
 // ListenAndServe provides a stdlib-compatible method to serve over the Tailnet using the configured Addr or port.
 func (s *Server) ListenAndServe() humane.Error {
 	// Use background context for compatibility; prefer Serve(ctx, handler) in new code.
@@ -512,30 +499,9 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) humane.Error {
 
 // WhoIs resolves identity information for a remote address using the Tailscale local client.
 // The server must be started before calling this method.
-func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*WhoIsInfo, humane.Error) {
+func (s *Server) WhoIs(ctx context.Context, remoteAddr string) (*tsnet.WhoIsInfo, humane.Error) {
 	if s.whois == nil {
 		return nil, humane.New("WhoIs resolver not available", "call Start() first")
 	}
 	return s.whois.WhoIs(ctx, remoteAddr)
-}
-
-// IsConnected reports whether the server is connected to the Tailscale network.
-// Returns true only when the backend state is "Running".
-func (s *Server) IsConnected() bool {
-	if s.st == nil {
-		return false
-	}
-
-	return s.st.BackendState == "Running"
-}
-
-// BackendState returns the current Tailscale backend state.
-// Possible values: "NoState", "NeedsLogin", "NeedsMachineAuth", "Stopped",
-// "Starting", "Running".
-func (s *Server) BackendState() string {
-	if s.st == nil {
-		return "NoState"
-	}
-
-	return s.st.BackendState
 }

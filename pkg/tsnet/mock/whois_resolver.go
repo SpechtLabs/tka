@@ -4,14 +4,14 @@ import (
 	"context"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	"github.com/spechtlabs/tka/pkg/tshttp"
+	"github.com/spechtlabs/tka/pkg/tsnet"
 )
 
 // MockWhoIsResolverOption is a functional option for configuring MockWhoIsResolver.
 type MockWhoIsResolverOption func(*MockWhoIsResolver)
 
 // WithWhoIsResponse configures a mock response for a specific remote address.
-func WithWhoIsResponse(remoteAddr string, info *tshttp.WhoIsInfo) MockWhoIsResolverOption {
+func WithWhoIsResponse(remoteAddr string, info *tsnet.WhoIsInfo) MockWhoIsResolverOption {
 	return func(m *MockWhoIsResolver) {
 		resp, ok := m.responses[remoteAddr]
 		if !ok {
@@ -42,20 +42,20 @@ func WithWhoIsResponses(responses map[string]mockWhoIsResolverResponse) MockWhoI
 }
 
 type mockWhoIsResolverResponse struct {
-	info *tshttp.WhoIsInfo
+	info *tsnet.WhoIsInfo
 	err  error
 }
 
 // Compile-time interface verification
-var _ tshttp.WhoIsResolver = &MockWhoIsResolver{}
+var _ tsnet.WhoIsResolver = &MockWhoIsResolver{}
 
-// MockWhoIsResolver is a configurable mock implementation of tshttp.WhoIsResolver for testing.
+// MockWhoIsResolver is a configurable mock implementation of tsnet.WhoIsResolver for testing.
 type MockWhoIsResolver struct {
 	responses map[string]mockWhoIsResolverResponse
 }
 
 // NewMockWhoIsResolver creates a new MockWhoIsResolver with the provided options.
-func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tshttp.WhoIsResolver {
+func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tsnet.WhoIsResolver {
 	m := &MockWhoIsResolver{
 		responses: make(map[string]mockWhoIsResolverResponse),
 	}
@@ -65,7 +65,7 @@ func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tshttp.WhoIsResolver 
 	return m
 }
 
-func (m *MockWhoIsResolver) WhoIs(ctx context.Context, remoteAddr string) (*tshttp.WhoIsInfo, humane.Error) {
+func (m *MockWhoIsResolver) WhoIs(ctx context.Context, remoteAddr string) (*tsnet.WhoIsInfo, humane.Error) {
 	resp, ok := m.responses[remoteAddr]
 	if !ok {
 		return nil, humane.New("no response for remote address "+remoteAddr, "check (debug) logs for more details")

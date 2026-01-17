@@ -94,6 +94,7 @@ export default defineUserConfig({
             { text: "Prerequisites", link: "prerequisites", icon: "mdi:check-circle" },
             { text: "Quick Start", link: "quick", icon: "mdi:flash", badge: "5 min" },
             { text: "Comprehensive Guide", link: "comprehensive", icon: "mdi:book-open-page-variant" },
+            { text: "Clustering", link: "clustering", icon: "mdi:sitemap", badge: "Advanced" },
             { text: "Troubleshooting & Next Steps", link: "troubleshooting", icon: "mdi:wrench" },
           ],
         },
@@ -145,7 +146,10 @@ export default defineUserConfig({
           collapsed: false,
           prefix: "/understanding/",
           items: [
-            { text: "Architecture", link: "architecture", icon: "mdi:sitemap" },
+            { text: "Architecture", link: "architecture", icon: "mdi:sitemap", collapsed: false, items: [
+                { text: "Clustering", link: "clustering", icon: "mdi:sitemap" },
+              ]
+            },
             { text: "Security Model", link: "security", icon: "mdi:security" },
           ],
         },
@@ -154,7 +158,7 @@ export default defineUserConfig({
       // Reference section - comprehensive
       "/reference/": [
         {
-          text: "API & CLI Reference",
+          text: "Reference",
           icon: "mdi:book",
           collapsed: false,
           prefix: "/reference/",
