@@ -114,22 +114,13 @@ func TestServer_Start(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "up fails",
-			setupMock: func(t *testing.T, m *mock.MockTSNet) {
-				t.Helper()
-				m.UpErr = humane.New("connection failed", "check your Tailscale connection")
-			},
-			wantErr: true,
-			errMsg:  "failed to connect to tailnet",
-		},
-		{
 			name: "whois setup fails",
 			setupMock: func(t *testing.T, m *mock.MockTSNet) {
 				t.Helper()
 				m.WhoIsErr = humane.New("whois failed", "check Tailscale API access")
 			},
 			wantErr: true,
-			errMsg:  "failed to connect to tailnet",
+			errMsg:  "failed to get local api client",
 		},
 		{
 			name: "idempotent start",
@@ -149,13 +140,6 @@ func TestServer_Start(t *testing.T) {
 
 			s := tshttp.NewServer(mockTS)
 			ctx := context.Background()
-
-			if tt.wantErr && tt.errMsg == "failed to start api tailscale" {
-				// This test case is now handled outside of Start()
-				_, err := mockTS.Up(ctx)
-				require.Error(t, err)
-				return
-			}
 
 			err := s.Start(ctx)
 
