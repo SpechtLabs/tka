@@ -12,31 +12,43 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 TKALINT ?= $(LOCALBIN)/tkalint
 
+## Build
+
 .PHONY: build
 build: generate
-	goreleaser build --clean --snapshot --config .goreleaser.pr.yaml
+	goreleaser build --clean --snapshot --config .goreleaser.yaml
 
 .PHONY: build-release
 build-release: generate
 	goreleaser build --clean --config .goreleaser.yaml
 
+## Code Generations
+
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
+controller-gen: swag ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	controller-gen object:headerFile="./hack/boilerplate.go.txt" paths="./..."
 
-
-.PHONY: generate
-generate: controller-gen swag ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="./hack/boilerplate.go.txt" paths="./..."
+.PHONY: protoc
+protoc:
+	protoc \
+		--go_out=./ \
+		--go_opt=module=github.com/spechtlabs/tka \
+	    --go-grpc_out=./ \
+		--go-grpc_opt=module=github.com/spechtlabs/tka \
+		./pkg/cluster/messages.proto
 
 .PHONY: manifests
-manifests: controller-gen swag
-	$(CONTROLLER_GEN) rbac:roleName=tka-role crd paths="./..." output:crd:artifacts:config=config/crd/bases
+manifests:
+	controller-gen rbac:roleName=tka-role crd paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: swag
 swag:
 	swag init --dir ./pkg/service/ --generalInfo docs.go --output ./pkg/swagger --parseDependency --parseDepth 3
+
+.PHONY: generate
+generate: controller-gen swag protoc manifests
+
+## Testing
 
 .PHONY: test
 test: lint
@@ -51,6 +63,8 @@ lint:
 .PHONY: pre-commit
 pre-commit:
 	pre-commit run --all-files
+
+## All
 
 .PHONY: all
 all: generate manifests pre-commit test
@@ -84,7 +98,7 @@ arch-verbose: ## Run arch-go with verbose output
 
 .PHONY: install-arch-go
 install-arch-go: ## Install arch-go tool
-	go install github.com/fdaines/arch-go@latest
+	go install github.com/arch-go/arch-go@latest
 
 ##@ Analyzer Development
 

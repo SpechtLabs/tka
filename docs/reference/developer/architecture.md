@@ -21,9 +21,9 @@ TKA follows a clean architecture with well-defined layers:
 │ └── Shell integration                                       │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│ HTTP API Layer (pkg/api)                                    │
+│ HTTP API Layer (pkg/service/api)                            │
 │ ├── Gin router and handlers                                 │
-│ ├── Request/response models (pkg/models)                    │
+│ ├── Request/response models (pkg/service/models)            │
 │ └── Authentication middleware (pkg/middleware/auth)         │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
@@ -33,10 +33,18 @@ TKA follows a clean architecture with well-defined layers:
 │ └── Mock implementation (pkg/service/mock)                  │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
+│ Cluster Discovery Layer (pkg/cluster)                       │
+│ ├── Gossip protocol client (GossipClient)                   │
+│ ├── State store (GossipStore, InMemoryStore)                │
+│ ├── Node metadata (pkg/service/NodeMetadata)                │
+│ └── gRPC service (GossipService)                            │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
 │ Infrastructure Layer                                        │
 │ ├── Kubernetes operator (pkg/operator)                      │
-│ ├── Tailscale networking (pkg/tailscale)                    │
-│ └── Utility functions (pkg/utils)                           │
+│ ├── Kubernetes client (pkg/client/k8s)                      │
+│ ├── Tailscale networking (pkg/tsnet)                        │
+│ └── Utility functions (internal/utils)                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,7 +91,7 @@ tka
 
 **Implementation**:
 
-- **Networking**: [`pkg/tailscale`](./tailscale-server.md) - Tailscale-only HTTP server
+- **Networking**: [`pkg/tshttp`](./tailscale-server.md) + [`pkg/tsnet`] - Tailscale-only HTTP server
 - **HTTP**: Gin router + authentication middleware (`pkg/middleware/auth`)
 - **Business Logic**: Service layer (`pkg/service`) with operator implementation
 - **Data Models**: Structured API models (`pkg/models`)
@@ -103,11 +111,8 @@ tka
 - `GET /login` → check current authentication status
 - `GET /kubeconfig` → return kubeconfig for active session
 - `POST /logout` → revoke session
-
-**Orchestrator API (`/orchestrator/v1alpha1`)**:
-
-- `GET /clusters` → list available clusters for user
-- `POST /clusters` → register new cluster (future)
+- `GET /cluster-info` → return cluster connection information
+- `GET /memberlist` → return list of known TKA nodes (if gossip enabled)
 
 ### 3. Middleware Layer (`pkg/middleware`)
 
@@ -186,16 +191,86 @@ stateDiagram-v2
     Check --> Delete: Expired
 ```
 
-### 6. TKA Orchestrator
+### 6. Cluster Discovery Layer (`pkg/cluster`)
 
 **Responsibilities**:
 
-- Provide cluster discoverability to TKA
-- List all clusters available to a user
+- Enable TKA servers to discover each other
+- Synchronize cluster metadata across the fleet
+- Track peer health and manage membership
+- Provide cluster listing to users
 
 **Implementation**:
 
-- TBD
+- **Protocol**: Gossip-based state synchronization via gRPC
+- **State Store**: `GossipStore` interface with `InMemoryStore` implementation
+- **Client**: `GossipClient[T]` - Generic gossip client supporting any serializable state
+- **Messages**: Protocol Buffers (`messages.proto`) for type-safe communication
+
+**Key Components**:
+
+| Component | Description |
+| :--- | :--- |
+| `GossipClient` | Manages peer connections, gossip cycles, and message exchange |
+| `GossipStore` | Stores versioned state with vector clock conflict resolution |
+| `NodeMetadata` | Cluster information shared via gossip (endpoint, port, labels) |
+| `GossipService` | gRPC service implementing SendHeartbeat and SendDiff RPCs |
+
+**API Integration**:
+
+- Exposes `/api/v1alpha1/memberlist` endpoint for cluster discovery
+- Returns cluster metadata in JSON or HTML format
+- Allows users to see all known TKA nodes in the fleet
+
+**Gossip Protocol**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle: Start
+
+    Idle --> SelectPeers: Gossip Timer
+    SelectPeers --> SendHeartbeat: Select N random peers
+
+    SendHeartbeat --> ReceiveDiff: Heartbeat sent
+    ReceiveDiff --> ApplyState: Diff received
+
+    ApplyState --> SendDiff: Has updates for peer
+    ApplyState --> Idle: No updates needed
+
+    SendDiff --> ReceiveDelta: Diff sent
+    ReceiveDelta --> ApplyDelta: Delta received
+    ApplyDelta --> Idle: Complete
+
+    state SendHeartbeat {
+        [*] --> CreateDigest
+        CreateDigest --> SendRPC
+        SendRPC --> [*]
+    }
+
+    state ApplyState {
+        [*] --> MergeState
+        MergeState --> GenerateDiff
+        GenerateDiff --> [*]
+    }
+```
+
+**Peer Health Tracking**:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Healthy: Peer discovered
+
+    Healthy --> Healthy: Heartbeat received
+    Healthy --> SuspectedDead: stalenessThreshold failures
+
+    SuspectedDead --> Healthy: Heartbeat received
+    SuspectedDead --> Dead: deadThreshold failures
+
+    Dead --> [*]: Remove peer
+```
+
+> [!TIP]
+> See [Request Flows: Cluster Discovery](./request-flows.md#cluster-discovery-gossip-protocol) for detailed message flow diagrams.
 
 ## Resource Model
 

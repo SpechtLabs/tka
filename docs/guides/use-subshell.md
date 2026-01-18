@@ -126,7 +126,7 @@ tka shell -c "./deploy.sh"
 ## Comparison with `tka login`
 
 | Aspect | `tka shell` | `tka login` |
-|--------|-------------|-------------|
+| :--- | :--- | :--- |
 | Environment | Isolated subshell | Modifies current shell |
 | Cleanup | Automatic | Manual logout required |
 | Persistence | Session only | Until logout/expiry |
@@ -250,5 +250,5 @@ exit  # Clean up debug resources and access
 ## Next Steps
 
 - [Configure Shell Integration](./shell-integration.md) for seamless environment updates
-- [Production Deployment](../tutorials/comprehensive.md#production-deployment) for production-ready TKA setup
+- [Production Deployment](../getting-started/comprehensive.md#production-deployment) for production-ready TKA setup
 - [Troubleshooting Guide](./troubleshooting.md) for common issues

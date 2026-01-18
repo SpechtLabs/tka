@@ -8,7 +8,7 @@ import (
 	"net"
 
 	humane "github.com/sierrasoftworks/humane-errors-go"
-	ts "github.com/spechtlabs/tka/pkg/tshttp"
+	ts "github.com/spechtlabs/tka/pkg/tsnet"
 	"tailscale.com/ipn/ipnstate"
 )
 
@@ -18,6 +18,8 @@ var _ ts.TSNet = &MockTSNet{}
 // MockTSNet implements ts.TSNet for unit tests with enhanced testability.
 // It provides configurable behavior for all TSNet methods and tracks method calls.
 type MockTSNet struct {
+	hostname string
+
 	// Up method configuration
 	UpStatus *ipnstate.Status // Status to return from Up()
 	UpErr    error            // Error to return from Up()
@@ -41,16 +43,33 @@ type MockTSNet struct {
 
 // NewMockTSNet creates a new MockTSNet with sensible defaults for testing.
 // The mock is configured with a "Running" backend state and a test hostname.
-func NewMockTSNet() *MockTSNet {
+func NewMockTSNet(hostname string) *MockTSNet {
 	return &MockTSNet{
+		hostname:     hostname,
 		ListenCalled: make(map[string]int),
 		UpStatus: &ipnstate.Status{
-			BackendState: "Running",
+			BackendState: "NoState",
 			Self: &ipnstate.PeerStatus{
 				DNSName: "test-host.tailnet.ts.net.",
 			},
 		},
 	}
+}
+
+func (m *MockTSNet) Hostname() string {
+	return m.hostname
+}
+
+func (m *MockTSNet) GetPeerState() *ipnstate.PeerStatus {
+	return m.UpStatus.Self
+}
+
+func (m *MockTSNet) IsConnected() bool {
+	return m.UpStatus.BackendState == "Running"
+}
+
+func (m *MockTSNet) BackendState() ts.BackendState {
+	return ts.BackendState(m.UpStatus.BackendState)
 }
 
 // Up simulates connecting to the Tailscale control plane.

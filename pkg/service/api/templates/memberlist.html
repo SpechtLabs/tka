@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>TKA Cluster Memberlist</title>
+	<style>
+		body { font-family: sans-serif; padding: 20px; }
+		table { border-collapse: collapse; width: 100%; }
+		th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+		th { background-color: #f2f2f2; }
+		tr:nth-child(even) { background-color: #f9f9f9; }
+		.healthy { color: green; }
+		.suspected-dead { color: orange; }
+		.dead { color: red; }
+	</style>
+</head>
+<body>
+	<h1>TKA Cluster Members</h1>
+	<table>
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Address</th>
+				<th>State</th>
+				<th>Peer State</th>
+				<th>Last Seen</th>
+				<th>Is Local</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{ range . }}
+			<tr>
+				<td>{{ .ID }}</td>
+				<td>{{ .Address }}</td>
+				<td>
+					<dl>
+						<dt>API Endpoint</dt>
+						<dd>{{ .State.APIEndpoint }}</dd>
+						<dt>Labels</dt>
+						<dd>
+							<ul>
+							{{ range $key, $value := .State.Labels }}
+								<li><strong>{{ $key }}:</strong> {{ $value }}</li>
+							{{ end }}
+							</ul>
+						</dd>
+					</dl>
+				</td>
+				<td class="{{ if eq .PeerState.String "PEER_STATE_HEALTHY" }}healthy{{ else if eq .PeerState.String "PEER_STATE_SUSPECTED_DEAD" }}suspected-dead{{ else if eq .PeerState.String "PEER_STATE_DEAD" }}dead{{ end }}">
+					{{ .PeerState }}
+				</td>
+				<td>
+                    {{ if .IsLocal }}
+                        0s ago
+                    {{ else }}
+                        {{ .LastSeen | since }} ago
+                    {{ end }}
+                </td>
+				<td>{{ .IsLocal }}</td>
+			</tr>
+			{{ end }}
+		</tbody>
+	</table>
+</body>
+</html>

@@ -23,4 +23,5 @@ import (
 var (
 	_ = globalModels.ErrorResponse{}
 	_ = authModels.UserLoginResponse{}
+	_ = authModels.NodeMetadata{}
 )

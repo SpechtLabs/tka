@@ -79,6 +79,60 @@ Defaults from code: `namespace=tka-dev`, `clusterName=tka-cluster`, `contextPref
 - `api.retryAfterSeconds` (int, default `1`)
   - Hint for clients polling async operations (e.g., kubeconfig provisioning).
 
+## Cluster (Gossip Protocol)
+
+TKA supports multi-server clustering via a gossip protocol. When enabled, TKA servers discover each other and share cluster metadata (API endpoints, labels) automatically. This allows users to be redirected to the correct TKA server for their target cluster.
+
+- `gossip.enabled` (bool, default `false`)
+  - Enable the gossip-based cluster discovery feature.
+  - When enabled, the server participates in cluster membership and state synchronization.
+
+- `gossip.port` (int, default `7946`)
+  - TCP port used for gossip communication between TKA servers.
+  - This port must be accessible between all TKA servers in the cluster.
+  - The gossip listener binds to all interfaces on this port via the Tailscale network.
+
+- `gossip.factor` (int, default `3`)
+  - The gossip fanout factor—number of peers to contact in each gossip round.
+  - Higher values improve convergence speed but increase network traffic.
+  - Recommended: 2–4 for small clusters, 3–5 for larger deployments.
+
+- `gossip.interval` (duration, default `1s`)
+  - How frequently to initiate gossip rounds with peers.
+  - Lower values detect changes faster but increase CPU and network usage.
+  - Recommended: `500ms`–`2s` depending on cluster dynamics.
+
+- `gossip.bootstrapPeers` ([]string, default `[]`)
+  - List of initial peer addresses to bootstrap cluster membership.
+  - Format: `hostname:port` (e.g., `tka-server-2.your-tailnet.ts.net:7946`)
+  - Once connected, peers are discovered automatically via the gossip protocol.
+  - At least one bootstrap peer should be specified for new nodes joining an existing cluster.
+
+### Advanced Gossip Settings
+
+These settings control peer failure detection and are typically not changed from defaults:
+
+- `gossip.stalenessThreshold` (int, default `5`)
+  - Number of consecutive failed gossip rounds before a peer is marked as "suspected dead".
+  - Suspected dead peers are still contacted, but the cluster is aware they may be offline.
+
+- `gossip.deadThreshold` (int, default `10`)
+  - Number of consecutive failed gossip rounds before a peer is removed from the cluster.
+  - Must be greater than `stalenessThreshold`.
+  - Once removed, a peer must re-bootstrap to rejoin the cluster.
+
+### Gossip Data Exchanged
+
+Each TKA server shares the following metadata with its peers:
+
+| Field | Description |
+| --- | --- |
+| `APIEndpoint` | The Kubernetes API server URL for this cluster |
+| `APIPort` | The port of the TKA API server |
+| `Labels` | Cluster labels (from `clusterInfo.labels`) |
+
+This enables clients to discover all available clusters and their connection details through any TKA server in the mesh.
+
 ## CLI Output Settings
 
 These settings control how the TKA CLI displays information and are used by client commands:
@@ -168,6 +222,9 @@ Server-only flags:
 --ca-data               Base64-encoded cluster CA data (maps to clusterInfo.caData)
 --insecure-skip-tls-verify  Skip TLS verification (maps to clusterInfo.insecureSkipTLSVerify)
 --labels                Cluster labels key=value list (maps to clusterInfo.labels)
+--gossip-enabled        Enable gossip clustering (maps to gossip.enabled)
+--gossip-port           Port for gossip protocol (maps to gossip.port)
+--gossip-peers          Bootstrap peer addresses (maps to gossip.bootstrapPeers)
 ```
 
 ## Example config.yaml
@@ -208,6 +265,19 @@ operator:
 
 api:
   retryAfterSeconds: 1
+
+# Cluster discovery via gossip protocol
+gossip:
+  enabled: false
+  port: 7946
+  factor: 3
+  interval: 1s
+  bootstrapPeers:
+    - tka-server-2.your-tailnet.ts.net:7946
+    - tka-server-3.your-tailnet.ts.net:7946
+  # Advanced settings (usually not changed)
+  # stalenessThreshold: 5
+  # deadThreshold: 10
 
 clusterInfo:
   labels:

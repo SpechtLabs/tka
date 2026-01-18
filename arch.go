@@ -4,14 +4,14 @@
 // Package main defines architectural rules using arch-go.
 // Run with: arch-go
 //
-// Install: go install github.com/fdaines/arch-go@latest
+// Install: go install github.com/arch-go/arch-go@latest
 //
 // This file enforces clean architecture boundaries and dependency rules.
 package main
 
 import (
-	"github.com/fdaines/arch-go/api"
-	"github.com/fdaines/arch-go/api/configuration"
+	"github.com/arch-go/arch-go/api"
+	"github.com/arch-go/arch-go/api/configuration"
 )
 
 // ArchitectureRules defines all architectural constraints for TKA
