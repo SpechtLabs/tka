@@ -10,7 +10,7 @@ npm = "11.5.1"
 pre-commit = "4.5.1"
 
 # Additional tools for development
-golangci-lint = "2.8.0"
+golangci-lint = "2.10.1"
 "go:github.com/spechtlabs/golint-sl/cmd/golint-sl" = "latest"
 goreleaser = "2.12.0"
 kind = "0.31.0"
