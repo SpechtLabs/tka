@@ -3,7 +3,7 @@
 go = "1.26.0"
 
 # Node.js for JavaScript/TypeScript
-node = "24.13.1"
+node = "24.14.0"
 npm = "11.5.1"
 
 # Pre-commit for Git hooks
