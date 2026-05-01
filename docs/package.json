@@ -29,13 +29,13 @@
   "homepage": "https://github.com/spechtlabs/tka#readme",
   "devDependencies": {
     "@vuepress/bundler-vite": "2.0.0-rc.28",
-    "@vuepress/plugin-register-components": "2.0.0-rc.125",
+    "@vuepress/plugin-register-components": "2.0.0-rc.128",
     "http-server": "^14.1.1",
     "markdown-it-container": "^4.0.0",
     "sass-embedded": "^1.93.3",
     "typescript": "^5.9.3",
     "vue": "^3.5.25",
-    "vuepress": "2.0.0-rc.27",
+    "vuepress": "2.0.0-rc.28",
     "vuepress-theme-plume": "1.0.0-rc.198"
   },
   "dependencies": {
