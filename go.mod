@@ -36,7 +36,7 @@ require (
 	k8s.io/client-go v0.35.2
 	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/yaml v1.6.0
-	tailscale.com v1.96.1
+	tailscale.com v1.96.5
 )
 
 require (
