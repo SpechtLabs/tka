@@ -12,7 +12,7 @@ pre-commit = "4.6.0"
 # Additional tools for development
 golangci-lint = "2.12.2"
 "go:github.com/spechtlabs/golint-sl/cmd/golint-sl" = "latest"
-goreleaser = "2.15.4"
+goreleaser = "2.16.0"
 kind = "0.31.0"
 kubectl = "1.36.1"
 markdownlint-cli2 = "0.22.1"
