@@ -14,7 +14,7 @@ golangci-lint = "2.12.2"
 "go:github.com/spechtlabs/golint-sl/cmd/golint-sl" = "latest"
 goreleaser = "2.16.0"
 kind = "0.32.0"
-kubectl = "1.36.1"
+kubectl = "1.36.2"
 markdownlint-cli2 = "0.22.1"
 
 swag = "1.16.6"
