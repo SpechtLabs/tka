@@ -4,7 +4,7 @@ go = "1.26.4"
 
 # Node.js for JavaScript/TypeScript
 node = "24.16.0"
-npm = "11.16.0"
+npm = "11.17.0"
 
 # Pre-commit for Git hooks
 pre-commit = "4.6.0"
