@@ -132,7 +132,7 @@ jobs:
 
       - name: Log into registry ${{ env.REGISTRY }}
         if: needs.prepare.outputs.should_push_docker == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
