@@ -30,7 +30,7 @@ jobs:
     steps:
       # Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - uses: DavidAnson/markdownlint-cli2-action@v22
         with:
@@ -41,7 +41,7 @@ jobs:
     name: Build (Docs)
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v6
