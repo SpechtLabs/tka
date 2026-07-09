@@ -13,7 +13,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/mattn/go-isatty v0.0.22
 	github.com/prometheus/client_golang v1.23.2
-	github.com/sierrasoftworks/humane-errors-go v0.0.0-20250904141959-2224f06cddb4
+	github.com/sierrasoftworks/humane-errors-go v0.0.0-20260709190713-8d6350c8d11d
 	github.com/spechtlabs/go-otel-utils/otelprovider v0.1.1
 	github.com/spechtlabs/go-otel-utils/otelzap v0.1.1
 	github.com/spf13/cobra v1.10.2
