@@ -48,20 +48,16 @@ This guide covers both development and production deployments with detailed expl
 
 2. ## Step 2: Install TKA CLI
 
-   ### Option A: Download Release (Recommended)
+   ### Option A: Homebrew (Recommended)
 
-   ::: terminal Download and install TKA CLI
+   ::: terminal Install TKA CLI with Homebrew
 
    ```bash
-   # Download CLI for your platform
-   $ curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-$(uname)-$(uname -m) -o ts-k8s-auth
-
-   # Make executable and install
-   $ chmod +x ts-k8s-auth
-   $ sudo mv ts-k8s-auth /usr/local/bin/
+   # Install CLI
+   $ brew install spechtlabs/tap/tka
 
    # Test installation
-   $ ts-k8s-auth version
+   $ tka version
    ```
 
    :::
@@ -76,10 +72,10 @@ This guide covers both development and production deployments with detailed expl
    $ cd tka
 
    # Build CLI
-   $ go build -o bin/ts-k8s-auth ./cmd/cli
+   $ go build -o bin/tka ./cmd/cli
 
    # Test build
-   $ ./bin/ts-k8s-auth version
+   $ ./bin/tka version
    ```
 
    :::
@@ -348,7 +344,7 @@ This guide covers both development and production deployments with detailed expl
    EOF
 
    # Install shell integration for the tka wrapper functions
-   $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
+   $ eval "$(tka generate integration bash)"  # or zsh/fish
    ```
 
    :::
@@ -365,7 +361,7 @@ This guide covers both development and production deployments with detailed expl
    $ export TKA_TAILSCALE_PORT=443
 
    # Still install shell integration for tka wrapper functions
-   $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
+   $ eval "$(tka generate integration bash)"  # or zsh/fish
    ```
 
    :::
