@@ -1,40 +1,120 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":semanticCommits"
+  ],
+  "timezone": "Europe/Berlin",
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Dashboard",
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 8,
+  "rebaseWhen": "behind-base-branch",
+  "rangeStrategy": "bump",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "labels": [
+    "dependencies"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on monday"
+    ],
+    "automerge": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the Go toolchain version pinned in .mise.toml.",
+      "managerFilePatterns": [
+        "/(^|/)\\.mise\\.toml$/"
+      ],
+      "matchStrings": [
+        "(?:^|\\n)go\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?)\""
+      ],
+      "depNameTemplate": "go",
+      "packageNameTemplate": "go",
+      "datasourceTemplate": "golang-version",
+      "versioningTemplate": "semver"
+    }
   ],
   "packageRules": [
     {
-      "description": "Automatically merge minor and patch-level updates",
+      "description": "Automerge digest, pin, patch, and minor updates once CI passes.",
       "matchUpdateTypes": [
+        "digest",
+        "pin",
+        "pinDigest",
         "patch",
-        "bump",
         "minor"
       ],
       "automerge": true,
-      "automergeType": "branch"
+      "automergeType": "pr",
+      "platformAutomerge": true
     },
     {
-      "description": "Automatically merge updates to GitHub workflows",
+      "description": "Keep major updates explicit.",
       "matchUpdateTypes": [
-        "patch",
-        "bump",
-        "minor",
         "major"
       ],
-      "automerge": true,
-      "matchFileNames": [
-        ".github/**",
-        ".github/workflows/**"
-      ],
-      "automergeType": "branch"
+      "automerge": false,
+      "dependencyDashboardApproval": true
     },
     {
-      "description": "Request review for major updates",
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "labels": ["update/major"],
-      "assignees": ["cedi"]
+      "description": "Group GitHub Actions updates together.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions",
+      "groupSlug": "github-actions",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "description": "Do not manage npm as a separate mise tool; Node provides npm.",
+      "matchFileNames": [
+        ".mise.toml"
+      ],
+      "matchDepNames": [
+        "npm"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Group Go module updates together.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "Go modules",
+      "groupSlug": "go-modules"
+    },
+    {
+      "description": "Update .mise.toml and go.mod Go versions together.",
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "matchDepNames": [
+        "go"
+      ],
+      "groupName": "Go toolchain",
+      "groupSlug": "go-toolchain",
+      "rangeStrategy": "bump",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "description": "Group docs site dependencies together.",
+      "matchFileNames": [
+        "docs/package.json",
+        "docs/bun.lock"
+      ],
+      "groupName": "docs dependencies",
+      "groupSlug": "docs-dependencies"
     }
   ]
 }
