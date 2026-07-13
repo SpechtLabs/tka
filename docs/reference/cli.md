@@ -208,9 +208,9 @@ tka generate integration <bash|zsh|fish|powershell>
 
 #### Description
 
-The "shell" command generates shell integration code for the tka wrapper.
+The "generate integration" command generates shell integration code for the tka wrapper.
 
-By default, the ts-k8s-auth binary cannot directly modify your shell's
+By default, the tka binary cannot directly modify your shell's
 environment variables (such as "${KUBECONFIG}"), because a subprocess cannot
 change the parent shell's state. To work around this, tka provides a
 wrapper function that you can install into your shell. This wrapper
@@ -243,13 +243,13 @@ in your shell for it to take effect.
 
 ```bash
 # For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
-eval "$(ts-k8s-auth shell bash)"
+eval "$(tka generate integration bash)"
 
 # For fish, add this line to your ~/.config/fish/config.fish:
-ts-k8s-auth shell fish | source
+tka generate integration fish | source
 
 # For PowerShell, add this line to your profile (e.g. $PROFILE):
-ts-k8s-auth shell powershell | Out-String | Invoke-Expression
+tka generate integration powershell | Out-String | Invoke-Expression
 
 ```
 
