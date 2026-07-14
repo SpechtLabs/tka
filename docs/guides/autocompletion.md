@@ -270,7 +270,7 @@ set -g fish_pager_color_prefix blue
 
 ### Integration with Shell Wrapper
 
-If you're using [shell integration](./shell-integration.md), autocompletion will work seamlessly with the `tka` wrapper function. The completion system understands both the wrapper and the underlying `ts-k8s-auth` binary.
+If you're using [shell integration](./shell-integration.md), autocompletion will work seamlessly with the `tka` wrapper function. The completion system understands both the wrapper and the underlying `tka` binary.
 
 ## Updating Completions
 

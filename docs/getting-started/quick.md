@@ -16,9 +16,8 @@ Get TKA running in under 5 minutes:
    ::: terminal One-command setup
 
    ```bash
-   # Download CLI
-   $ curl -fsSL https://github.com/spechtlabs/tka/releases/latest/download/ts-k8s-auth-$(uname)-$(uname -m) -o ts-k8s-auth
-   $ chmod +x ts-k8s-auth && sudo mv ts-k8s-auth /usr/local/bin/
+   # Install CLI
+   $ brew install spechtlabs/tap/tka
 
    # Install server
    $ helm repo add spechtlabs https://charts.specht-labs.de && helm repo update
@@ -68,7 +67,7 @@ Get TKA running in under 5 minutes:
    # Configure CLI
    $ mkdir -p ~/.config/tka
    $ echo "tailscale:\n  hostname: tka\n  tailnet: your-tailnet.ts.net" > ~/.config/tka/config.yaml
-   $ eval "$(ts-k8s-auth generate integration bash)"  # or zsh/fish
+   $ eval "$(tka generate integration bash)"  # or zsh/fish
 
    # Test
    $ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=tka -n tka-system
