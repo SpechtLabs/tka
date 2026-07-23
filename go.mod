@@ -11,7 +11,7 @@ require (
 	github.com/gin-contrib/zap v1.1.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-logr/zapr v1.3.0
-	github.com/mattn/go-isatty v0.0.23
+	github.com/mattn/go-isatty v0.0.24
 	github.com/prometheus/client_golang v1.24.0
 	github.com/sierrasoftworks/humane-errors-go v0.0.0-20250904141959-2224f06cddb4
 	github.com/spechtlabs/go-otel-utils/otelprovider v0.1.1
@@ -31,12 +31,12 @@ require (
 	go.uber.org/zap v1.28.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0
-	k8s.io/api v0.36.2
-	k8s.io/apimachinery v0.36.2
-	k8s.io/client-go v0.36.2
+	k8s.io/api v0.36.3
+	k8s.io/apimachinery v0.36.3
+	k8s.io/client-go v0.36.3
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/yaml v1.6.0
-	tailscale.com v1.100.0
+	tailscale.com v1.102.0
 )
 
 require (
