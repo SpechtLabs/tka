@@ -47,7 +47,7 @@
     "vue-template-compiler": "^2.7.16"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.62.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.62.3",
     "sass-embedded-linux-x64": "latest"
   },
   "scripts": {
