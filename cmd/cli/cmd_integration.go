@@ -13,17 +13,17 @@ var cmdIntegration = &cobra.Command{
 	Use:       "integration <bash|zsh|fish|powershell>",
 	Short:     "Generate shell integration for tka wrapper",
 	Example: `# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
-eval "$(ts-k8s-auth shell bash)"
+eval "$(tka generate integration bash)"
 
 # For fish, add this line to your ~/.config/fish/config.fish:
-ts-k8s-auth shell fish | source
+tka generate integration fish | source
 
 # For PowerShell, add this line to your profile (e.g. $PROFILE):
-ts-k8s-auth shell powershell | Out-String | Invoke-Expression
+tka generate integration powershell | Out-String | Invoke-Expression
 `,
-	Long: `The "shell" command generates shell integration code for the tka wrapper.
+	Long: `The "generate integration" command generates shell integration code for the tka wrapper.
 
-By default, the ts-k8s-auth binary cannot directly modify your shell's
+By default, the tka binary cannot directly modify your shell's
 environment variables (such as "${KUBECONFIG}"), because a subprocess cannot
 change the parent shell's state. To work around this, tka provides a
 wrapper function that you can install into your shell. This wrapper
@@ -57,19 +57,19 @@ in your shell for it to take effect.`,
 		switch shell {
 		case "bash":
 			fmt.Println("# Add the following line to your ~/.bashrc:")
-			fmt.Println("#    eval \"$(ts-k8s-auth shell bash)\"")
+			fmt.Println("#    eval \"$(tka generate integration bash)\"")
 			fmt.Println(getBashShell())
 		case "zsh":
 			fmt.Println("# Add the following line to your ~/.zshrc:")
-			fmt.Println("#    eval \"$(ts-k8s-auth shell zsh)\"")
+			fmt.Println("#    eval \"$(tka generate integration zsh)\"")
 			fmt.Println(getZshShell())
 		case "fish":
 			fmt.Println("# Add the following line to your ~/.config/fish/config.fish:")
-			fmt.Println("#   ts-k8s-auth shell fish | source")
+			fmt.Println("#   tka generate integration fish | source")
 			fmt.Println(getFishShell())
 		case "powershell":
 			fmt.Println("# Add the following line to your PowerShell profile:")
-			fmt.Println("#   ts-k8s-auth shell powershell | Out-String | Invoke-Expression")
+			fmt.Println("#   tka generate integration powershell | Out-String | Invoke-Expression")
 			fmt.Println(getPowerShell())
 		default:
 			pretty_print.PrintErrorMessage("Unsupported shell: " + shell)
@@ -95,7 +95,7 @@ func getBashShell() string {
     done
 
     if [[ "$should_eval" == false ]]; then
-        command ts-k8s-auth "$cmd" "$@"
+        command tka "$cmd" "$@"
         return
     fi
 
@@ -111,9 +111,9 @@ func getBashShell() string {
     done
 
     if $no_eval; then
-        command ts-k8s-auth "$cmd" "$@"
+        command tka "$cmd" "$@"
     else
-        eval "$(command ts-k8s-auth "$cmd" --quiet "$@")"
+        eval "$(command tka "$cmd" --quiet "$@")"
     fi
 }
 	`
@@ -125,7 +125,7 @@ func getFishShell() string {
     set disable_flags --no-eval --help --long
 
     if test (count $argv) -eq 0
-        command ts-k8s-auth
+        command tka
         return
     end
 
@@ -147,7 +147,7 @@ func getFishShell() string {
     end
 
     if test "$should_eval" = false
-        command ts-k8s-auth $cmd $args
+        command tka $cmd $args
         return
     end
 
@@ -165,9 +165,9 @@ func getFishShell() string {
     end
 
     if test "$no_eval" = true
-        command ts-k8s-auth $cmd $args
+        command tka $cmd $args
     else
-        eval (command ts-k8s-auth $cmd --quiet $args)
+        eval (command tka $cmd --quiet $args)
     end
 end
 	`
@@ -184,11 +184,12 @@ func getPowerShell() string {
         [string[]]$Args
     )
 
+    $tkaBin = (Get-Command tka -CommandType Application).Source
     $evalCmds = @("login", "refresh")
     $disableFlags = @("--no-eval", "--help", "--long")
 
     if ($Args.Count -eq 0) {
-        & ts-k8s-auth
+        & $tkaBin
         return
     }
 
@@ -205,7 +206,7 @@ func getPowerShell() string {
     }
 
     if (-not $shouldEval) {
-        & ts-k8s-auth @Args
+        & $tkaBin @Args
         return
     }
 
@@ -218,10 +219,10 @@ func getPowerShell() string {
     }
 
     if ($noEval) {
-        & ts-k8s-auth @Args
+        & $tkaBin @Args
     }
     else {
-        $output = & ts-k8s-auth $Args[0] --quiet @($rest)
+        $output = & $tkaBin $Args[0] --quiet @($rest)
         Invoke-Expression $output
     }
 }
