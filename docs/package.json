@@ -32,7 +32,7 @@
     "@vuepress/plugin-register-components": "2.0.0-rc.132",
     "http-server": "^14.1.1",
     "markdown-it-container": "^4.0.0",
-    "sass-embedded": "^1.102.0",
+    "sass-embedded": "^1.103.1",
     "typescript": "^5.9.3",
     "vue": "^3.5.41",
     "vuepress": "2.0.0-rc.31",
@@ -42,12 +42,12 @@
     "@vue/component-compiler-utils": "^3.3.0",
     "lru-cache": "^11.5.2",
     "markdown-it-emoji": "^3.1.0",
-    "mermaid": "^11.16.1",
+    "mermaid": "^11.17.0",
     "swagger-ui-dist": "^5.32.14",
     "vue-template-compiler": "^2.7.16"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.62.4",
+    "@rollup/rollup-linux-x64-gnu": "^4.62.5",
     "sass-embedded-linux-x64": "latest"
   },
   "scripts": {
