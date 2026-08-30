@@ -26,7 +26,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/zsais/go-gin-prometheus v1.0.3
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.71.0
-	go.opentelemetry.io/otel v1.45.0
+	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/trace v1.46.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/sys v0.47.0
