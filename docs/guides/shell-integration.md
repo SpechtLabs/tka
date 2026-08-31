@@ -146,7 +146,7 @@ $ kubectl get pods
 The shell integration is roughly equal to
 
 ```bash
-eval "$(command ts-k8s-auth login --quiet)"
+eval "$(command tka login --quiet)"
 ```
 
 To learn more, I encourage you to checkout the [source code](https://github.com/SpechtLabs/tka/blob/main/cmd/cli/cmd_integration.go#L82) or check out the [Developer Documentation: Shell Integration Details]
