@@ -40,14 +40,14 @@
   },
   "dependencies": {
     "@vue/component-compiler-utils": "^3.3.0",
-    "lru-cache": "^11.5.2",
+    "lru-cache": "^11.5.3",
     "markdown-it-emoji": "^3.1.0",
     "mermaid": "^11.17.2",
     "swagger-ui-dist": "^5.33.0",
     "vue-template-compiler": "^2.7.16"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.63.3",
+    "@rollup/rollup-linux-x64-gnu": "^4.63.4",
     "sass-embedded-linux-x64": "latest"
   },
   "scripts": {
