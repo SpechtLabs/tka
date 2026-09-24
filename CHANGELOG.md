@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.2.3](https://github.com/SpechtLabs/tka/compare/v0.2.2...v0.2.3) (2026-02-26)
+
+
+### Features
+
+* implement wide events with span attributes for observability ([#195](https://github.com/SpechtLabs/tka/issues/195)) ([a909d6a](https://github.com/SpechtLabs/tka/commit/a909d6a2edee009e6c7101b260a9f0975be1f746))
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.34.2 ([#134](https://github.com/SpechtLabs/tka/issues/134)) ([6d92c0b](https://github.com/SpechtLabs/tka/commit/6d92c0bb4af1b33599cfd07a54aef8fdb3539a58))
+* **deps:** update kubernetes packages to v0.34.3 ([#165](https://github.com/SpechtLabs/tka/issues/165)) ([cadaaaa](https://github.com/SpechtLabs/tka/commit/cadaaaa0b025961d17dd881d3ab0d452f2bb52ca))
+* **deps:** update kubernetes packages to v0.35.0 ([#177](https://github.com/SpechtLabs/tka/issues/177)) ([d27b990](https://github.com/SpechtLabs/tka/commit/d27b990a7328d5975d83a5f64a14fac07a531ce3))
+* **deps:** update kubernetes packages to v0.35.1 ([#221](https://github.com/SpechtLabs/tka/issues/221)) ([9a0ae54](https://github.com/SpechtLabs/tka/commit/9a0ae5475a7537849bc8db295f6454ec1dd113dc))
+* **deps:** update module github.com/charmbracelet/bubbles to v0.21.1 ([#211](https://github.com/SpechtLabs/tka/issues/211)) ([68a1373](https://github.com/SpechtLabs/tka/commit/68a1373d0e7ac1fd5b233802646953d4c2f29710))
+* **deps:** update module github.com/charmbracelet/lipgloss/v2 to v2.0.0 ([#234](https://github.com/SpechtLabs/tka/issues/234)) ([02eace3](https://github.com/SpechtLabs/tka/commit/02eace38cb4ba2e69c7c272dd846ce0cb7c8a704))
+* **deps:** update module github.com/gin-contrib/zap to v1.1.6 ([#152](https://github.com/SpechtLabs/tka/issues/152)) ([558cefe](https://github.com/SpechtLabs/tka/commit/558cefec0f0a20b25ac1d7cf134fba0e9015574d))
+* **deps:** update module github.com/spf13/cobra to v1.10.2 ([#157](https://github.com/SpechtLabs/tka/issues/157)) ([20cd9a7](https://github.com/SpechtLabs/tka/commit/20cd9a718eb1d525c53ee110f687302f692fc213))
+* **deps:** update module github.com/zsais/go-gin-prometheus to v1.0.3 ([#223](https://github.com/SpechtLabs/tka/issues/223)) ([b7d05c4](https://github.com/SpechtLabs/tka/commit/b7d05c47581ee5ef586e41cf9a7e5343982d1c86))
+* **deps:** update module go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin to v0.64.0 ([#167](https://github.com/SpechtLabs/tka/issues/167)) ([19dd915](https://github.com/SpechtLabs/tka/commit/19dd915abe999ef91c242842dff6774e7f49c9ec))
+* **deps:** update module go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin to v0.65.0 ([#209](https://github.com/SpechtLabs/tka/issues/209)) ([eadc9ba](https://github.com/SpechtLabs/tka/commit/eadc9ba10fa59df47784561bf3644b57f423be95))
+* **deps:** update module go.uber.org/zap to v1.27.1 ([#144](https://github.com/SpechtLabs/tka/issues/144)) ([c3453e8](https://github.com/SpechtLabs/tka/commit/c3453e8006fcf9ed0b876b8af132d6ee5604083d))
+* **deps:** update module golang.org/x/sys to v0.39.0 ([#162](https://github.com/SpechtLabs/tka/issues/162)) ([3bdebfd](https://github.com/SpechtLabs/tka/commit/3bdebfd0b4faf8c2bc7836c36dab593766983af2))
+* **deps:** update module golang.org/x/sys to v0.40.0 ([#191](https://github.com/SpechtLabs/tka/issues/191)) ([618f334](https://github.com/SpechtLabs/tka/commit/618f334c658472dd83d6cad3f5e20eeb31524933))
+* **deps:** update module golang.org/x/sys to v0.41.0 ([#213](https://github.com/SpechtLabs/tka/issues/213)) ([d4918c7](https://github.com/SpechtLabs/tka/commit/d4918c7123ffff73f0ef6e6b39da06a210d1ee91))
+* **deps:** update module golang.org/x/term to v0.38.0 ([#163](https://github.com/SpechtLabs/tka/issues/163)) ([897e30b](https://github.com/SpechtLabs/tka/commit/897e30b4334773a92c45d3a7487616b5802318a1))
+* **deps:** update module golang.org/x/term to v0.39.0 ([#192](https://github.com/SpechtLabs/tka/issues/192)) ([e852a38](https://github.com/SpechtLabs/tka/commit/e852a38d51e04d3cd552b4e9affdae924a299e27))
+* **deps:** update module golang.org/x/term to v0.40.0 ([#215](https://github.com/SpechtLabs/tka/issues/215)) ([2ec4b9b](https://github.com/SpechtLabs/tka/commit/2ec4b9ba114e9c72c9da21f6c4766cbb9a31612f))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.23.0 ([#200](https://github.com/SpechtLabs/tka/issues/200)) ([9f65c11](https://github.com/SpechtLabs/tka/commit/9f65c11d160aac16c13045489a388f52e6aaffe8))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.23.1 ([#205](https://github.com/SpechtLabs/tka/issues/205)) ([9411851](https://github.com/SpechtLabs/tka/commit/941185117de0b60bee5eb1bee52a71cca98f6c29))
+* **deps:** update module tailscale.com to v1.90.8 ([#139](https://github.com/SpechtLabs/tka/issues/139)) ([69a3b3e](https://github.com/SpechtLabs/tka/commit/69a3b3e9007131cca0b63bf495ca95850b2024a6))
+* **deps:** update module tailscale.com to v1.92.0 ([#150](https://github.com/SpechtLabs/tka/issues/150)) ([6eaae56](https://github.com/SpechtLabs/tka/commit/6eaae56186e12858970fc03139584ed2f6488d4f))
+* **deps:** update module tailscale.com to v1.92.1 ([#158](https://github.com/SpechtLabs/tka/issues/158)) ([1caa044](https://github.com/SpechtLabs/tka/commit/1caa04472a6361477a49949016cc9d344e144cf4))
+* **deps:** update module tailscale.com to v1.92.2 ([#166](https://github.com/SpechtLabs/tka/issues/166)) ([100c8d7](https://github.com/SpechtLabs/tka/commit/100c8d732e4342dc71269a9384ddb76271ca79b0))
+* **deps:** update module tailscale.com to v1.92.3 ([#176](https://github.com/SpechtLabs/tka/issues/176)) ([0beb4a6](https://github.com/SpechtLabs/tka/commit/0beb4a600b014549b8efa4534c238eb55c38bea6))
+* **deps:** update module tailscale.com to v1.92.4 ([#178](https://github.com/SpechtLabs/tka/issues/178)) ([8b484cf](https://github.com/SpechtLabs/tka/commit/8b484cff17f379faea1a42f298026c9376c01dfa))
+* **deps:** update module tailscale.com to v1.92.5 ([#188](https://github.com/SpechtLabs/tka/issues/188)) ([0f87341](https://github.com/SpechtLabs/tka/commit/0f87341468759f88ae0d00a8231be871d9055816))
+* **deps:** update module tailscale.com to v1.94.0 ([#194](https://github.com/SpechtLabs/tka/issues/194)) ([76686e2](https://github.com/SpechtLabs/tka/commit/76686e25f88edb7d9f87b3cae4ad235d12f61376))
+* **deps:** update module tailscale.com to v1.94.1 ([#202](https://github.com/SpechtLabs/tka/issues/202)) ([7db6972](https://github.com/SpechtLabs/tka/commit/7db6972e0c8438256e0e36f9473b17f268be549d))
+* **deps:** update module tailscale.com to v1.94.2 ([#225](https://github.com/SpechtLabs/tka/issues/225)) ([b446a39](https://github.com/SpechtLabs/tka/commit/b446a3967c853667c82640aff661823d11724eef))
+* **mise:** downgrade pre-commit ([572c307](https://github.com/SpechtLabs/tka/commit/572c3078f17aa7cc51f0fccc841d50e01d6dd17c))
+
 ## [0.2.2](https://github.com/SpechtLabs/tka/compare/tailscale-k8s-auth-v0.2.1...tailscale-k8s-auth-v0.2.2) (2025-11-12)
 
 
