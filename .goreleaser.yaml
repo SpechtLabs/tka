@@ -27,7 +27,7 @@ builds:
       - windows
       - darwin
     goarch: *goarch
-    binary: ts-k8s-auth
+    binary: tka
     main: ./cmd/cli
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: *ldflags
@@ -141,7 +141,35 @@ archives:
   - id: cli
     ids:
       - cli
-    name_template: 'tailscale-k8s-auth_cli_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    name_template: "tka_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+# Publish to SpechtLabs/homebrew-tap using HOMEBREW_TAP_GITHUB_TOKEN, a
+# repository or organization Actions secret with Contents: read and write
+# access to the tap. The default GITHUB_TOKEN only has access to this repo.
+homebrew_casks:
+  - name: tka
+    ids:
+      - cli
+    repository:
+      owner: SpechtLabs
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://tka.specht-labs.de/"
+    description: "Tailnet-native Kubernetes access with short-lived kubeconfigs"
+    skip_upload: auto
+    commit_author:
+      name: goreleaser-bot
+      email: bot@specht-labs.de
+    # tka is not Apple-notarized. Remove quarantine from the installed binary
+    # so Gatekeeper allows it to run, as with the other CLIs in the tap.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/tka"]
+          end
 
 checksum:
   name_template: "checksums.txt"
