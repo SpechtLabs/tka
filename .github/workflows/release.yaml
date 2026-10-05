@@ -182,3 +182,4 @@ jobs:
         env:
           CONFIG: ${{ github.event_name == 'workflow_dispatch' && format('{0}/goreleaser.yaml', runner.temp) || '.goreleaser.yaml' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
