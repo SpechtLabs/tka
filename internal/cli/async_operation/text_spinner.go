@@ -2,7 +2,6 @@ package async_operation
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -23,15 +22,18 @@ func newTextSpinner[T any](pollFunc PollFunc[T], opts *spinnerOptions, model *sp
 	}
 }
 
-func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
-	m.tea.ctx = ctx
+func (m textPollModel[T]) run(ctx context.Context) (*T, humane.Error) {
+	m.tea.ctx, m.tea.cancel = context.WithCancel(ctx)
+	defer m.tea.cancel()
 	m.tea.model.startedAt = time.Now()
-
-	var finalModel teaPollModel[T]
 
 	var msg tea.Msg = pollTriggerMsg{}
 
 	for {
+		if m.tea.ctx.Err() != nil {
+			return nil, m.tea.stoppedError()
+		}
+
 		var cmd tea.Cmd
 		m.tea.s, cmd = m.tea.s.Update(m.tea.s.Tick())
 		cmd()
@@ -45,22 +47,12 @@ func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 
 		msg = cmd()
 		if msg == tea.Quit() {
-			finalModel = model.(teaPollModel[T])
+			finalModel := model.(teaPollModel[T])
 			txt = finalModel.View()
 			if !m.tea.opts.quiet {
 				fmt.Printf("\r%s", txt)
 			}
-			break
+			return finalModel.outcome()
 		}
 	}
-
-	if finalModel.model.err != nil {
-		if herr, ok := errors.AsType[humane.Error](finalModel.model.err); ok {
-			return nil, herr
-		} else {
-			return nil, humane.Wrap(finalModel.model.err, "async operation failed", "check the server logs for more details")
-		}
-	}
-
-	return &finalModel.model.result, nil
 }
