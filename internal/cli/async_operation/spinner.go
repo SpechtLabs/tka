@@ -2,7 +2,6 @@ package async_operation
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/sierrasoftworks/humane-errors-go"
@@ -12,12 +11,7 @@ import (
 // Spinner is an interface for running a polling operation with visual feedback.
 // The generic type T represents the result type returned by the polling function.
 type Spinner[T any] interface {
-	// Run polls until the polling function succeeds, fails for good or runs
-	// out of attempts, or until ctx is done or Stop is called.
 	Run(context.Context) (*T, humane.Error)
-
-	// Stop ends a Run in progress, the same way canceling its context does.
-	Stop()
 }
 
 type spinnerModel[T any] struct {
@@ -28,17 +22,9 @@ type spinnerModel[T any] struct {
 	result       T
 }
 
-// pollRunner polls and draws the progress, in a terminal or as plain text.
-type pollRunner[T any] interface {
-	run(context.Context) (*T, humane.Error)
-}
-
 type spinnerImpl[T any] struct {
 	model   spinnerModel[T]
-	spinner pollRunner[T]
-
-	mu     sync.Mutex
-	cancel context.CancelFunc
+	spinner Spinner[T]
 }
 
 // PollFunc is a function type that performs a polling operation and returns
@@ -80,21 +66,5 @@ func NewSpinner[T any](pollFunc PollFunc[T], opts ...PollModelOption) Spinner[T]
 }
 
 func (s *spinnerImpl[T]) Run(ctx context.Context) (*T, humane.Error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	s.mu.Lock()
-	s.cancel = cancel
-	s.mu.Unlock()
-
-	return s.spinner.run(ctx)
-}
-
-func (s *spinnerImpl[T]) Stop() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.cancel != nil {
-		s.cancel()
-	}
+	return s.spinner.Run(ctx)
 }

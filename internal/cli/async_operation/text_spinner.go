@@ -22,7 +22,7 @@ func newTextSpinner[T any](pollFunc PollFunc[T], opts *spinnerOptions, model *sp
 	}
 }
 
-func (m textPollModel[T]) run(ctx context.Context) (*T, humane.Error) {
+func (m textPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 	m.tea.ctx, m.tea.cancel = context.WithCancel(ctx)
 	defer m.tea.cancel()
 	m.tea.model.startedAt = time.Now()

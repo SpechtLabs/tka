@@ -146,6 +146,14 @@ linters:
         text: "^lifecycle:"
         path: ^pkg/operator/operator\.go$
 
+      # A spinner's Run is a one-shot call: it blocks until the poll ends
+      # and starts nothing that outlives it. Its context is how it's
+      # stopped, so there's nothing for a Close or Stop to do.
+      - linters:
+          - golint-sl
+        text: '^lifecycle: type "\w+" has Run\(\) method but no Close\(\)'
+        path: ^internal/cli/async_operation/
+
       # nolintlint can't tell when a //nolint:golint-sl directive is used:
       # golangci-lint reports every one of them as unused, though removing
       # one brings back the finding it suppresses. Unused directives for the

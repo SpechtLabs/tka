@@ -84,7 +84,7 @@ func newTeaSpinner[T any](pollFunc PollFunc[T], opts *spinnerOptions, model *spi
 	}
 }
 
-func (m teaPollModel[T]) run(ctx context.Context) (*T, humane.Error) {
+func (m teaPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 	m.ctx, m.cancel = context.WithCancel(ctx)
 	defer m.cancel()
 	m.model.startedAt = time.Now()

@@ -81,39 +81,11 @@ func waitForRun(t *testing.T, done <-chan humane.Error) humane.Error {
 	}
 }
 
-func TestSpinnerStops(t *testing.T) {
-	tests := []struct {
-		name     string
-		terminal bool
-		// stop stops the spinner once it has polled once.
-		stop func(cancel context.CancelFunc, s Spinner[string])
-	}{
-		{
-			name:     "text spinner, context canceled",
-			terminal: false,
-			stop:     func(cancel context.CancelFunc, _ Spinner[string]) { cancel() },
-		},
-		{
-			name:     "text spinner, Stop called",
-			terminal: false,
-			stop:     func(_ context.CancelFunc, s Spinner[string]) { s.Stop() },
-		},
-		{
-			name:     "terminal spinner, context canceled",
-			terminal: true,
-			stop:     func(cancel context.CancelFunc, _ Spinner[string]) { cancel() },
-		},
-		{
-			name:     "terminal spinner, Stop called",
-			terminal: true,
-			stop:     func(_ context.CancelFunc, s Spinner[string]) { s.Stop() },
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+func TestSpinnerStopsWhenContextCanceled(t *testing.T) {
+	for _, terminal := range []bool{false, true} {
+		t.Run(map[bool]string{false: "text spinner", true: "terminal spinner"}[terminal], func(t *testing.T) {
 			polled := make(chan struct{}, 1)
-			s := newTestSpinner(t, tt.terminal, neverReady(polled),
+			s := newTestSpinner(t, terminal, neverReady(polled),
 				WithMaxAttempts(100),
 				WithDelay(time.Hour),
 			)
@@ -124,9 +96,10 @@ func TestSpinnerStops(t *testing.T) {
 			done := runAsync(ctx, s)
 			<-polled
 			// Give the spinner time to take the failed poll in and start its
-			// hour-long backoff, so that the stop has to cut that short.
+			// hour-long backoff, so that the cancellation has to cut that
+			// short.
 			time.Sleep(backoffSettle)
-			tt.stop(cancel, s)
+			cancel()
 
 			err := waitForRun(t, done)
 			require.ErrorIs(t, err, context.Canceled)
