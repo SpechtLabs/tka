@@ -17,10 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 	nooptrace "go.opentelemetry.io/otel/trace/noop"
 	"tailscale.com/tailcfg"
+	"tailscale.com/tailcfg/peercap"
 )
 
 // helper to build a cap map with one rule for a capability name.
-func buildCap(t *testing.T, capName tailcfg.PeerCapability, rule any) tailcfg.PeerCapMap {
+func buildCap(t *testing.T, capName peercap.Cap, rule any) tailcfg.PeerCapMap {
 	t.Helper()
 
 	b, _ := json.Marshal(rule)
@@ -60,7 +61,7 @@ type whoisResponse struct {
 }
 
 func TestGinAuthMiddleware(t *testing.T) {
-	capName := tailcfg.PeerCapability("specht-labs.de/cap/tka")
+	capName := peercap.Cap("specht-labs.de/cap/tka")
 
 	viewer := capability.Rule{Role: "viewer", Period: "10m", RulePriority: 100}
 	admin := capability.Rule{Role: "admin", Period: "10m", RulePriority: 200}

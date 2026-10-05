@@ -46,7 +46,3 @@ type TkaSigninList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []TkaSignin `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&TkaSignin{}, &TkaSigninList{})
-}

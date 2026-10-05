@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
-	"tailscale.com/tailcfg"
+	"tailscale.com/tailcfg/peercap"
 )
 
 func init() {
@@ -265,7 +265,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Create Tailscale server
 	srv := newTailscaleServer(debug)
 
-	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, tailcfg.PeerCapability(viper.GetString("tailscale.capName"))) //nolint:golint-sl // part of init sequence
+	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, peercap.Cap(viper.GetString("tailscale.capName"))) //nolint:golint-sl // part of init sequence
 
 	// Start the Tailscale connection
 	if err := srv.Start(ctx); err != nil {

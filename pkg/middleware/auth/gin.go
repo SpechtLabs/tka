@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"tailscale.com/tailcfg"
+	"tailscale.com/tailcfg/peercap"
 )
 
 // ginAuthMiddleware provides Tailscale-based authentication middleware for Gin HTTP servers.
@@ -33,7 +34,7 @@ import (
 //  4. Extracts and validates capability rules from Tailscale ACLs
 //  5. Stores username and capability in Gin context for handlers
 type ginAuthMiddleware[capRule tshttp.TailscaleCapability] struct {
-	capName     tailcfg.PeerCapability
+	capName     peercap.Cap
 	resolver    tshttp.WhoIsResolver
 	allowTagged bool
 	allowFunnel bool
@@ -43,7 +44,7 @@ type ginAuthMiddleware[capRule tshttp.TailscaleCapability] struct {
 // The middleware extracts capability rules from Tailscale ACL for each request,
 // makes username and rule available via GetUsername() and GetCapability(),
 // and rejects unauthorized users with appropriate HTTP status codes.
-func NewGinAuthMiddleware[capRule tshttp.TailscaleCapability](resolver tshttp.WhoIsResolver, capName tailcfg.PeerCapability, opts ...Option[capRule]) mw.Middleware {
+func NewGinAuthMiddleware[capRule tshttp.TailscaleCapability](resolver tshttp.WhoIsResolver, capName peercap.Cap, opts ...Option[capRule]) mw.Middleware {
 	mw := &ginAuthMiddleware[capRule]{
 		capName:     capName,
 		resolver:    resolver,
