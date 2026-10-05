@@ -12,7 +12,6 @@ import (
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -25,13 +24,11 @@ func FormatSigninObjectName(userName string) string {
 func NewSignin(userName, role string, validPeriod time.Duration, namespace string) *v1alpha1.TkaSignin {
 	now := time.Now()
 	return &v1alpha1.TkaSignin{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      FormatSigninObjectName(userName),
-			Namespace: namespace,
-			Annotations: map[string]string{
-				LastAttemptedSignIn: now.Format(time.RFC3339),
-				SignInValidUntil:    now.Add(validPeriod).Format(time.RFC3339),
-			},
+		Name:      FormatSigninObjectName(userName),
+		Namespace: namespace,
+		Annotations: map[string]string{
+			LastAttemptedSignIn: now.Format(time.RFC3339),
+			SignInValidUntil:    now.Add(validPeriod).Format(time.RFC3339),
 		},
 		Spec: v1alpha1.TkaSigninSpec{
 			Username:       userName,
@@ -49,10 +46,8 @@ func NewSignin(userName, role string, validPeriod time.Duration, namespace strin
 // NewServiceAccount creates a new Kubernetes ServiceAccount for the given TkaSignin resource.
 func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      FormatSigninObjectName(signIn.Spec.Username),
-			Namespace: signIn.Namespace,
-		},
+		Name:      FormatSigninObjectName(signIn.Spec.Username),
+		Namespace: signIn.Namespace,
 	}
 }
 
@@ -61,15 +56,15 @@ func NewServiceAccount(signIn *v1alpha1.TkaSignin) *corev1.ServiceAccount {
 //nolint:golint-sl // Startup validation: Fatal calls terminate on invalid input, scattered logs don't apply
 func NewKubeconfig(contextName string, clusterInfo *models.TkaClusterInfo, token string, clusterName string, userEntry string) *api.Config {
 	if clusterInfo == nil {
-		otelzap.L().Fatal("clusterInfo cannot be nil", //nolint:golint-sl // Startup Fatal, no context available
+		otelzap.L().Fatal("clusterInfo cannot be nil",
 			zap.String("context_name", contextName),
 			zap.String("cluster_name", clusterName),
 		)
 		return nil
 	}
-	caData, herr := base64.StdEncoding.DecodeString(clusterInfo.CAData) //nolint:golint-sl // caData is used after this if block
+	caData, herr := base64.StdEncoding.DecodeString(clusterInfo.CAData)
 	if herr != nil {
-		otelzap.L().WithError(herr).Fatal("failed to decode CA data", //nolint:golint-sl // Startup Fatal, no context available
+		otelzap.L().WithError(herr).Fatal("failed to decode CA data",
 			zap.String("context_name", contextName),
 			zap.String("cluster_name", clusterName),
 		)
@@ -127,10 +122,8 @@ func GetClusterRoleBindingName(signIn *v1alpha1.TkaSignin) string {
 // NewClusterRoleBinding creates a ClusterRoleBinding that grants the user the specified role.
 func NewClusterRoleBinding(signIn *v1alpha1.TkaSignin) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      GetClusterRoleBindingName(signIn),
-			Namespace: signIn.Namespace,
-		},
+		Name:      GetClusterRoleBindingName(signIn),
+		Namespace: signIn.Namespace,
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",

@@ -11,11 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func init() {
-	cmdConfig.Flags().BoolP("force", "f", false, "Create config file at the lowest tier if no config file exists")
-	cmdGetConfig.Flags().Bool("filename", false, "Show the filename of the config file used")
-}
-
 var cmdConfig = &cobra.Command{
 	Use:   "config [key] [value] [--force]",
 	Short: "Get or set configuration values",
@@ -133,6 +128,12 @@ $ tka get config output.theme --filename --quiet
 	Run:  runConfig,
 }
 
+// addConfigFlags defines the flags of the config commands.
+func addConfigFlags() {
+	cmdConfig.Flags().BoolP("force", "f", false, "Create config file at the lowest tier if no config file exists")
+	cmdGetConfig.Flags().Bool("filename", false, "Show the filename of the config file used")
+}
+
 func runConfig(cmd *cobra.Command, args []string) {
 	quiet := viper.GetBool("output.quiet")
 	showFilename, err := cmd.Flags().GetBool("filename")
@@ -178,7 +179,6 @@ func runConfig(cmd *cobra.Command, args []string) {
 	}
 }
 
-//nolint:golint-sl // CLI user output
 func printConfigValue(key string, showFilename, quiet bool) {
 	value := viper.Get(key)
 
@@ -196,13 +196,12 @@ func printConfigValue(key string, showFilename, quiet bool) {
 		} else {
 			pretty_print.PrintInfo(fmt.Sprintf("Configuration key not set: %s", key))
 		}
-
 	}
 }
 
 func setConfigValue(key, value string, forceCreate bool) humane.Error {
 	// Parse the value appropriately
-	parsedValue := parseValue(value) //nolint:golint-sl // parsed early, used after validation
+	parsedValue := parseValue(value)
 
 	// Get the config file that was used
 	configFileUsed := viper.ConfigFileUsed()
@@ -219,14 +218,14 @@ func setConfigValue(key, value string, forceCreate bool) humane.Error {
 			return humane.Wrap(err, "failed to determine home directory", "ensure $HOME is set")
 		}
 		configDir := fmt.Sprintf("%s/.config/tka", homeDir)
-		if err := os.MkdirAll(configDir, 0o755); err != nil {
+		if err := os.MkdirAll(configDir, 0o750); err != nil {
 			return humane.Wrap(err, "failed to create config directory", "check permissions for ~/.config/")
 		}
 		configPath := fmt.Sprintf("%s/config.yaml", configDir)
 		viper.SetConfigFile(configPath)
 		// Create empty file if not exists
 		if _, err := os.Stat(configPath); err != nil {
-			if f, cErr := os.Create(configPath); cErr == nil {
+			if f, cErr := os.Create(configPath); cErr == nil { //nolint:gosec // ~/.config/tka/config.yaml, built above
 				_ = f.Close()
 			}
 		}
@@ -257,7 +256,6 @@ func parseValue(value string) any {
 	return value
 }
 
-//nolint:golint-sl // CLI user output
 func showAllConfig(showFilename, quiet bool) {
 	if showFilename {
 		if quiet {

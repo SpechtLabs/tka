@@ -299,8 +299,8 @@ func TestRenderReferenceHelp(t *testing.T) {
 				assert.Contains(t, results[i], expectedCmd, "Help text %d should contain command name %s", i, expectedCmd)
 
 				// Verify the heading depth by counting # characters at the start of Usage lines
-				lines := strings.Split(results[i], "\n")
-				for _, line := range lines {
+				lines := strings.SplitSeq(results[i], "\n")
+				for line := range lines {
 					if strings.Contains(line, "Usage "+expectedCmd) || strings.Contains(line, "Usage testapp") {
 						// Count leading # characters
 						hashCount := 0

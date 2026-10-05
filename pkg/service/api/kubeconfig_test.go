@@ -15,7 +15,7 @@ import (
 
 func TestGetKubeconfigHandler(t *testing.T) {
 	m := mock.NewMockTkaClient()
-	_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
+	ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
 	cfg := &clientcmdapi.Config{Kind: "Config", APIVersion: "v1", CurrentContext: "x"}
 

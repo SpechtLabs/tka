@@ -44,7 +44,7 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 
 	// If no real causes left, just return the message alone
 	if len(nonNilCauses) == 0 {
-		return FromHumaneError(humane.New(message)) //nolint:golint-sl // internal error conversion, advice comes from original error
+		return FromHumaneError(humane.New(message))
 	}
 
 	// Build from the last cause (deepest), preserving advice if it's a humane error
@@ -53,7 +53,7 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 	if he, ok := lastCause.(humane.Error); ok {
 		herr = he
 	} else {
-		herr = humane.New(lastCause.Error()) //nolint:golint-sl // internal error conversion, advice comes from original error
+		herr = humane.New(lastCause.Error())
 	}
 
 	// Wrap each earlier one around it, preserving advice
@@ -62,18 +62,16 @@ func NewErrorResponse(message string, cause ...error) *ErrorResponse {
 		if he, ok := c.(humane.Error); ok {
 			herr = humane.Wrap(herr, he.Error(), he.Advice()...)
 		} else {
-			herr = humane.Wrap(herr, c.Error()) //nolint:golint-sl // internal error conversion, advice comes from original error
+			herr = humane.Wrap(herr, c.Error())
 		}
 	}
 
 	// Finally, wrap with the external message
-	return FromHumaneError(humane.Wrap(herr, message)) //nolint:golint-sl // internal error conversion, advice comes from original error
+	return FromHumaneError(humane.Wrap(herr, message))
 }
 
 // FromHumaneError converts a humane.Error to an ErrorResponse for JSON serialization.
 // This is the primary way to convert business logic errors into HTTP API responses.
-//
-//nolint:golint-sl // This function builds error responses, not logging
 func FromHumaneError(err humane.Error) *ErrorResponse {
 	if err == nil {
 		return nil
@@ -88,8 +86,7 @@ func FromHumaneError(err humane.Error) *ErrorResponse {
 	// Handle the cause chain recursively
 	if cause := err.Cause(); cause != nil {
 		// If the cause is a humane error, convert it recursively
-		var humaneErr humane.Error
-		if errors.As(cause, &humaneErr) {
+		if humaneErr, ok := errors.AsType[humane.Error](cause); ok {
 			resp.Cause = FromHumaneError(humaneErr)
 		} else {
 			// If it's a regular error, create a simple error response

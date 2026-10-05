@@ -41,7 +41,7 @@ func (t *TKAServer) getKubeconfig(ct *gin.Context) {
 	// Set initial span attributes
 	span.SetAttributes(attribute.String("kubeconfig.username", userName))
 
-	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil { //nolint:golint-sl // kubecfg used in else branch below
+	if kubecfg, err := t.client.GetKubeconfig(ctx, userName); err != nil || kubecfg == nil {
 		// Include Retry-After for other async/provisioning flows as a hint
 		ct.Header("Retry-After", strconv.Itoa(t.retryAfterSeconds))
 

@@ -84,7 +84,7 @@ func TestLogoutHandler(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			m := mock.NewMockTkaClient()
-			_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
+			ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
 			tc.setup(m.(*mock.MockTkaClient))
 			resp, body := doReq(t, ts, http.MethodPost, api.ApiRouteV1Alpha1+api.LogoutApiRoute, nil, nil)

@@ -1,28 +1,208 @@
-[tools]
-# Go version from your go.mod file
-go = "1.27.1"
+# .mise.toml — local tooling, exact pins (repo convention)
+#
+# The tasks below define how tka is built and checked. CI uses these tasks.
+# Renovate keeps every pin in this file current.
 
-# Node.js for JavaScript/TypeScript
-node = "24.21.0"
-npm = "11.18.0"
+[settings]
+# The pins below are the only source of tool versions; mise never reads them
+# from go.mod, .nvmrc and friends.
+idiomatic_version_file_enable_tools = []
+
+[tools]
+# The go directive in go.mod is the minimum language version, bumped by hand;
+# this is the toolchain everything builds with.
+go = "1.27.1"
 
 # Pre-commit for Git hooks
 pre-commit = "4.6.2"
 
-# Additional tools for development
+# Linters. golangci-lint must match the version in .custom-gcl.yml; Renovate
+# groups the two into one PR.
 golangci-lint = "2.14.0"
-"go:github.com/spechtlabs/golint-sl/cmd/golint-sl" = "latest"
+yamllint = "1.38.0"
+actionlint = "1.7.12"
+# actionlint runs shellcheck on every `run:` script when it's on PATH, and
+# silently skips them when it isn't.
+shellcheck = "0.11.0"
+
+# Release tooling. cosign signs the checksums and the container images
+# GoReleaser publishes.
 goreleaser = "2.18.2"
+cosign = "3.1.3"
+# Rewrites the image tags in a copy of .goreleaser.yaml for the main image (see
+# the image-main task).
+yq = "4.54.1"
+
+# Pins GitHub Actions to commit SHAs (see the update-gha task)
+pinact = "5.0.0"
+
+# Code generation: the CRD, the deepcopy functions and the RBAC role
+# (controller-gen), and the OpenAPI spec of the server's API (swag, which must
+# match github.com/swaggo/swag in go.mod).
+"go:sigs.k8s.io/controller-tools/cmd/controller-gen" = "0.22.0"
+swag = "1.16.6"
+
+# A local cluster to run the server against
 kind = "0.33.0"
 kubectl = "1.37.1"
+
+# Documentation website (docs/): VuePress builds under bun, and markdownlint-cli2
+# is the same version the docs workflow runs. markdownlint-cli2 is an npm
+# package, which mise installs with node.
+bun = "1.4.2"
+node = "24.21.0"
 markdownlint-cli2 = "0.23.3"
+[tasks.build]
+description = "Build the tka CLI and the server into bin/"
+run = [
+  "go build -o bin/tka ./cmd/cli",
+  "go build -o bin/ts-k8s-srv ./cmd/server",
+]
 
-swag = "1.16.6"
-"npm:npm-check-updates" = "latest"
+[tasks.test]
+description = "Run the test suite with race detector and coverage"
+run = "go test -race -covermode=atomic -coverpkg=./... -coverprofile=coverage.txt ./..."
 
-[env]
-# Set environment variables for Go development
-GO111MODULE = "on"
+# `mise run fmt` rewrites everything that has a canonical form; `mise run
+# lint` checks the same things without touching a file.
+[tasks.fmt]
+description = "Format everything: go.mod, Go sources and Markdown"
+run = [
+  { task = "go-tidy" },
+  { task = "go-fmt" },
+  { task = "md-fmt" },
+]
 
-# Vue.js related environment variables
-NODE_ENV = "development"
+[tasks.go-tidy]
+description = "Tidy go.mod and go.sum"
+run = "go mod tidy"
+
+# The same gofmt and goimports settings `mise run lint` checks, read from
+# .golangci.yaml.
+[tasks.go-fmt]
+description = "Format Go sources with the formatters configured for golangci-lint"
+run = "golangci-lint fmt"
+
+[tasks.md-fmt]
+description = "Fix what markdownlint can fix in the documentation and the README"
+run = "markdownlint-cli2 --fix"
+
+# golint-sl runs as a golangci-lint module plugin, so it has to be compiled into
+# a custom binary (./custom-gcl). Rebuilds only when .custom-gcl.yml changes.
+[tasks.lint-build]
+description = "Build the custom-gcl binary with the golint-sl plugin baked in"
+# The build downloads golangci-lint's whole dependency tree, and the module
+# proxy sometimes resets the HTTP/2 stream partway through. Modules already
+# downloaded stay in the cache, so a retry picks up where it failed.
+run = """
+for attempt in 1 2 3; do
+  golangci-lint custom && exit 0
+  echo "golangci-lint custom failed (attempt $attempt of 3)" >&2
+  sleep 10
+done
+exit 1
+"""
+sources = [".custom-gcl.yml"]
+outputs = ["custom-gcl"]
+
+# GoReleaser builds the tagged tree as it is, so an untidy go.mod has to fail
+# CI rather than be fixed up at release time.
+[tasks.mod-tidy]
+description = "Check that go.mod and go.sum are tidy"
+run = "go mod tidy -diff"
+
+[tasks.lint]
+description = "Lint the Go module with golangci-lint and golint-sl, YAML and workflows"
+depends = ["lint-build", "yaml-lint", "actionlint"]
+run = "./custom-gcl run ./..."
+
+[tasks.yaml-lint]
+description = "Lint every YAML file in the repository"
+run = "yamllint --strict ."
+
+[tasks.actionlint]
+description = "Lint the GitHub Actions workflows"
+run = "actionlint"
+
+[tasks.release-check]
+description = "Validate the GoReleaser config"
+run = "goreleaser check"
+
+# Everything a release publishes, built and not published: the archives, the
+# packages and the server images (which need docker with buildx). Signing
+# needs the release workflow's OIDC token, so it's skipped.
+[tasks.snapshot]
+description = "Build a GoReleaser snapshot of the release (archives, packages, images) into dist/"
+run = "goreleaser release --snapshot --clean --skip=sign"
+
+# The server image tagged main, which CONTRIBUTING.md has testers pull before a
+# release. GoReleaser builds it from a copy of .goreleaser.yaml whose image tags
+# yq rewrites to main-<arch>. A snapshot never publishes, so the task pushes
+# the two images and the multi-platform manifest itself. The release workflow
+# runs it on every push to main, logged in to ghcr.io.
+[tasks.image-main]
+description = "Build and push ghcr.io/spechtlabs/tka:main (the release workflow runs this on every push to main)"
+run = """
+set -euo pipefail
+config="$(mktemp "${TMPDIR:-/tmp}/goreleaser-main.XXXXXX")"
+yq '
+  .dockers[0].image_templates = ["ghcr.io/spechtlabs/tka:main-amd64"] |
+  .dockers[1].image_templates = ["ghcr.io/spechtlabs/tka:main-arm64"] |
+  del(.docker_manifests) | del(.docker_signs)
+' .goreleaser.yaml > "$config"
+goreleaser release --snapshot --clean --skip=sign,archive,nfpm --config "$config"
+docker push ghcr.io/spechtlabs/tka:main-amd64
+docker push ghcr.io/spechtlabs/tka:main-arm64
+docker buildx imagetools create -t ghcr.io/spechtlabs/tka:main ghcr.io/spechtlabs/tka:main-amd64 ghcr.io/spechtlabs/tka:main-arm64
+"""
+
+[tasks.check]
+description = "The definition of done: every gate CI runs on the Go code"
+depends = [
+  "lint",
+  "mod-tidy",
+  "test",
+  "yaml-lint",
+  "actionlint",
+  "release-check",
+]
+
+[tasks.update-gha]
+description = "Pin GitHub Actions to commit SHAs (Renovate keeps them current afterwards)"
+run = "pinact run -e 'SpechtLabs/StaticPages-Upload'"
+
+# controller-gen writes the deepcopy functions next to the API types, and the
+# CRD and the RBAC role into config/; swag writes the server's OpenAPI spec
+# into pkg/swagger, which the docs site serves a copy of.
+[tasks.generate]
+description = "Regenerate the deepcopy functions, the CRD, the RBAC role and the OpenAPI spec"
+run = [
+  "controller-gen object:headerFile=./hack/boilerplate.go.txt paths=./...",
+  "controller-gen rbac:roleName=tka-role crd paths=./... output:crd:artifacts:config=config/crd/bases",
+  "swag init --dir ./pkg/service/ --generalInfo docs.go --output ./pkg/swagger --parseDependency --parseDepth 3",
+  "cp pkg/swagger/swagger.json docs/.vuepress/public/swagger.json",
+]
+
+[tasks.docs-lint]
+description = "Lint the documentation markdown (the docs workflow's first job)"
+run = "markdownlint-cli2"
+
+# The CLI reference is generated from the cobra commands and the API reference
+# serves the spec in pkg/swagger, so the site always documents the CLI and
+# the API it was built with.
+[tasks.docs-generate]
+description = "Generate the CLI reference page and copy the OpenAPI spec into the docs site"
+run = [
+  "go run ./cmd/cli generate documentation docs/reference/cli.md --front-matter",
+  "cp pkg/swagger/swagger.json docs/.vuepress/public/swagger.json",
+]
+
+[tasks.docs-dev]
+description = "Serve the documentation website locally with hot reload"
+depends = ["docs-generate"]
+run = "cd docs && bun install && bun run dev"
+
+[tasks.docs-build]
+description = "Build the documentation website (the docs workflow's second job)"
+depends = ["docs-generate"]
+run = "cd docs && bun install --frozen-lockfile && bun run build"

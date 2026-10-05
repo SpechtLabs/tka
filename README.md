@@ -97,36 +97,36 @@ The server runs inside your cluster and is only accessible via your Tailscale ne
 
 ### Prerequisites
 
-- Go 1.21+
+- [mise](https://mise.jdx.dev/), which installs the pinned Go toolchain and every other tool (`mise install`)
 - Kubernetes cluster (for testing)
 - Tailscale account and tailnet
 
 ### Building
 
 ```bash
-# Build CLI
-make build-cli
+# Build the CLI and the server into bin/
+mise run build
 
-# Build server
-make build-server
+# Run every check CI runs: lint, go.mod tidiness, tests, GoReleaser config
+mise run check
 
-# Run tests
-make test
+# Regenerate the CRD, deepcopy functions, RBAC role and OpenAPI spec
+mise run generate
 
-# Generate documentation
-make docs
+# Serve the documentation website locally
+mise run docs-dev
 ```
 
 ### Running Locally
 
 ```bash
-# Start development server
-make dev-server
+# Start the server
+go run ./cmd/server serve
 
 # Run CLI against local server
 export TKA_TAILSCALE_HOSTNAME=localhost
 export TKA_TAILSCALE_PORT=8080
-./bin/tka-cli login
+./bin/tka login
 ```
 
 ## Security Model

@@ -11,6 +11,7 @@ import (
 
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	humane "github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
@@ -36,33 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"tailscale.com/tailcfg/peercap"
 )
-
-func init() {
-	serveCmd.PersistentFlags().Int("health-port", 8080, "Port for the local metrics and health check server")
-	viper.SetDefault("health.port", 8080)
-	err := viper.BindPFlag("health.port", serveCmd.PersistentFlags().Lookup("health-port"))
-	if err != nil {
-		panic(humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key"))
-	}
-
-	serveCmd.PersistentFlags().String("api-endpoint", "", "API endpoint for the Kubernetes cluster")
-	viper.SetDefault("clusterInfo.apiEndpoint", "")
-	serveCmd.PersistentFlags().String("ca-data", "", "CA data for the Kubernetes cluster")
-	viper.SetDefault("clusterInfo.caData", "")
-	serveCmd.PersistentFlags().Bool("insecure-skip-tls-verify", false, "Skip TLS verification for the Kubernetes cluster")
-	viper.SetDefault("clusterInfo.insecureSkipTLSVerify", false)
-	serveCmd.PersistentFlags().StringToString("labels", nil, "Labels for the Kubernetes cluster")
-	viper.SetDefault("clusterInfo.labels", map[string]string{})
-
-	// Defaults for optional ConfigMap reference-based configuration (nested under clusterInfo)
-	viper.SetDefault("clusterInfo.configMapRef.enabled", false)
-	viper.SetDefault("clusterInfo.configMapRef.name", "cluster-info")
-	viper.SetDefault("clusterInfo.configMapRef.namespace", "kube-public")
-	viper.SetDefault("clusterInfo.configMapRef.keys.apiEndpoint", "apiEndpoint")
-	viper.SetDefault("clusterInfo.configMapRef.keys.caData", "caData")
-	viper.SetDefault("clusterInfo.configMapRef.keys.insecure", "insecure")
-	viper.SetDefault("clusterInfo.configMapRef.keys.kubeconfig", "kubeconfig")
-}
 
 var (
 	serveCmd = &cobra.Command{
@@ -101,10 +75,40 @@ tka serve --api-endpoint https://localhost:6443 --insecure-skip-tls-verify --lab
 	}
 )
 
+// addServeFlags defines the serve command's flags and the defaults of the
+// configuration they override.
+func addServeFlags() humane.Error {
+	serveCmd.PersistentFlags().Int("health-port", 8080, "Port for the local metrics and health check server")
+	viper.SetDefault("health.port", 8080)
+	if err := viper.BindPFlag("health.port", serveCmd.PersistentFlags().Lookup("health-port")); err != nil {
+		return humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key")
+	}
+
+	serveCmd.PersistentFlags().String("api-endpoint", "", "API endpoint for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.apiEndpoint", "")
+	serveCmd.PersistentFlags().String("ca-data", "", "CA data for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.caData", "")
+	serveCmd.PersistentFlags().Bool("insecure-skip-tls-verify", false, "Skip TLS verification for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.insecureSkipTLSVerify", false)
+	serveCmd.PersistentFlags().StringToString("labels", nil, "Labels for the Kubernetes cluster")
+	viper.SetDefault("clusterInfo.labels", map[string]string{})
+
+	// Defaults for optional ConfigMap reference-based configuration (nested under clusterInfo)
+	viper.SetDefault("clusterInfo.configMapRef.enabled", false)
+	viper.SetDefault("clusterInfo.configMapRef.name", "cluster-info")
+	viper.SetDefault("clusterInfo.configMapRef.namespace", "kube-public")
+	viper.SetDefault("clusterInfo.configMapRef.keys.apiEndpoint", "apiEndpoint")
+	viper.SetDefault("clusterInfo.configMapRef.keys.caData", "caData")
+	viper.SetDefault("clusterInfo.configMapRef.keys.insecure", "insecure")
+	viper.SetDefault("clusterInfo.configMapRef.keys.kubeconfig", "kubeconfig")
+
+	return nil
+}
+
 func configureGinMode(debug bool) {
 	if debug {
 		configFileName := viper.GetViper().ConfigFileUsed()
-		if file, err := os.ReadFile(configFileName); err == nil && len(file) > 0 {
+		if file, err := os.ReadFile(configFileName); err == nil && len(file) > 0 { //nolint:gosec // the config file viper loaded
 			otelzap.L().Sugar().With(
 				"config_file", configFileName,
 				string(file), "config", string(file),
@@ -145,63 +149,7 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 	}
 
 	if useCMRef {
-		name := viper.GetString("clusterInfo.configMapRef.name")
-		namespace := viper.GetString("clusterInfo.configMapRef.namespace")
-		if name == "" || namespace == "" {
-			return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true", "set CLUSTER_INFO_CONFIGMAP_REF_NAME and CLUSTER_INFO_CONFIGMAP_REF_NAMESPACE environment variables")
-		}
-
-		keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")       //nolint:golint-sl // config keys grouped for readability
-		keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")             //nolint:golint-sl // config keys grouped for readability
-		keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")     //nolint:golint-sl // config keys grouped for readability
-		kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig") //nolint:golint-sl // config keys grouped for readability
-
-		restCfg, err := ctrl.GetConfig()
-		if err != nil {
-			return nil, humane.Wrap(err, "failed to get Kubernetes rest config", "ensure the server is running inside a Kubernetes cluster")
-		}
-		clientset, err := kubernetes.NewForConfig(restCfg)
-		if err != nil {
-			return nil, humane.Wrap(err, "failed to create Kubernetes clientset", "check cluster connectivity and authentication")
-		}
-
-		cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return nil, humane.Wrap(err, "failed to read configMapRef ConfigMap", "verify the ConfigMap exists and the server has read permissions")
-		}
-
-		serverURL := cm.Data[keyAPI]
-		caData := cm.Data[keyCA]
-		insecure := parseBoolish(cm.Data[keyInsecure]) //nolint:golint-sl // insecure used in struct below
-
-		// kubeadm cluster-info configmap supports embedding a kubeconfig in a single key
-		if serverURL == "" && caData == "" && kubeconfigKey != "" {
-			if yamlKubeconfig, ok := cm.Data[kubeconfigKey]; ok && yamlKubeconfig != "" {
-				cfg, err := clientcmd.Load([]byte(yamlKubeconfig))
-				if err != nil {
-					return nil, humane.Wrap(err, "failed to parse kubeconfig from ConfigMap", "verify the kubeconfig data in the ConfigMap is valid YAML")
-				}
-				// Use the first cluster entry
-				for _, cluster := range cfg.Clusters {
-					serverURL = cluster.Server
-					if len(cluster.CertificateAuthorityData) > 0 {
-						caData = base64.StdEncoding.EncodeToString(cluster.CertificateAuthorityData)
-					}
-					break
-				}
-			}
-		}
-
-		if serverURL == "" {
-			return nil, humane.New("configMapRef missing api endpoint", fmt.Sprintf("ConfigMap %s/%s missing key '%s'", namespace, name, keyAPI))
-		}
-
-		return &models.TkaClusterInfo{
-			ServerURL:             serverURL,
-			CAData:                caData,
-			InsecureSkipTLSVerify: insecure,
-			Labels:                viper.GetStringMapString("clusterInfo.labels"),
-		}, nil
+		return loadClusterInfoFromConfigMap(ctx)
 	}
 
 	clusterInfo := &models.TkaClusterInfo{
@@ -216,6 +164,78 @@ func loadClusterInfo(ctx context.Context) (*models.TkaClusterInfo, humane.Error)
 	}
 
 	return clusterInfo, nil
+}
+
+// loadClusterInfoFromConfigMap reads the cluster's API endpoint and CA from the
+// ConfigMap clusterInfo.configMapRef points at, such as kubeadm's cluster-info.
+func loadClusterInfoFromConfigMap(ctx context.Context) (*models.TkaClusterInfo, humane.Error) {
+	name := viper.GetString("clusterInfo.configMapRef.name")
+	namespace := viper.GetString("clusterInfo.configMapRef.namespace")
+	if name == "" || namespace == "" {
+		return nil, humane.New("configMapRef.name and configMapRef.namespace are required when configMapRef.enabled is true", "set CLUSTER_INFO_CONFIGMAP_REF_NAME and CLUSTER_INFO_CONFIGMAP_REF_NAMESPACE environment variables")
+	}
+
+	keyAPI := viper.GetString("clusterInfo.configMapRef.keys.apiEndpoint")
+	keyCA := viper.GetString("clusterInfo.configMapRef.keys.caData")
+	keyInsecure := viper.GetString("clusterInfo.configMapRef.keys.insecure")
+	kubeconfigKey := viper.GetString("clusterInfo.configMapRef.keys.kubeconfig")
+
+	restCfg, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to get Kubernetes rest config", "ensure the server is running inside a Kubernetes cluster")
+	}
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to create Kubernetes clientset", "check cluster connectivity and authentication")
+	}
+
+	cm, err := clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, humane.Wrap(err, "failed to read configMapRef ConfigMap", "verify the ConfigMap exists and the server has read permissions")
+	}
+
+	serverURL := cm.Data[keyAPI]
+	caData := cm.Data[keyCA]
+	insecure := parseBoolish(cm.Data[keyInsecure])
+
+	// kubeadm cluster-info configmap supports embedding a kubeconfig in a single key
+	if yamlKubeconfig := cm.Data[kubeconfigKey]; serverURL == "" && caData == "" && kubeconfigKey != "" && yamlKubeconfig != "" {
+		var herr humane.Error
+		if serverURL, caData, herr = clusterFromKubeconfig(yamlKubeconfig); herr != nil {
+			return nil, herr
+		}
+	}
+
+	if serverURL == "" {
+		return nil, humane.New("configMapRef missing api endpoint", fmt.Sprintf("ConfigMap %s/%s missing key '%s'", namespace, name, keyAPI))
+	}
+
+	return &models.TkaClusterInfo{
+		ServerURL:             serverURL,
+		CAData:                caData,
+		InsecureSkipTLSVerify: insecure,
+		Labels:                viper.GetStringMapString("clusterInfo.labels"),
+	}, nil
+}
+
+// clusterFromKubeconfig returns the server URL and the base64-encoded CA data of
+// the first cluster in a kubeconfig.
+func clusterFromKubeconfig(yamlKubeconfig string) (serverURL, caData string, herr humane.Error) {
+	cfg, err := clientcmd.Load([]byte(yamlKubeconfig))
+	if err != nil {
+		return "", "", humane.Wrap(err, "failed to parse kubeconfig from ConfigMap", "verify the kubeconfig data in the ConfigMap is valid YAML")
+	}
+
+	// Use the first cluster entry
+	for _, cluster := range cfg.Clusters {
+		serverURL = cluster.Server
+		if len(cluster.CertificateAuthorityData) > 0 {
+			caData = base64.StdEncoding.EncodeToString(cluster.CertificateAuthorityData)
+		}
+		break
+	}
+
+	return serverURL, caData, nil
 }
 
 func newTailscaleServer(debug bool) *ts.Server {
@@ -255,7 +275,18 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 		return herr
 	}
 
-	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts) //nolint:golint-sl // part of init sequence, used in LoadApiRoutes
+	// The operator's metrics go to controller-runtime's registry, the API's to
+	// the default one; the health server serves both.
+	if herr := koperator.RegisterMetrics(metrics.Registry); herr != nil {
+		cancelFn(herr)
+		return herr
+	}
+	if herr := api.RegisterMetrics(prometheus.DefaultRegisterer); herr != nil {
+		cancelFn(herr)
+		return herr
+	}
+
+	k8sOperator, err := koperator.NewK8sOperator(clusterInfo, clientOpts)
 	if err != nil {
 		herr := humane.Wrap(err, "failed to initialize Kubernetes operator", "check cluster connectivity and permissions")
 		cancelFn(herr)
@@ -265,7 +296,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	// Create Tailscale server
 	srv := newTailscaleServer(debug)
 
-	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, peercap.Cap(viper.GetString("tailscale.capName"))) //nolint:golint-sl // part of init sequence
+	authMiddleware := authMw.NewGinAuthMiddleware[capability.Rule](srv, peercap.Cap(viper.GetString("tailscale.capName")))
 
 	// Start the Tailscale connection
 	if err := srv.Start(ctx); err != nil {
@@ -290,7 +321,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 	}
 
 	// Create local metrics server
-	healthSrv := newHealthServer(srv, sharedPrometheus)
+	healthSrv := newHealthServer(srv)
 	healthSrv.Addr = fmt.Sprintf(":%d", getHealthPort())
 
 	// Start TKA server (Tailscale)
@@ -388,7 +419,7 @@ func runE(cmd *cobra.Command, _ []string) humane.Error {
 }
 
 // newHealthServer creates a local HTTP server for metrics and health checks
-func newHealthServer(tsServer ts.TailscaleServer, prom *ginprometheus.Prometheus) *http.Server {
+func newHealthServer(tsServer ts.TailscaleServer) *http.Server {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(ginzap.GinzapWithConfig(otelzap.L(), &ginzap.Config{

@@ -105,9 +105,10 @@ type Server struct {
 	// Embedded http.Server makes this a true drop-in replacement
 	*http.Server
 
-	// Configuration options
-	debug bool
-	port  int
+	// Tailscale components
+	ts    TSNet            // Abstracted tsnet server for testability
+	whois WhoIsResolver    // Resolver for WhoIs lookups
+	st    *ipnstate.Status // Connection status
 
 	// stateDir specifies the directory to use for Tailscale state storage.
 	// If empty, a directory is selected automatically under os.UserConfigDir
@@ -116,15 +117,15 @@ type Server struct {
 	// If you want to use multiple tsnet services in the same binary, you will
 	// need to make sure that stateDir is set uniquely for each service. A good
 	// pattern is to have a "base" directory and append the hostname.
-	stateDir string
-	hostname string
+	stateDir  string
+	hostname  string
+	serverURL string // Full server URL (e.g., "https://myapp.tailnet.ts.net:443")
 
-	// Tailscale components
-	ts        TSNet            // Abstracted tsnet server for testability
-	whois     WhoIsResolver    // Resolver for WhoIs lookups
-	st        *ipnstate.Status // Connection status
-	serverURL string           // Full server URL (e.g., "https://myapp.tailnet.ts.net:443")
-	started   bool             // Track if Start() has been called
+	// Configuration options
+	port  int
+	debug bool
+
+	started bool // Track if Start() has been called
 }
 
 // NewServer creates a new Tailscale HTTP server with the given hostname and options.
@@ -150,7 +151,7 @@ type Server struct {
 // stopped with Shutdown().
 func NewServer(hostname string, opts ...Option) *Server {
 	// Initialize Tailscale server
-	ts := &tsnet.Server{Hostname: hostname} //nolint:golint-sl // used in Server struct below
+	ts := &tsnet.Server{Hostname: hostname}
 
 	// Construct the underlying http.Server with sane defaults
 	httpSrv := &http.Server{
@@ -436,7 +437,7 @@ func (s *Server) ServeFunnel(ctx context.Context, handler http.Handler) humane.E
 // Shutdown gracefully shuts down the tailscale server
 func (s *Server) Shutdown(ctx context.Context) humane.Error {
 	if s.Server != nil {
-		if err := s.Server.Shutdown(ctx); err != nil { //nolint:golint-sl // nested if needed for error capture
+		if err := s.Server.Shutdown(ctx); err != nil {
 			return humane.Wrap(err, "failed to shutdown HTTP server", "consider extending the shutdown timeout")
 		}
 	}

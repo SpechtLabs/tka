@@ -1,0 +1,20 @@
+# Codecov fails a pull request when the lines it changes are less than 85%
+# covered, or when it lowers the project's coverage. The project target follows
+# the base branch (auto) rather than a fixed 85%, because the operator, the
+# Kubernetes client and the CLI's terminal output are mostly untested and the
+# project sits well below it; raise it to 85% once the project gets there.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 85%
+
+# Generated code and test doubles aren't code under test.
+ignore:
+  - "**/zz_generated.deepcopy.go"
+  - "pkg/swagger/**"
+  - "**/mock/**"

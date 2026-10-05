@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: tkasignins.tka.specht-labs.de
 spec:
   group: tka.specht-labs.de
@@ -58,6 +58,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: TkaSigninSpec defines the desired state of a TkaSignin resource.
             properties:
               role:
                 type: string
@@ -71,6 +72,8 @@ spec:
             - validity_period
             type: object
           status:
+            description: TkaSigninStatus defines the observed state of a TkaSignin
+              resource.
             properties:
               provisioned:
                 type: boolean

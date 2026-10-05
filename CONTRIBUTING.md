@@ -80,4 +80,4 @@ All images are multi-architecture (linux/amd64 and linux/arm64).
 - **Never edit CHANGELOG.md manually** - It's generated from commits
 - **Use conventional commits** - They drive the entire release process
 - **Test with `:main` tag** - Before cutting a release, test the main branch image
-- **Retry failed releases** - Delete the failed tag and re-run the workflow
+- **Repair failed releases** - Run the Release workflow from the Actions tab with the existing tag; it publishes the tag with the GoReleaser config on `main`

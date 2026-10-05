@@ -2,7 +2,7 @@ package operator
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	humane "github.com/sierrasoftworks/humane-errors-go"
 )
 
 var reconcilerDuration = prometheus.NewHistogramVec(
@@ -40,8 +40,15 @@ var activeUserSessions = prometheus.NewGaugeVec(
 	},
 )
 
-func init() {
-	metrics.Registry.MustRegister(reconcilerDuration)
-	metrics.Registry.MustRegister(userSignInsTotal)
-	metrics.Registry.MustRegister(activeUserSessions)
+// RegisterMetrics registers the operator's metrics with reg. The server registers
+// them once at startup with controller-runtime's registry, which its metrics
+// endpoint serves.
+func RegisterMetrics(reg prometheus.Registerer) humane.Error {
+	for _, c := range []prometheus.Collector{reconcilerDuration, userSignInsTotal, activeUserSessions} {
+		if err := reg.Register(c); err != nil {
+			return humane.Wrap(err, "failed to register the operator metrics", "register them once, before the operator starts")
+		}
+	}
+
+	return nil
 }

@@ -108,7 +108,7 @@ func (m *MockTSNet) SetLogf(logf func(string, ...any)) {
 // It provides minimal functionality to satisfy the net.Listener interface.
 type nopListener struct{}
 
-// Accept always returns context.Canceled to simulate a cancelled listener.
+// Accept always returns context.Canceled to simulate a canceled listener.
 func (nopListener) Accept() (net.Conn, error) { return nil, context.Canceled }
 
 // Close always returns nil (successful close).

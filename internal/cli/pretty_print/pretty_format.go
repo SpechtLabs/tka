@@ -76,7 +76,7 @@ func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Opt
 
 	// Process context with proper indentation
 	indent := strings.Repeat(" ", options.IndentSize)
-	var additionalContext string
+	var additionalContext strings.Builder
 	for _, c := range context {
 		var contextText string
 		if options.NoColor {
@@ -84,7 +84,7 @@ func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Opt
 		} else {
 			contextText = options.ContextStyle(options.Theme).Render(c)
 		}
-		additionalContext += fmt.Sprintf("\n%s%s", indent, contextText)
+		fmt.Fprintf(&additionalContext, "\n%s%s", indent, contextText)
 	}
 
 	// Create the complete log line
@@ -94,7 +94,7 @@ func FormatWithOptions(lvl PrintLevel, msg string, context []string, opts ...Opt
 		newline = ""
 	}
 
-	return fmt.Sprintf("%s%s %s%s%s", timestamp, status, message, additionalContext, newline)
+	return fmt.Sprintf("%s%s %s%s%s", timestamp, status, message, additionalContext.String(), newline)
 }
 
 // Format formats a message with the global options and returns it as a string

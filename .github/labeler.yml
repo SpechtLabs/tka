@@ -77,24 +77,35 @@ documentation:
           - 'docs/**'
           - '**/*.md'
 
-# Build system files
+# Build, release, and CI plumbing
 build:
   - changed-files:
       - any-glob-to-any-file:
           - '.github/**'
-          - 'Makefile'
           - 'Dockerfile'
+          - '.goreleaser.yaml'
+          - '.release-please-config.json'
+          - '.release-please-manifest.json'
+          - '.mise.toml'
+          - '.golangci.yaml'
+          - '.custom-gcl.yml'
+          - '.pre-commit-config.yaml'
+          - '.markdownlint-cli2.yaml'
+          - '.yamllint.yaml'
+          - '.editorconfig'
+          - 'codecov.yml'
+          - 'renovate.json'
           - 'go.mod'
           - 'go.sum'
-          - 'renovate.json'
 
-# Add 'enhancement' label to any PR where the head branch name starts with `feature`
+# Add 'enhancement' to any PR whose head branch starts with `feat` or `feature`
 enhancement:
   - head-branch:
-    - '^feature'
+      - '^feat'
+      - '^feature'
 
-# Add 'bug' label to any PR where the head branch name starts with `feature`
+# Add 'bug' to any PR whose head branch starts with `fix` or `bug`
 bug:
   - head-branch:
-      - '^bug'
       - '^fix'
+      - '^bug'

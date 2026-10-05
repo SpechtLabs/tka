@@ -10,10 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func init() {
-	cmdSignIn.PersistentFlags().Bool("shell", false, "Start a subshell with temporary Kubernetes access")
-}
-
 var cmdSignIn = &cobra.Command{
 	Use:     "login [--quiet|-q] [--long|-l|--no-eval|-e] [--shell]",
 	Aliases: []string{"signin", "auth"},
@@ -39,9 +35,8 @@ kubectl get pods`,
 		}
 
 		if useShell {
-			err := forkShell(cmd, args)
-			if err != nil {
-				pretty_print.PrintError(err)
+			if shellErr := forkShell(cmd, args); shellErr != nil {
+				pretty_print.PrintError(shellErr)
 				os.Exit(1)
 			} else {
 				return
@@ -56,4 +51,11 @@ kubectl get pods`,
 
 		printUseStatement(file, quiet)
 	},
+}
+
+// addPlatformCommands wires what only works on Unix, where tka can run a
+// subshell on a pseudo-terminal: the login --shell flag and the shell command.
+func addPlatformCommands(root *cobra.Command) {
+	cmdSignIn.PersistentFlags().Bool("shell", false, "Start a subshell with temporary Kubernetes access")
+	root.AddCommand(cmdShell)
 }

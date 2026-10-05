@@ -1,23 +1,22 @@
 repos:
+  - repo: https://github.com/SpechtLabs/golint-sl
+    rev: v0.1.11
+    hooks:
+      - id: golint-sl
+
+  # Regenerates the OpenAPI spec when the API handlers change.
   - repo: local
     hooks:
-      - id: make-generate
-        name: Run 'make generate'
-        entry: make generate
+      - id: swag
+        name: swag
+        entry: mise exec -- swag init --dir ./pkg/service/ --generalInfo docs.go --output ./pkg/swagger --parseDependency --parseDepth 3
         language: system
         pass_filenames: false
-        files: ^pkg/service/.*/api/.*\.go$
-        stages: [pre-commit]
-      - id: golangci-lint
-        name: golangci-lint
-        entry: bash -lc 'golangci-lint run'
-        language: system
-        pass_filenames: false
-        files: ^.*\.(go|mod|sum)$
-        stages: [pre-commit]
+        files: ^pkg/service/.*\.go$
+
   # Generic pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0  # Use the latest version from https://github.com/pre-commit/pre-commit-hooks/releases
+    rev: v6.0.0
     hooks:
       - id: check-merge-conflict
       - id: detect-private-key
@@ -27,20 +26,31 @@ repos:
       - id: end-of-file-fixer
         exclude: ^pkg/swagger/
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: check-json
       - id: mixed-line-ending
         exclude: ^pkg/swagger/
       - id: check-added-large-files
         name: check for added large files
         description: Prevents giant files from being committed
-        args: ['--maxkb=500']
+        args: ["--maxkb=500"]
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.18.1
+    rev: v0.23.3
     hooks:
       - id: markdownlint-cli2
 
+  # Runs the mise-pinned actionlint (and shellcheck) rather than a copy
+  # pre-commit would build, so the hook and CI agree on the version.
+  - repo: local
+    hooks:
+      - id: actionlint
+        name: actionlint
+        entry: mise exec -- actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0  # Use the latest version
+    rev: v8.30.1
     hooks:
       - id: gitleaks

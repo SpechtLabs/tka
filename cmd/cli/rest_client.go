@@ -88,5 +88,4 @@ func handleAPIError(resp *http.Response, body []byte) humane.Error {
 	}
 
 	return humane.New(string(body), "the server returned an unexpected error format")
-
 }
