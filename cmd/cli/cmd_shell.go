@@ -20,10 +20,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func init() {
-	cmdRoot.AddCommand(cmdShell)
-}
-
 var cmdShell = &cobra.Command{
 	Use:   "shell",
 	Short: "Start a subshell with temporary Kubernetes access via Tailscale identity",
@@ -84,22 +80,18 @@ func cleanup(quiet bool, kubeCfgPath string) {
 	var wg sync.WaitGroup
 
 	// sign out (revoke credentials)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		if err := signOut(nil, nil); err != nil && !quiet {
 			pretty_print.PrintError(humane.Wrap(err, "failed to sign out cleanly", "your session may still be active; run 'tka logout' to sign out manually"))
 		}
-	}()
+	})
 
 	// remove temporary kubeconfig file
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		if err := os.Remove(kubeCfgPath); err != nil && !quiet {
 			pretty_print.PrintError(humane.Wrap(err, "failed to remove temporary kubeconfig", "remove it manually: "+kubeCfgPath))
 		}
-	}()
+	})
 
 	wg.Wait()
 }
@@ -117,7 +109,7 @@ func runShellWithContext(ctx context.Context, kubeconfig string) error {
 	}
 
 	// 3. Create the subshell
-	cmd := exec.CommandContext(ctx, shell)
+	cmd := exec.CommandContext(ctx, shell) //nolint:gosec // the user's own login shell, from $SHELL
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -244,9 +236,9 @@ func resizeChildTerm(cmd *exec.Cmd) {
 	if fd := int(os.Stdin.Fd()); term.IsTerminal(fd) {
 		if w, h, err := term.GetSize(fd); err == nil {
 			// TIOCSWINSZ ioctl to set window size
-			_ = unix.IoctlSetWinsize(int(cmd.Process.Pid), syscall.TIOCSWINSZ, &unix.Winsize{
-				Row: uint16(h),
-				Col: uint16(w),
+			_ = unix.IoctlSetWinsize(cmd.Process.Pid, syscall.TIOCSWINSZ, &unix.Winsize{
+				Row: uint16(h), //nolint:gosec // the kernel keeps terminal sizes as uint16
+				Col: uint16(w), //nolint:gosec // the kernel keeps terminal sizes as uint16
 			})
 		}
 	}

@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -33,14 +32,14 @@ const (
 
 // reconcileEvent captures all context for a single reconciliation wide event.
 type reconcileEvent struct {
+	err        error
 	name       string
 	namespace  string
 	username   string
 	operation  string
-	success    bool
-	err        error
 	requeueIn  time.Duration
 	durationMs int64
+	success    bool
 }
 
 // +kubebuilder:rbac:groups=tka.specht-labs.de,resources=TkaSignin,verbs=get;list;watch;create;update;patch;delete
@@ -48,7 +47,7 @@ type reconcileEvent struct {
 // +kubebuilder:rbac:groups=tka.specht-labs.de,resources=TkaSignin/finalizers,verbs=update
 
 func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
-	startTime := time.Now()
+	startTime := t.clock.Now()
 	ctx, span := t.tracer.Start(ctx, "KubeOperator.Reconcile")
 
 	// Initialize wide event context
@@ -61,8 +60,8 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 
 	// Emit wide event data to span attributes and log at the end
 	defer func() {
-		event.durationMs = time.Since(startTime).Milliseconds()
-		reconcilerDuration.WithLabelValues("user", req.Name, req.Namespace).Observe(float64(time.Since(startTime).Microseconds()))
+		event.durationMs = t.clock.Since(startTime).Milliseconds()
+		reconcilerDuration.WithLabelValues("user", req.Name, req.Namespace).Observe(float64(t.clock.Since(startTime).Microseconds()))
 
 		// Set span attributes for wide event data
 		span.SetAttributes(
@@ -94,10 +93,8 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 	if err := c.Get(ctx, req.NamespacedName, signIn); err != nil {
 		if k8serrors.IsNotFound(err) {
 			signIn = &v1alpha1.TkaSignin{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      req.Name,
-					Namespace: req.Namespace,
-				},
+				Name:      req.Name,
+				Namespace: req.Namespace,
 				Spec: v1alpha1.TkaSigninSpec{
 					Username: strings.TrimPrefix(req.Name, k8s.DefaultUserEntryPrefix),
 				},
@@ -108,7 +105,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 			if err := t.signOutUser(ctx, signIn); err != nil {
 				event.success = false
 				event.err = err
-				return reconcile.Result{}, fmt.Errorf("failed to deprovision deleted signin %s: %w", req.Name, err) //nolint:golint-sl // controller-runtime expects standard error
+				return reconcile.Result{}, fmt.Errorf("failed to deprovision deleted signin %s: %w", req.Name, err)
 			}
 			return reconcile.Result{}, nil
 		}
@@ -116,12 +113,12 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		event.success = false
 		event.err = err
 		event.operation = "get_signin_failed"
-		return reconcile.Result{}, fmt.Errorf("failed to get signin %s: %w", req.NamespacedName, err) //nolint:golint-sl // controller-runtime expects standard error
+		return reconcile.Result{}, fmt.Errorf("failed to get signin %s: %w", req.NamespacedName, err)
 	}
 
 	event.username = signIn.Spec.Username
 
-	op, validDuration := getAction(signIn, span)
+	op, validDuration := getAction(signIn, span, t.clock.Now())
 	event.requeueIn = validDuration
 
 	switch op {
@@ -130,7 +127,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		if err := t.signInUser(ctx, signIn); err != nil {
 			event.success = false
 			event.err = err
-			return reconcile.Result{}, fmt.Errorf("failed to provision signin %s: %w", signIn.Name, err) //nolint:golint-sl // controller-runtime expects standard error
+			return reconcile.Result{}, fmt.Errorf("failed to provision signin %s: %w", signIn.Name, err)
 		}
 
 	case SignInOperationDeprovision:
@@ -138,7 +135,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 		if err := t.signOutUser(ctx, signIn); err != nil {
 			event.success = false
 			event.err = err
-			return reconcile.Result{}, fmt.Errorf("failed to deprovision signin %s: %w", signIn.Name, err) //nolint:golint-sl // controller-runtime expects standard error
+			return reconcile.Result{}, fmt.Errorf("failed to deprovision signin %s: %w", signIn.Name, err)
 		}
 
 	case SignInOperationNOP:
@@ -151,7 +148,7 @@ func (t *KubeOperator) Reconcile(ctx context.Context, req ctrl.Request) (reconci
 	return reconcile.Result{RequeueAfter: validDuration}, nil
 }
 
-func getAction(signIn *v1alpha1.TkaSignin, span trace.Span) (SignInOperation, time.Duration) {
+func getAction(signIn *v1alpha1.TkaSignin, span trace.Span, now time.Time) (SignInOperation, time.Duration) {
 	validity, err := time.ParseDuration(signIn.Spec.ValidityPeriod)
 	if err != nil {
 		span.AddEvent("parse_validity_period_failed")
@@ -171,7 +168,7 @@ func getAction(signIn *v1alpha1.TkaSignin, span trace.Span) (SignInOperation, ti
 		return SignInOperationNOP, time.Duration(0)
 	}
 
-	if time.Now().UTC().After(validUntil.UTC()) {
+	if now.UTC().After(validUntil.UTC()) {
 		span.AddEvent("signin_expired")
 		return SignInOperationDeprovision, time.Duration(0)
 	}

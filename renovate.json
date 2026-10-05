@@ -2,7 +2,9 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":semanticCommits"
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests",
+    "customManagers:githubActionsVersions"
   ],
   "timezone": "Europe/Berlin",
   "dependencyDashboard": true,
@@ -16,6 +18,28 @@
   "labels": [
     "dependencies"
   ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/__fixtures__/**"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "dependencies",
+      "security"
+    ]
+  },
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "pre-commit": {
+    "enabled": true
+  },
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
@@ -37,9 +61,44 @@
       "packageNameTemplate": "go",
       "datasourceTemplate": "golang-version",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Track the golangci-lint version the custom-gcl binary is built from.",
+      "managerFilePatterns": [
+        "/(^|/)\\.custom-gcl\\.yml$/"
+      ],
+      "matchStrings": [
+        "(?:^|\\n)version:\\s*\"?(?<currentValue>v\\d+\\.\\d+\\.\\d+)\"?"
+      ],
+      "depNameTemplate": "golangci-lint",
+      "packageNameTemplate": "golangci/golangci-lint",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Track the golint-sl plugin version baked into custom-gcl.",
+      "managerFilePatterns": [
+        "/(^|/)\\.custom-gcl\\.yml$/"
+      ],
+      "matchStrings": [
+        "module:\\s*\"(?<depName>github\\.com/spechtlabs/golint-sl)\"\\s*\\n\\s*version:\\s*\"(?<currentValue>v[^\"]+)\""
+      ],
+      "datasourceTemplate": "go",
+      "versioningTemplate": "semver"
     }
   ],
   "packageRules": [
+    {
+      "description": "mise is pinned as MISE_VERSION in every workflow that sets it up; move them at once, and only to a release a day old, the age mise-action waited for before the pin.",
+      "matchDepNames": [
+        "jdx/mise"
+      ],
+      "groupName": "mise",
+      "groupSlug": "mise",
+      "minimumReleaseAge": "1 day"
+    },
     {
       "description": "Automerge digest, pin, patch, and minor updates once CI passes.",
       "matchUpdateTypes": [
@@ -74,22 +133,47 @@
       "dependencyDashboardApproval": false
     },
     {
-      "description": "Do not manage npm as a separate mise tool; Node provides npm.",
-      "matchFileNames": [
-        ".mise.toml"
-      ],
-      "matchDepNames": [
-        "npm"
-      ],
-      "enabled": false
-    },
-    {
       "description": "Group Go module updates together.",
       "matchManagers": [
         "gomod"
       ],
       "groupName": "Go modules",
       "groupSlug": "go-modules"
+    },
+    {
+      "description": "Group Node package updates (the docs site and the commit message check) together.",
+      "matchManagers": [
+        "bun",
+        "npm"
+      ],
+      "groupName": "Node packages",
+      "groupSlug": "node-packages"
+    },
+    {
+      "description": "The docs site ships nothing, and release-please releases the whole repository from one package, so a fix(deps) there would cut a tka release for a dependency nobody gets.",
+      "matchFileNames": [
+        "docs/**"
+      ],
+      "semanticCommitType": "chore"
+    },
+    {
+      "description": "Node is pinned in .mise.toml for the docs tooling (markdownlint-cli2); on a major, check the docs build.",
+      "matchDatasources": [
+        "node-version"
+      ],
+      "matchDepNames": [
+        "node"
+      ],
+      "groupName": "Node toolchain",
+      "groupSlug": "node-toolchain"
+    },
+    {
+      "description": "bun is pinned in .mise.toml; it builds the docs site and runs the commit message check.",
+      "matchDepNames": [
+        "bun"
+      ],
+      "groupName": "bun",
+      "groupSlug": "bun"
     },
     {
       "description": "Update .mise.toml and go.mod Go versions together.",
@@ -108,6 +192,51 @@
       "dependencyDashboardApproval": false
     },
     {
+      "description": "Leave the go directive in go.mod alone. It is the minimum language version, not the toolchain; bumping it to a full patch version (1.27 -> 1.27.1) makes it equal to the toolchain directive and go mod tidy then deletes the toolchain line. Renovate tracks the exact version through the toolchain directive instead.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "golangci-lint is pinned in .mise.toml and .custom-gcl.yml; the two must never disagree.",
+      "matchDepNames": [
+        "golangci-lint"
+      ],
+      "groupName": "golangci-lint",
+      "groupSlug": "golangci-lint"
+    },
+    {
+      "description": "golint-sl is pinned in .custom-gcl.yml and .pre-commit-config.yaml; move both at once.",
+      "matchPackageNames": [
+        "/golint-sl$/i"
+      ],
+      "groupName": "golint-sl",
+      "groupSlug": "golint-sl"
+    },
+    {
+      "description": "swag is pinned in .mise.toml, and github.com/swaggo/swag in go.mod is the library the spec it generates is served with; move both at once.",
+      "matchDepNames": [
+        "swag",
+        "github.com/swaggo/swag"
+      ],
+      "groupName": "swag",
+      "groupSlug": "swag"
+    },
+    {
+      "description": "The commit message check must parse with the release-please version the release-please action bundles (see its package-lock.json), not the newest one. Bump it by hand alongside the action.",
+      "matchFileNames": [
+        ".github/commit-lint/package.json"
+      ],
+      "matchPackageNames": [
+        "release-please"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Group docs site dependencies together.",
       "matchFileNames": [
         "docs/package.json",
@@ -115,6 +244,16 @@
       ],
       "groupName": "docs dependencies",
       "groupSlug": "docs-dependencies"
+    },
+    {
+      "description": "Hold the docs site on TypeScript 6 and below. TypeScript 7 is the native compiler and has no JavaScript API, and @vue/compiler-sfc reads files through that API (ts.sys) to resolve the imported prop types in the theme's components, so the docs build fails on it. Lift this once @vue/compiler-sfc no longer needs it.",
+      "matchFileNames": [
+        "docs/package.json"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7"
     }
   ]
 }

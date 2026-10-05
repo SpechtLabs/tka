@@ -81,7 +81,7 @@ func TestLoginHandler(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setup(m.(*mock.MockTkaClient))
-			_, ts := newTestServer(t, m, tc.rule)
+			ts := newTestServer(t, m, tc.rule)
 			resp, body := doReq(t, ts, http.MethodPost, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, map[string]string{})
 			require.Equal(t, tc.expectedStatus, resp.StatusCode, string(body))
 			if resp.StatusCode == http.StatusAccepted {
@@ -169,7 +169,7 @@ func TestGetLoginHandler(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			m := mock.NewMockTkaClient()
-			_, ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
+			ts := newTestServer(t, m, capability.Rule{Role: "dev", Period: "10m"})
 
 			tc.setup(m.(*mock.MockTkaClient))
 			resp, body := doReq(t, ts, http.MethodGet, api.ApiRouteV1Alpha1+api.LoginApiRoute, nil, nil)

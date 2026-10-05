@@ -91,8 +91,7 @@ func (m teaPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
 
 	final := finalModel.(teaPollModel[T])
 	if final.model.err != nil {
-		var herr humane.Error
-		if errors.As(final.model.err, &herr) {
+		if herr, ok := errors.AsType[humane.Error](final.model.err); ok {
 			return nil, herr
 		} else {
 			return nil, humane.Wrap(final.model.err, "async operation failed", "check the server logs for more details")

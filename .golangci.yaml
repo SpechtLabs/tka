@@ -1,0 +1,169 @@
+# golangci-lint configuration for tka.
+#
+# golint-sl runs as a module plugin baked into ./custom-gcl (see .custom-gcl.yml).
+# The prebuilt golangci-lint cannot load the plugin, so run it with
+# `mise run lint`, which builds custom-gcl and runs it.
+# https://golangci-lint.run/usage/configuration/
+
+version: "2"
+
+run:
+  timeout: 10m
+  tests: true
+  modules-download-mode: readonly
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  enable:
+    # Default linters
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # Additional recommended linters
+    - dogsled
+    - copyloopvar
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - goprintffuncname
+    - gosec
+    - misspell
+    - modernize
+    - nakedret
+    - nolintlint
+    - prealloc
+    - revive
+    - rowserrcheck
+    - whitespace
+    - unconvert
+    - unparam
+
+    # golint-sl: production-ready Go patterns (error handling, observability, safety)
+    # https://golint.specht-labs.de/
+    - golint-sl
+
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+    govet:
+      enable-all: true
+    misspell:
+      locale: US
+      # "signins" is in the name of the tka_user_signins_total metric, which
+      # dashboards and alerts query.
+      ignore-rules:
+        - signins
+    revive:
+      rules:
+        - name: comment-spacings
+        - name: import-shadowing
+    custom:
+      golint-sl:
+        type: module
+        description: SpechtLabs Go linter collection for production-ready code
+        original-url: github.com/spechtlabs/golint-sl
+
+  exclusions:
+    generated: lax
+    rules:
+      # Hold test files to a lighter bar than production code.
+      - linters:
+          - gosec
+          - goconst
+          - golint-sl
+        path: _test\.go
+
+      - linters:
+          - govet
+        text: "^fieldalignment:"
+        path: _test\.go
+
+      # The CLI isn't on a hot path, so its structs are laid out for
+      # readability rather than size, and so are the mocks, whose fields are
+      # grouped by the method they configure.
+      - linters:
+          - govet
+        text: "^fieldalignment:"
+        path: ^(cmd|internal/cli)/|/mock/
+
+      # The CRD types follow the kubebuilder layout (TypeMeta, ObjectMeta,
+      # Spec, Status), and the API's request and response models are the
+      # order of the fields in the JSON and the OpenAPI spec clients read.
+      - linters:
+          - govet
+        text: "^fieldalignment:"
+        path: ^(api|pkg/models|pkg/service/models)/
+
+      # tka logs through the global otelzap logger by design: otelzap takes
+      # the trace context from the ctx passed to each log call, which is what
+      # a logger taken from the context would add.
+      - linters:
+          - golint-sl
+        text: "^contextlogger:"
+
+      # The package names predate golint-sl, and pkg/ is importable, so
+      # renaming pkg/models and pkg/service/models would break importers.
+      - linters:
+          - golint-sl
+        text: "^pkgnaming:"
+        path: ^(internal/cli/(async_operation|pretty_print)|internal/utils|pkg/models|pkg/service/models)/
+
+      # apimachinery's SchemeBuilder calls addKnownTypes with the scheme
+      # AddToScheme was given; a nil scheme is a caller bug that AddKnownTypes
+      # would panic on anyway.
+      - linters:
+          - golint-sl
+        text: "^nilcheck:"
+        path: ^api/v1alpha1/groupversion_info\.go$
+
+      # FormatWithOptions renders a log line, whose timestamp is the time it's
+      # printed.
+      - linters:
+          - golint-sl
+        text: "^sideeffects:"
+        path: ^internal/cli/pretty_print/pretty_format\.go$
+
+      # These constructors build the clients they wire together from the
+      # config they're given, and NewServiceAccount builds a ServiceAccount
+      # object, not a dependency.
+      - linters:
+          - golint-sl
+        text: "^interfaceconsistency:"
+        path: ^(internal/utils/k8s_version\.go|pkg/operator/(operations|operator)\.go)$
+
+      # KubeOperator.Start runs the controller manager until its context is
+      # canceled, which is how the server stops it.
+      - linters:
+          - golint-sl
+        text: "^lifecycle:"
+        path: ^pkg/operator/operator\.go$
+
+      # nolintlint can't tell when a //nolint:golint-sl directive is used:
+      # golangci-lint reports every one of them as unused, though removing
+      # one brings back the finding it suppresses. Unused directives for the
+      # other linters are still reported.
+      - linters:
+          - nolintlint
+        text: 'is unused for linter "golint-sl"'
+
+    paths:
+      - third_party$
+      - builtin$
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$

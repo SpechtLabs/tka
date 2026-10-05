@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -33,6 +34,7 @@ type KubeOperator struct {
 	mgr    ctrl.Manager
 	tracer trace.Tracer
 	client k8s.TkaClient
+	clock  clock.PassiveClock
 }
 
 //nolint:golint-sl // Startup validation: Fatal terminates on config error, no context available
@@ -44,7 +46,7 @@ func getConfigOrDie() *rest.Config {
 			"Check the config precedence: 1) --kubeconfig.go flag pointing at a file 2) KUBECONFIG environment variable pointing at a file 3) In-cluster config if running in cluster 4) $HOME/.kube/config if exists.",
 		)
 
-		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config") //nolint:golint-sl // Startup Fatal, no context available
+		otelzap.L().WithError(herr).Fatal("Failed to get Kubernetes config")
 	}
 
 	return config
@@ -81,6 +83,7 @@ func newKubeOperator(mgr ctrl.Manager, clusterInfo *models.TkaClusterInfo, clien
 		mgr:    mgr,
 		tracer: otel.Tracer("tka_controller"),
 		client: k8s.NewTkaClient(mgr.GetClient(), clusterInfo, clientOpts),
+		clock:  clock.RealClock{},
 	}
 
 	if err := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.TkaSignin{}).Named("TkaSignin").Complete(op); err != nil {
@@ -109,8 +112,8 @@ func NewK8sOperator(clusterInfo *models.TkaClusterInfo, clientOpts k8s.ClientOpt
 		return nil, err
 	}
 
-	if ok, err := utils.IsK8sVerAtLeast(1, 24); err != nil {
-		return nil, err
+	if ok, verErr := utils.IsK8sVerAtLeast(1, 24); verErr != nil {
+		return nil, verErr
 	} else if !ok {
 		return nil, humane.New("k8s version must be at least 1.24", "upgrade your Kubernetes cluster to version 1.24 or later")
 	}

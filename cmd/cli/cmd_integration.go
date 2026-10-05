@@ -9,7 +9,7 @@ import (
 )
 
 var cmdIntegration = &cobra.Command{
-	ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
+	ValidArgs: []string{string(shellBash), string(shellZsh), string(shellFish), string(shellPowerShell)},
 	Use:       "integration <bash|zsh|fish|powershell>",
 	Short:     "Generate shell integration for tka wrapper",
 	Example: `# For bash or zsh, add this line to your ~/.bashrc or ~/.zshrc:
@@ -55,19 +55,19 @@ in your shell for it to take effect.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		shell := strings.ToLower(args[0])
 		switch shell {
-		case "bash":
+		case string(shellBash):
 			fmt.Println("# Add the following line to your ~/.bashrc:")
 			fmt.Println("#    eval \"$(ts-k8s-auth shell bash)\"")
 			fmt.Println(getBashShell())
-		case "zsh":
+		case string(shellZsh):
 			fmt.Println("# Add the following line to your ~/.zshrc:")
 			fmt.Println("#    eval \"$(ts-k8s-auth shell zsh)\"")
 			fmt.Println(getZshShell())
-		case "fish":
+		case string(shellFish):
 			fmt.Println("# Add the following line to your ~/.config/fish/config.fish:")
 			fmt.Println("#   ts-k8s-auth shell fish | source")
 			fmt.Println(getFishShell())
-		case "powershell":
+		case string(shellPowerShell):
 			fmt.Println("# Add the following line to your PowerShell profile:")
 			fmt.Println("#   ts-k8s-auth shell powershell | Out-String | Invoke-Expression")
 			fmt.Println(getPowerShell())

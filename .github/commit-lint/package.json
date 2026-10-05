@@ -1,0 +1,8 @@
+{
+  "name": "tka-commit-lint",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "release-please": "17.6.0"
+  }
+}

@@ -57,7 +57,7 @@ func (t *TKAServer) login(ct *gin.Context) {
 		return
 	}
 
-	now := time.Now() //nolint:golint-sl // captures request timestamp for valid_until calculation
+	now := time.Now()
 	role := capRule.Role
 	span.SetAttributes(attribute.String("login.role", role))
 

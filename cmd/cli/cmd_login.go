@@ -52,7 +52,7 @@ func signIn(quiet bool) (string, error) {
 		pretty_print.PrintLoginInformation(loginInfo)
 	}
 
-	time.Sleep(100 * time.Millisecond) //nolint:golint-sl // brief delay for server processing
+	time.Sleep(100 * time.Millisecond)
 
 	kubecfg, err := fetchKubeConfig(quiet)
 	if err != nil {

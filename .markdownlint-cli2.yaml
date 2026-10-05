@@ -8,13 +8,17 @@ config:
   MD038: false
   MD060: false
 
-# Include all Markdown files in the project
+# The documentation website and the Markdown files around the code; the docs
+# workflow's markdownlint job and `mise run docs-lint` both run this.
 globs:
   - "**/*.md"
 
-# Ignore node_modules directory and other common patterns
 ignores:
-  - "docs/node_modules/**"
+  - "**/node_modules/**"
   - ".git/**"
   - "vendor/**"
+  - "dist/**"
+  # Written by release-please.
   - CHANGELOG.md
+  # The commit message check's dependencies.
+  - ".github/commit-lint/**"

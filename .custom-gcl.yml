@@ -1,0 +1,13 @@
+# golangci-lint v2 custom binary configuration
+#
+# Builds ./custom-gcl: golangci-lint with golint-sl baked in as a module plugin.
+# `mise run lint` builds and runs it. Renovate keeps both versions current, and
+# keeps `version` in lockstep with golangci-lint in .mise.toml.
+#
+# See https://golint.specht-labs.de/guides/golangci-lint.html
+
+version: v2.14.0
+
+plugins:
+  - module: "github.com/spechtlabs/golint-sl"
+    version: "v0.1.11"

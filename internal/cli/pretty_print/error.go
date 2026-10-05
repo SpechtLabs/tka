@@ -11,7 +11,7 @@ import (
 
 // renderHumaneError builds a formatted string for CLI display, not logging.
 // The golint-sl warnings are false positives here - this is string building, not observability.
-func renderHumaneError(err error) string { //nolint:golint-sl
+func renderHumaneError(err error) string {
 	var he humane.Error
 	if !errors.As(err, &he) {
 		// Get a copy of the global options (thread-safe)

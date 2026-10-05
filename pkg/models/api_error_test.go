@@ -430,8 +430,8 @@ func assertErrorResponseEqual(t *testing.T, got, expected *ErrorResponse) {
 
 	if expected == nil {
 		if got != nil {
-			json, _ := json.Marshal(got)
-			t.Errorf("expected 'nil', got '%s'", json)
+			gotJSON, _ := json.Marshal(got)
+			t.Errorf("expected 'nil', got '%s'", gotJSON)
 		}
 		return
 	}

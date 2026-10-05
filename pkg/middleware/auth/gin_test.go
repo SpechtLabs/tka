@@ -30,7 +30,7 @@ func buildCap(t *testing.T, capName peercap.Cap, rule any) tailcfg.PeerCapMap {
 }
 
 // common setup for middleware test: returns router and recorder
-func setupRouter(t *testing.T, mw mw.Middleware) (*gin.Engine, *httptest.ResponseRecorder) {
+func setupRouter(t *testing.T, middleware mw.Middleware) (*gin.Engine, *httptest.ResponseRecorder) {
 	t.Helper()
 
 	// Setup Gin in test mode
@@ -41,7 +41,7 @@ func setupRouter(t *testing.T, mw mw.Middleware) (*gin.Engine, *httptest.Respons
 	tr := nooptrace.NewTracerProvider().Tracer("test")
 
 	// Load the auth middleware
-	mw.Use(r, tr)
+	middleware.Use(r, tr)
 
 	// Add a test route that returns the username from the context
 	r.GET("/test", func(c *gin.Context) {

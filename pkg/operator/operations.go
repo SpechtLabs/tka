@@ -29,7 +29,7 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 	}
 
 	c := t.mgr.GetClient()
-	resName := client.ObjectKey{ //nolint:golint-sl // used in Get call and error message
+	resName := client.ObjectKey{
 		Name:      signIn.Name,
 		Namespace: signIn.Namespace,
 	}
@@ -42,15 +42,15 @@ func (t *KubeOperator) signInUser(ctx context.Context, signIn *v1alpha1.TkaSigni
 	if signedInAt, ok := signIn.Annotations[k8s.LastAttemptedSignIn]; ok {
 		signIn.Status.SignedInAt = signedInAt
 	} else {
-		signIn.Status.SignedInAt = time.Now().Format(time.RFC3339)
+		signIn.Status.SignedInAt = t.clock.Now().Format(time.RFC3339)
 	}
 
-	signedIn, e := time.Parse(time.RFC3339, signIn.Status.SignedInAt) //nolint:golint-sl // signedIn is used after this if block
+	signedIn, e := time.Parse(time.RFC3339, signIn.Status.SignedInAt)
 	if e != nil {
 		return humane.Wrap(e, "Failed to parse signedInAt", "ensure the timestamp is in RFC3339 format")
 	}
 
-	duration, e := time.ParseDuration(signIn.Spec.ValidityPeriod) //nolint:golint-sl // duration is used after this if block
+	duration, e := time.ParseDuration(signIn.Spec.ValidityPeriod)
 	if e != nil {
 		return humane.Wrap(e, "Failed to parse validityPeriod", "use a valid duration format like '1h', '30m', or '24h'")
 	}
@@ -161,7 +161,7 @@ func (t *KubeOperator) deleteClusterRoleBinding(ctx context.Context, signIn *v1a
 
 	var crb rbacv1.ClusterRoleBinding
 
-	crbName := types.NamespacedName{Name: k8s.GetClusterRoleBindingName(signIn), Namespace: signIn.Namespace} //nolint:golint-sl // used in Get call
+	crbName := types.NamespacedName{Name: k8s.GetClusterRoleBindingName(signIn), Namespace: signIn.Namespace}
 	if err := c.Get(ctx, crbName, &crb); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return humane.New("Cluster role binding not found", "the cluster role binding may have been already deleted")
@@ -181,7 +181,7 @@ func (t *KubeOperator) deleteServiceAccount(ctx context.Context, signIn *v1alpha
 
 	var sa corev1.ServiceAccount
 
-	saName := types.NamespacedName{Name: k8s.FormatSigninObjectName(signIn.Spec.Username), Namespace: signIn.Namespace} //nolint:golint-sl // used in Get call
+	saName := types.NamespacedName{Name: k8s.FormatSigninObjectName(signIn.Spec.Username), Namespace: signIn.Namespace}
 	if err := c.Get(ctx, saName, &sa); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return humane.New("Service account not found", "the service account may have been already deleted")

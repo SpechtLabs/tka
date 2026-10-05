@@ -6,20 +6,19 @@ builds:
   - id: server
     env: &env
       - CGO_ENABLED=0
-    goos: &srv_goos
+    goos:
       - linux
     goarch: &goarch
       - arm64
       - amd64
-    goarm: &goarm
-      - "7"
     binary: ts-k8s-srv
-    dir: ./cmd/server/
+    main: ./cmd/server
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: &ldflags
-      - -X=github.com/spechtlabs/tka/pkg/cmd.Version={{.Version}}
-      - -X=github.com/spechtlabs/tka/pkg/cmd.Commit={{.Commit}}
-      - -X=github.com/spechtlabs/tka/pkg/cmd.Date={{ .CommitDate }}
+      - -s -w
+      - -X=github.com/spechtlabs/tka/internal/cli/cmd.Version={{ .Version }}
+      - -X=github.com/spechtlabs/tka/internal/cli/cmd.Commit={{ .Commit }}
+      - -X=github.com/spechtlabs/tka/internal/cli/cmd.Date={{ .CommitDate }}
 
   - id: cli
     env: *env
@@ -28,9 +27,8 @@ builds:
       - windows
       - darwin
     goarch: *goarch
-    goarm: *goarm
     binary: ts-k8s-auth
-    dir: ./cmd/cli/
+    main: ./cmd/cli
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: *ldflags
 
@@ -93,29 +91,29 @@ docker_manifests:
       - ghcr.io/spechtlabs/tka:v{{ .Major }}-arm64
     skip_push: auto
 
-# Sign docker-image with cosign (keyless)
+# Sign the image manifests with cosign (keyless, through the release
+# workflow's OIDC token).
 docker_signs:
   - id: oci-bundle-sign
     artifacts: manifests
     args:
-    - "sign"
-    - --oidc-issuer=https://token.actions.githubusercontent.com
-    - "${artifact}"
-    - --yes
+      - sign
+      - "${artifact}"
+      - --yes
 
-# Sign everything else
+# A keyless cosign signature over checksums.txt, as a Sigstore bundle, covers
+# every archive and package through its checksum. cosign 3 writes Sigstore
+# bundles only, so the separate .sig and .pem files the release used to sign
+# each binary with are gone.
 signs:
   - cmd: cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - sign-blob
-      - --yes
-      - --oidc-issuer=https://token.actions.githubusercontent.com
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
-    artifacts: binary
+      - --yes
+    artifacts: checksum
 
 # Regular OS packages (for now only systemd based OSes)
 nfpms:
@@ -138,9 +136,23 @@ archives:
   - id: server
     ids:
       - server
-    name_template: 'tailscale-k8s-auth_server_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+    name_template: 'tailscale-k8s-auth_server_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 
   - id: cli
     ids:
       - cli
-    name_template: 'tailscale-k8s-auth_cli_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+    name_template: 'tailscale-k8s-auth_cli_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: "checksums.txt"
+
+# release-please writes the changelog and creates the GitHub release; GoReleaser
+# only attaches the artifacts to it.
+changelog:
+  disable: true
+
+release:
+  github:
+    owner: spechtlabs
+    name: tka
+  mode: keep-existing

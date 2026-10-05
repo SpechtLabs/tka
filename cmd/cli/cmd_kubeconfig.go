@@ -127,11 +127,11 @@ func detectShell() shellType {
 	if shell := os.Getenv("SHELL"); shell != "" {
 		shellName := filepath.Base(shell)
 		switch shellName {
-		case "bash":
+		case string(shellBash):
 			return shellBash
-		case "zsh":
+		case string(shellZsh):
 			return shellZsh
-		case "fish":
+		case string(shellFish):
 			return shellFish
 		}
 	}
@@ -175,7 +175,6 @@ func generateExportStatement(fileName string, shell shellType) string {
 	}
 }
 
-//nolint:golint-sl // CLI user output
 func printUseStatement(fileName string, quiet bool) {
 	shell := detectShell()
 	useStatement := generateExportStatement(fileName, shell)

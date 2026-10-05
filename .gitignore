@@ -63,3 +63,12 @@ src/bin
 bin/
 *.out
 **/__debug_bin*
+
+# golangci-lint with golint-sl, built by `mise run lint-build`
+custom-gcl
+
+# Output of the go coverage tool
+coverage.txt
+
+### Commit message check ###
+.github/commit-lint/node_modules/

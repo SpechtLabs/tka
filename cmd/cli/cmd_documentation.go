@@ -22,19 +22,6 @@ var (
 	frontMatterPermalink string
 )
 
-func init() {
-	cmdDocumentation.Flags().BoolP("markdownlint-fix", "m", false, "Fix markdownlint errors")
-	viper.SetDefault("output.markdownlint-fix", false)
-	err := viper.BindPFlag("output.markdownlint-fix", cmdDocumentation.Flags().Lookup("markdownlint-fix"))
-	if err != nil {
-		panic(humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key"))
-	}
-
-	cmdDocumentation.Flags().BoolVar(&useFrontMatter, "front-matter", false, "Use front matter")
-	cmdDocumentation.Flags().StringVar(&frontMatterTitle, "title", "CLI Reference", "Title of the front matter")
-	cmdDocumentation.Flags().StringVar(&frontMatterPermalink, "permalink", "/reference/cli", "Permalink of the front matter")
-}
-
 var cmdDocumentation = &cobra.Command{
 	Use:    "documentation <path> [--markdownlint-fix] [--front-matter-title <title>] [--front-matter-permalink <permalink>]",
 	Short:  "Generate the reference documentation for the tka CLI commands",
@@ -65,19 +52,35 @@ var cmdDocumentation = &cobra.Command{
 
 		// write the markdown to the file
 		filePath := args[0]
-		if err := os.WriteFile(filePath, []byte(markdown), 0644); err != nil {
+		if err := os.WriteFile(filePath, []byte(markdown), 0o600); err != nil {
 			pretty_print.PrintError(err)
 			os.Exit(1)
 		}
 
 		if viper.GetBool("output.markdownlint-fix") {
-			proc := exec.Command("markdownlint-cli2", "--fix", filePath)
+			proc := exec.Command("markdownlint-cli2", "--fix", filePath) //nolint:gosec // fixes the file this command was asked to write
 			if err := proc.Run(); err != nil {
 				pretty_print.PrintError(err)
 				os.Exit(1)
 			}
 		}
 	},
+}
+
+// addDocumentationFlags defines the flags of the documentation command and binds
+// --markdownlint-fix to its viper key.
+func addDocumentationFlags() humane.Error {
+	cmdDocumentation.Flags().BoolP("markdownlint-fix", "m", false, "Fix markdownlint errors")
+	viper.SetDefault("output.markdownlint-fix", false)
+	if err := viper.BindPFlag("output.markdownlint-fix", cmdDocumentation.Flags().Lookup("markdownlint-fix")); err != nil {
+		return humane.Wrap(err, "fatal binding flag", "check that the flag name matches the viper key")
+	}
+
+	cmdDocumentation.Flags().BoolVar(&useFrontMatter, "front-matter", false, "Use front matter")
+	cmdDocumentation.Flags().StringVar(&frontMatterTitle, "title", "CLI Reference", "Title of the front matter")
+	cmdDocumentation.Flags().StringVar(&frontMatterPermalink, "permalink", "/reference/cli", "Permalink of the front matter")
+
+	return nil
 }
 
 func getRootCmd(cmd *cobra.Command) *cobra.Command {

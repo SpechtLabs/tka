@@ -25,7 +25,7 @@ import (
 
 var sharedPrometheus = ginprometheus.NewPrometheus("tka")
 
-func newTestServer(t *testing.T, auth k8s.TkaClient, rule capability.Rule) (*api.TKAServer, *httptest.Server) {
+func newTestServer(t *testing.T, auth k8s.TkaClient, rule capability.Rule) *httptest.Server {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	authMwMock := &mwMock.AuthMiddleware{Username: "alice", Rule: rule, OmitRule: rule.Role == "" && rule.Period == ""}
@@ -41,7 +41,7 @@ func newTestServer(t *testing.T, auth k8s.TkaClient, rule capability.Rule) (*api
 
 	ts := httptest.NewServer(srv.Engine())
 	t.Cleanup(ts.Close)
-	return srv, ts
+	return ts
 }
 
 func doReq(t *testing.T, ts *httptest.Server, method, path string, headers map[string]string, body any) (*http.Response, []byte) {
@@ -60,7 +60,7 @@ func doReq(t *testing.T, ts *httptest.Server, method, path string, headers map[s
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, err := http.DefaultClient.Do(req) //nolint:golint-sl // DefaultClient is acceptable in tests
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = resp.Body.Close() })
 	data, _ := io.ReadAll(resp.Body)

@@ -15,7 +15,7 @@ func WithWhoIsResponse(remoteAddr string, info *tshttp.WhoIsInfo) MockWhoIsResol
 	return func(m *MockWhoIsResolver) {
 		resp, ok := m.responses[remoteAddr]
 		if !ok {
-			resp = mockWhoIsResolverResponse{info: nil, err: nil}
+			resp = whoIsResolverResponse{info: nil, err: nil}
 		}
 		resp.info = info
 		m.responses[remoteAddr] = resp
@@ -27,7 +27,7 @@ func WithWhoIsError(remoteAddr string, err error) MockWhoIsResolverOption {
 	return func(m *MockWhoIsResolver) {
 		resp, ok := m.responses[remoteAddr]
 		if !ok {
-			resp = mockWhoIsResolverResponse{info: nil, err: nil}
+			resp = whoIsResolverResponse{info: nil, err: nil}
 		}
 		resp.err = err
 		m.responses[remoteAddr] = resp
@@ -35,13 +35,13 @@ func WithWhoIsError(remoteAddr string, err error) MockWhoIsResolverOption {
 }
 
 // WithWhoIsResponses configures multiple mock responses at once.
-func WithWhoIsResponses(responses map[string]mockWhoIsResolverResponse) MockWhoIsResolverOption {
+func WithWhoIsResponses(responses map[string]whoIsResolverResponse) MockWhoIsResolverOption {
 	return func(m *MockWhoIsResolver) {
 		m.responses = responses
 	}
 }
 
-type mockWhoIsResolverResponse struct {
+type whoIsResolverResponse struct {
 	info *tshttp.WhoIsInfo
 	err  error
 }
@@ -51,13 +51,13 @@ var _ tshttp.WhoIsResolver = &MockWhoIsResolver{}
 
 // MockWhoIsResolver is a configurable mock implementation of tshttp.WhoIsResolver for testing.
 type MockWhoIsResolver struct {
-	responses map[string]mockWhoIsResolverResponse
+	responses map[string]whoIsResolverResponse
 }
 
 // NewMockWhoIsResolver creates a new MockWhoIsResolver with the provided options.
 func NewMockWhoIsResolver(opts ...MockWhoIsResolverOption) tshttp.WhoIsResolver {
 	m := &MockWhoIsResolver{
-		responses: make(map[string]mockWhoIsResolverResponse),
+		responses: make(map[string]whoIsResolverResponse),
 	}
 	for _, opt := range opts {
 		opt(m)

@@ -4,6 +4,7 @@
   "description": "The documentation website for Tailscale Kubernetes Auth, generated with VuePress",
   "type": "module",
   "author": "Cedric Specht <cedric@specht-labs.de>",
+  "private": true,
   "license": "Apache-2.0",
   "engines": {
     "node": "^18.20.0 || >=20.0.0"
@@ -33,7 +34,7 @@
     "http-server": "^14.1.1",
     "markdown-it-container": "^4.0.0",
     "sass-embedded": "^1.105.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vue": "^3.5.43",
     "vuepress": "2.0.0-rc.31",
     "vuepress-theme-plume": "1.0.0-rc.212"
@@ -42,7 +43,7 @@
     "@vue/component-compiler-utils": "^3.3.0",
     "lru-cache": "^11.5.3",
     "markdown-it-emoji": "^3.1.0",
-    "mermaid": "^11.17.2",
+    "mermaid": "^12.1.0",
     "swagger-ui-dist": "^5.33.1",
     "vue-template-compiler": "^2.7.16"
   },
@@ -55,6 +56,6 @@
     "dev-clean": "vuepress dev . --clean-cache --clean-temp",
     "build": "vuepress build . --clean-cache --clean-temp",
     "preview": "http-server ./.vuepress/dist",
-    "vp-update": "npx vp-update"
+    "vp-update": "bunx vp-update"
   }
 }

@@ -34,8 +34,8 @@ import (
 //  4. Extracts and validates capability rules from Tailscale ACLs
 //  5. Stores username and capability in Gin context for handlers
 type ginAuthMiddleware[capRule tshttp.TailscaleCapability] struct {
-	capName     peercap.Cap
 	resolver    tshttp.WhoIsResolver
+	capName     peercap.Cap
 	allowTagged bool
 	allowFunnel bool
 }
@@ -45,7 +45,7 @@ type ginAuthMiddleware[capRule tshttp.TailscaleCapability] struct {
 // makes username and rule available via GetUsername() and GetCapability(),
 // and rejects unauthorized users with appropriate HTTP status codes.
 func NewGinAuthMiddleware[capRule tshttp.TailscaleCapability](resolver tshttp.WhoIsResolver, capName peercap.Cap, opts ...Option[capRule]) mw.Middleware {
-	mw := &ginAuthMiddleware[capRule]{
+	m := &ginAuthMiddleware[capRule]{
 		capName:     capName,
 		resolver:    resolver,
 		allowTagged: false,
@@ -53,10 +53,10 @@ func NewGinAuthMiddleware[capRule tshttp.TailscaleCapability](resolver tshttp.Wh
 	}
 
 	for _, opt := range opts {
-		opt(mw)
+		opt(m)
 	}
 
-	return mw
+	return m
 }
 
 // Use installs the authentication middleware into the provided Gin engine.
@@ -85,9 +85,9 @@ func (m *ginAuthMiddleware[capRule]) handler(tracer trace.Tracer) gin.HandlerFun
 		// Wide event context - these are captured by the defer closure below
 		var (
 			userName     string
-			rejectReason string //nolint:golint-sl // captured by defer, assigned in multiple branches
-			statusCode   int    //nolint:golint-sl // captured by defer, assigned in multiple branches
-			success      = true //nolint:golint-sl // captured by defer, assigned in multiple branches
+			rejectReason string
+			statusCode   int
+			success      = true
 		)
 
 		// Set span attributes for wide event data at end of auth

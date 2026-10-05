@@ -38,3 +38,8 @@ kubectl get pods`,
 		printUseStatement(file, quiet)
 	},
 }
+
+// addPlatformCommands wires the commands only some platforms have. Windows has
+// neither the login --shell flag nor the shell command, which need a Unix
+// pseudo-terminal.
+func addPlatformCommands(_ *cobra.Command) {}

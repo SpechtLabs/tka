@@ -15,7 +15,7 @@ var (
 )
 
 func main() {
-	cmdGet := &cobra.Command{ //nolint:golint-sl // cobra pattern: define commands, then connect them
+	cmdGet := &cobra.Command{
 		Use:   "get <command>",
 		Short: "Retrieve read-only resources from TKA.",
 		Long:  `The get command retrieves resources from your Tailscale Kubernetes Auth service`,
@@ -27,7 +27,7 @@ tka get kubeconfig
 tka get login`,
 	}
 
-	cmdSet := &cobra.Command{ //nolint:golint-sl // cobra pattern: define commands, then connect them
+	cmdSet := &cobra.Command{
 		Use:   "set <command>",
 		Short: "Set resources in TKA.",
 		Long:  `The set command sets resources in your Tailscale Kubernetes Auth service`,
@@ -74,6 +74,16 @@ tka generate kubeconfig`,
 	// Cluster info
 	cmdRoot.AddCommand(cmdClusterInfo)
 	cmdGet.AddCommand(cmdClusterInfo)
+
+	// The shell command and login --shell, where the platform has them
+	addPlatformCommands(cmdRoot)
+
+	// Flags
+	addConfigFlags()
+	if err := addDocumentationFlags(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	if err := cmdRoot.Execute(); err != nil {
 		fmt.Println(err)

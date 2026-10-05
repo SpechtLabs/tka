@@ -13,6 +13,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// flagTypeString is what pflag reports as the type of a string flag.
+const flagTypeString = "string"
+
 type templateData struct {
 	*cobra.Command
 	ShowUsage bool
@@ -126,12 +129,12 @@ func FormatHelpText(cmd *cobra.Command, _ []string, opts ...Option) string {
 
 // PrintHelpText prints the help text for a cobra command to stdout.
 func PrintHelpText(cmd *cobra.Command, args []string) {
-	fmt.Println(render(cmd, false)) //nolint:golint-sl // CLI user output
+	fmt.Println(render(cmd, false))
 }
 
 // PrintUsageText prints the usage text for a cobra command to stdout.
 func PrintUsageText(cmd *cobra.Command, _ []string) {
-	fmt.Println(render(cmd, true)) //nolint:golint-sl // CLI user output
+	fmt.Println(render(cmd, true))
 }
 
 func render(cmd *cobra.Command, showUsage bool, opts ...Option) string {
@@ -151,7 +154,7 @@ func render(cmd *cobra.Command, showUsage bool, opts ...Option) string {
 	}
 
 	var buf bytes.Buffer
-	data := templateData{Command: cmd, ShowUsage: showUsage} //nolint:golint-sl // used in tmpl.Execute
+	data := templateData{Command: cmd, ShowUsage: showUsage}
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return cmd.UsageString()
 	}
@@ -189,8 +192,8 @@ func formatMarkdownAlerts(mdString string) string {
 // Gt takes two types and checks whether the first type is greater than the second. In case of types Arrays, Chans,
 // Maps and Slices, Gt will compare their lengths. Ints are compared directly while strings are first parsed as
 // ints and then compared.
-func Gt(a interface{}, b interface{}) bool {
-	var left, right int64 //nolint:golint-sl // left and right are logically grouped
+func Gt(a any, b any) bool {
+	var left, right int64
 	av := reflect.ValueOf(a)
 
 	switch av.Kind() {
@@ -217,7 +220,7 @@ func Gt(a interface{}, b interface{}) bool {
 }
 
 // Eq takes two types and checks whether they are equal. Supported types are int and string. Unsupported types will panic.
-func Eq(a interface{}, b interface{}) bool {
+func Eq(a any, b any) bool {
 	av := reflect.ValueOf(a)
 	bv := reflect.ValueOf(b)
 
@@ -246,27 +249,27 @@ type FlagUsage struct {
 
 // FlagUsages returns a list of flag usages for a flag set.
 func FlagUsages(f *pflag.FlagSet) []FlagUsage {
-	lines := make([]FlagUsage, 0) //nolint:golint-sl // lines is populated in closure below
+	lines := make([]FlagUsage, 0)
 
 	f.VisitAll(func(flag *pflag.Flag) {
 		if flag.Hidden {
 			return
 		}
 
-		flagStr := "" //nolint:golint-sl // flagStr is built incrementally in multiple branches
+		flagStr := ""
 		if flag.Shorthand != "" && flag.ShorthandDeprecated == "" {
 			flagStr = fmt.Sprintf("-%s, --%s", flag.Shorthand, flag.Name)
 		} else {
 			flagStr = fmt.Sprintf("    --%s", flag.Name)
 		}
 
-		varname, usage := pflag.UnquoteUsage(flag) //nolint:golint-sl // usage is used after varname processing
+		varname, usage := pflag.UnquoteUsage(flag)
 		if varname != "" && varname != flag.Value.Type() {
 			flagStr = fmt.Sprintf("%s [%s]", flagStr, varname)
 		}
 		if flag.NoOptDefVal != "" {
 			switch flag.Value.Type() {
-			case "string":
+			case flagTypeString:
 				flagStr += fmt.Sprintf("[=\"%s\"]", flag.NoOptDefVal)
 			case "bool":
 				if flag.NoOptDefVal != "true" {
@@ -282,7 +285,7 @@ func FlagUsages(f *pflag.FlagSet) []FlagUsage {
 		}
 
 		if !defaultIsZeroValue(flag) {
-			if flag.Value.Type() == "string" {
+			if flag.Value.Type() == flagTypeString {
 				usage += fmt.Sprintf(" (_default: %q_)", flag.DefValue)
 			} else {
 				usage += fmt.Sprintf(" (_default: %s_)", flag.DefValue)
@@ -312,7 +315,7 @@ func defaultIsZeroValue(f *pflag.Flag) bool {
 		return f.DefValue == "0" || f.DefValue == "0s"
 	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "count", "float32", "float64":
 		return f.DefValue == "0"
-	case "string":
+	case flagTypeString:
 		return f.DefValue == ""
 	case "ip", "ipMask", "ipNet":
 		return f.DefValue == "<nil>"
