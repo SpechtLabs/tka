@@ -34,6 +34,10 @@ type teaPollModel[T any] struct {
 	opts     *spinnerOptions
 	model    *spinnerModel[T]
 	pollFunc PollFunc[T]
+
+	// programOptions are added to the bubbletea program's options. Tests use
+	// them to run the program without a terminal.
+	programOptions []tea.ProgramOption
 }
 
 func newTeaSpinner[T any](pollFunc PollFunc[T], opts *spinnerOptions, model *spinnerModel[T]) *teaPollModel[T] {
@@ -75,30 +79,55 @@ func newTeaSpinner[T any](pollFunc PollFunc[T], opts *spinnerOptions, model *spi
 		opts:     opts,
 		model:    model,
 		pollFunc: pollFunc,
+
+		programOptions: nil,
 	}
 }
 
 func (m teaPollModel[T]) Run(ctx context.Context) (*T, humane.Error) {
-	m.ctx = ctx
+	m.ctx, m.cancel = context.WithCancel(ctx)
+	defer m.cancel()
 	m.model.startedAt = time.Now()
 
-	prog := tea.NewProgram(m)
+	// WithContext kills the program as soon as the context is done, rather
+	// than when the poll in flight notices.
+	prog := tea.NewProgram(m, append(m.programOptions, tea.WithContext(m.ctx))...)
 	finalModel, err := prog.Run()
 
 	if err != nil {
+		if m.ctx.Err() != nil {
+			return nil, m.stoppedError()
+		}
 		return nil, humane.Wrap(err, "UI error while polling", "try running with --quiet flag to disable the spinner")
 	}
 
-	final := finalModel.(teaPollModel[T])
-	if final.model.err != nil {
-		if herr, ok := errors.AsType[humane.Error](final.model.err); ok {
+	return finalModel.(teaPollModel[T]).outcome()
+}
+
+// outcome is what a finished poll returns: the result, the error the poll
+// failed with, or why it was stopped before it finished.
+func (m teaPollModel[T]) outcome() (*T, humane.Error) {
+	if m.model.err != nil {
+		if herr, ok := errors.AsType[humane.Error](m.model.err); ok {
 			return nil, herr
-		} else {
-			return nil, humane.Wrap(final.model.err, "async operation failed", "check the server logs for more details")
 		}
+		return nil, humane.Wrap(m.model.err, "async operation failed", "check the server logs for more details")
 	}
 
-	return &final.model.result, nil
+	// The program quit before a poll finished, which only ctrl+c does.
+	if !m.model.ready {
+		return nil, m.stoppedError()
+	}
+
+	return &m.model.result, nil
+}
+
+// stoppedError is the error a poll stopped by its context ends with.
+func (m teaPollModel[T]) stoppedError() humane.Error {
+	if err := m.ctx.Err(); errors.Is(err, context.DeadlineExceeded) {
+		return humane.Wrap(err, m.opts.timeoutMessage, "try increasing the timeout or check the server status")
+	}
+	return humane.Wrap(context.Canceled, "operation canceled", "run the command again to retry")
 }
 
 // Init initializes the poll model and starts the spinner and polling command routines.
@@ -141,9 +170,7 @@ func (m teaPollModel[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.shouldRetry {
 			m.model.ready = false
 			m.opts.delay *= 2
-			return m, tea.Tick(m.opts.delay, func(t time.Time) tea.Msg {
-				return pollTriggerMsg{}
-			})
+			return m, retryAfter(m.ctx, m.opts.delay)
 		}
 
 		// Terminal error
@@ -182,6 +209,10 @@ func (m teaPollModel[T]) View() string {
 // pollOnceCmd executes a single polling attempt based on the pollModel configuration and returns a pollResultMsg.
 func pollOnceCmd[T any](m teaPollModel[T]) tea.Cmd {
 	return func() tea.Msg {
+		if m.ctx.Err() != nil {
+			return pollResultMsg[T]{err: m.stoppedError()}
+		}
+
 		resultCh := make(chan pollResultMsg[T], 1)
 
 		// Run pollFunc in a separate goroutine
@@ -207,9 +238,25 @@ func pollOnceCmd[T any](m teaPollModel[T]) tea.Cmd {
 		// Wait for either context done or pollFunc to complete
 		select {
 		case <-m.ctx.Done():
-			return pollResultMsg[T]{err: humane.New(m.opts.timeoutMessage, "try increasing the timeout or check the server status")}
+			return pollResultMsg[T]{err: m.stoppedError()}
 		case msg := <-resultCh:
 			return msg
 		}
+	}
+}
+
+// retryAfter triggers the next poll after delay, or as soon as ctx is done,
+// so that a stopped spinner doesn't sit out a backoff that doubles with
+// every attempt.
+func retryAfter(ctx context.Context, delay time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+
+		select {
+		case <-ctx.Done():
+		case <-timer.C:
+		}
+		return pollTriggerMsg{}
 	}
 }

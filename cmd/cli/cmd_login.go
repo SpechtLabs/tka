@@ -61,7 +61,7 @@ func signIn(quiet bool) (string, error) {
 
 	file, err := serializeKubeconfig(kubecfg)
 	if err != nil {
-		return "", err // already wrapped by serializeKubeconfig
+		return "", humane.Wrap(err, "failed to save the kubeconfig after successful sign-in", "check that the temp directory is writable and try running 'tka login' again")
 	}
 
 	return file, nil
