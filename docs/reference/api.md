@@ -34,9 +34,7 @@ The complete OpenAPI specification is available on the TKA Server on the followi
 
 <!-- markdownlint-disable MD033 -->
 
-<ClientOnly>
-    <VPSwaggerUI />
-</ClientOnly>
+<VPSwaggerUI />
 
 <!-- markdownlint-enable MD033 -->
 

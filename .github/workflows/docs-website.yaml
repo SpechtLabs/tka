@@ -2,6 +2,10 @@ name: Documentation
 
 on:
   workflow_dispatch:
+  # The Releases and Contributors sections are fetched from the GitHub API at
+  # build time, so the site goes stale without a regular rebuild.
+  schedule:
+    - cron: "17 4 * * *"
   push:
     branches:
       - main
@@ -75,9 +79,14 @@ jobs:
 
       - name: Build
         run: mise run docs-build
+        env:
+          # Authenticates the build-time GitHub API calls for the Releases and
+          # Contributors sections
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Artifacts
-        # Only the deploy jobs consume this, and they run on push/dispatch.
+        # Only the deploy jobs consume this, and they run on
+        # push/dispatch/schedule.
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -91,7 +100,7 @@ jobs:
     needs:
       - build
       - md
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event_name == 'schedule'
     permissions:
       id-token: write
       pages: write
@@ -122,7 +131,7 @@ jobs:
     needs:
       - build
       - md
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event_name == 'schedule'
     permissions:
       id-token: write
       pages: write
