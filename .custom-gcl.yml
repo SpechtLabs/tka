@@ -10,4 +10,4 @@ version: v2.14.0
 
 plugins:
   - module: "github.com/spechtlabs/golint-sl"
-    version: "v0.1.11"
+    version: "v0.1.12"
