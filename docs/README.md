@@ -39,7 +39,7 @@ config:
         icon: mdi:kubernetes
         details: Built on ServiceAccounts and ClusterRoles. No custom protocols or vendor lock-in - just native Kubernetes security.
 
-  - type: VPListCompareCustom
+  - type: VPListCompare
     title: "Traditional vs. TKA"
     description: "Compare the old way with the TKA approach"
     left:
