@@ -11,7 +11,7 @@ idiomatic_version_file_enable_tools = []
 [tools]
 # The go directive in go.mod is the minimum language version, bumped by hand;
 # this is the toolchain everything builds with.
-go = "1.27.1"
+go = "1.27.2"
 
 # Pre-commit for Git hooks
 pre-commit = "4.6.2"
