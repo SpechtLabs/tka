@@ -11,7 +11,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-logr/zapr v1.3.0
 	github.com/mattn/go-isatty v0.0.24
-	github.com/prometheus/client_golang v1.24.1
+	github.com/prometheus/client_golang v1.25.0
 	github.com/sierrasoftworks/humane-errors-go v0.0.0-20260820132314-9a466da5e0f0
 	github.com/spechtlabs/go-otel-utils/otelprovider v0.2.3
 	github.com/spechtlabs/go-otel-utils/otelzap v0.2.3
