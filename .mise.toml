@@ -27,7 +27,7 @@ shellcheck = "0.11.0"
 
 # Release tooling. cosign signs the checksums and the container images
 # GoReleaser publishes.
-goreleaser = "2.18.2"
+goreleaser = "2.18.3"
 cosign = "3.1.3"
 # Rewrites the image tags in a copy of .goreleaser.yaml for the main image (see
 # the image-main task).
