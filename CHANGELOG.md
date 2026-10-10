@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.1](https://github.com/SpechtLabs/tka/compare/v0.3.0...v0.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** update go modules to v0.2.3 ([#445](https://github.com/SpechtLabs/tka/issues/445)) ([bf50bb0](https://github.com/SpechtLabs/tka/commit/bf50bb00f301895a0dafb1c3bdb62a38d0b6d65d))
+* **deps:** update module github.com/prometheus/client_golang to v1.25.0 ([#451](https://github.com/SpechtLabs/tka/issues/451)) ([e3782ec](https://github.com/SpechtLabs/tka/commit/e3782ec06800a3bc1ee9923c7762b78bb2e5afea))
+* **deps:** update module golang.org/x/sys to v0.49.0 ([#458](https://github.com/SpechtLabs/tka/issues/458)) ([3b578b5](https://github.com/SpechtLabs/tka/commit/3b578b595ce26110e638436fd48a95922238d2d9))
+* **deps:** update module golang.org/x/term to v0.47.0 ([#459](https://github.com/SpechtLabs/tka/issues/459)) ([b6b4d6e](https://github.com/SpechtLabs/tka/commit/b6b4d6ed60a9ec661c01a9c4158684975811ef7b))
+* **deps:** update module tailscale.com to v1.104.1 ([#450](https://github.com/SpechtLabs/tka/issues/450)) ([7627346](https://github.com/SpechtLabs/tka/commit/7627346bc77eaace5fa410950d4c266bf64fc127))
+
 ## [0.3.0](https://github.com/SpechtLabs/tka/compare/v0.2.2...v0.3.0) (2026-10-06)
 
 
