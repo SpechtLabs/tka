@@ -49,7 +49,7 @@ kubectl = "1.37.1"
 # Documentation website (docs/): VuePress builds under bun, and markdownlint-cli2
 # is the same version the docs workflow runs. markdownlint-cli2 is an npm
 # package, which mise installs with node.
-bun = "1.4.2"
+bun = "1.4.3"
 node = "24.21.0"
 markdownlint-cli2 = "0.23.3"
 [tasks.build]
