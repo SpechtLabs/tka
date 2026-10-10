@@ -24,7 +24,7 @@ env:
   # binary in the restored cache, warns that it failed integrity verification
   # and downloads it again.
   # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)$
-  MISE_VERSION: 2026.10.4
+  MISE_VERSION: 2026.10.5
   # Every tool a job here runs, installed in every job. mise-action keys its
   # cache on install_args, so one list means one cache: main's runs save it
   # and every pull request restores it, rather than each job keeping a copy
