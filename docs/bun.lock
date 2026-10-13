@@ -5,7 +5,7 @@
     "": {
       "name": "tka-docs",
       "dependencies": {
-        "@spechtlabs/docs-kit": "github:SpechtLabs/docs-kit#v0.1.0",
+        "@spechtlabs/docs-kit": "github:SpechtLabs/docs-kit#v0.1.1",
         "@vue/component-compiler-utils": "^3.3.0",
         "lru-cache": "^11.5.3",
         "markdown-it-emoji": "^3.1.0",
@@ -240,7 +240,7 @@
 
     "@solid-primitives/utils": ["@solid-primitives/utils@6.4.1", "", { "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-ISSB5QX1qP2ynrheIpYwc4oKR5Ny4siNuUyf1qZniy+Il+p/PtDB0QK1Dnle8noiHpwRD3gpPdubOC3qI/Zamg=="],
 
-    "@spechtlabs/docs-kit": ["@spechtlabs/docs-kit@github:SpechtLabs/docs-kit#489acc5", { "dependencies": { "asciinema-player": "^3.17.0", "markdown-it-container": "^4.0.0", "swagger-ui-dist": "^5.33.1" }, "peerDependencies": { "vue": "^3.5.0", "vuepress": ">=2.0.0-rc.26", "vuepress-theme-plume": ">=1.0.0-rc.192" } }, "SpechtLabs-docs-kit-489acc5", "sha512-RrCsBW3h/dKqJ6VoxN3UH70YPp6HK/r0nNl6agDXHEjRXlQFgsUFJz+VNjWuB0BM2bLOTuVlEiLfDEcVvTmmZg=="],
+    "@spechtlabs/docs-kit": ["@spechtlabs/docs-kit@github:SpechtLabs/docs-kit#d09ca16", { "dependencies": { "asciinema-player": "^3.17.0", "markdown-it-container": "^4.0.0", "swagger-ui-dist": "^5.33.1" }, "peerDependencies": { "vue": "^3.5.43", "vuepress": ">=2.0.0-rc.31", "vuepress-theme-plume": ">=1.0.0-rc.213" } }, "SpechtLabs-docs-kit-d09ca16", "sha512-NXJImNAcOdXkA79I9FWh1DTnMGqC6GO9C5zwV1/RgMfPUuoS0XCWRBJ/H6zke6HaLS1cpvS6d4+QiaCY3OXFpQ=="],
 
     "@types/d3": ["@types/d3@7.4.3", "", { "dependencies": { "@types/d3-array": "*", "@types/d3-axis": "*", "@types/d3-brush": "*", "@types/d3-chord": "*", "@types/d3-color": "*", "@types/d3-contour": "*", "@types/d3-delaunay": "*", "@types/d3-dispatch": "*", "@types/d3-drag": "*", "@types/d3-dsv": "*", "@types/d3-ease": "*", "@types/d3-fetch": "*", "@types/d3-force": "*", "@types/d3-format": "*", "@types/d3-geo": "*", "@types/d3-hierarchy": "*", "@types/d3-interpolate": "*", "@types/d3-path": "*", "@types/d3-polygon": "*", "@types/d3-quadtree": "*", "@types/d3-random": "*", "@types/d3-scale": "*", "@types/d3-scale-chromatic": "*", "@types/d3-selection": "*", "@types/d3-shape": "*", "@types/d3-time": "*", "@types/d3-time-format": "*", "@types/d3-timer": "*", "@types/d3-transition": "*", "@types/d3-zoom": "*" } }, "sha512-lZXZ9ckh5R8uiFVt8ogUNf+pIrK4EsWrx2Np75WvF/eTpJ0FMHNhjXk8CKEx/+gpHbNQyJWehbFaTvqmHWB3ww=="],
 

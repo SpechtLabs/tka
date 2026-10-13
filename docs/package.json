@@ -38,7 +38,7 @@
     "vuepress-theme-plume": "1.0.0-rc.213"
   },
   "dependencies": {
-    "@spechtlabs/docs-kit": "github:SpechtLabs/docs-kit#v0.1.0",
+    "@spechtlabs/docs-kit": "github:SpechtLabs/docs-kit#v0.1.1",
     "@vue/component-compiler-utils": "^3.3.0",
     "lru-cache": "^11.5.3",
     "markdown-it-emoji": "^3.1.0",
