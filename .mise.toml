@@ -39,7 +39,7 @@ pinact = "5.0.0"
 # Code generation: the CRD, the deepcopy functions and the RBAC role
 # (controller-gen), and the OpenAPI spec of the server's API (swag, which must
 # match github.com/swaggo/swag in go.mod).
-"go:sigs.k8s.io/controller-tools/cmd/controller-gen" = "0.22.0"
+"go:sigs.k8s.io/controller-tools/cmd/controller-gen" = "0.23.0"
 swag = "1.16.6"
 
 # A local cluster to run the server against
