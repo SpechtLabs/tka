@@ -6,7 +6,7 @@
 #
 # See https://golint.specht-labs.de/guides/golangci-lint.html
 
-version: v2.14.0
+version: v2.15.0
 
 plugins:
   - module: "github.com/spechtlabs/golint-sl"
