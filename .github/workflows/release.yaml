@@ -111,7 +111,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up mise
-        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: ${{ env.MISE_VERSION }}
           install_args: go goreleaser yq
@@ -162,7 +162,7 @@ jobs:
       # cosign signs checksums.txt and the image manifests keylessly, with
       # this workflow's OIDC token.
       - name: Set up mise
-        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           version: ${{ env.MISE_VERSION }}
           install_args: go goreleaser cosign
