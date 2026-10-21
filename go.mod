@@ -1,6 +1,6 @@
 module github.com/spechtlabs/tka
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
@@ -35,7 +35,7 @@ require (
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/controller-runtime v0.25.2
 	sigs.k8s.io/yaml v1.6.0
-	tailscale.com v1.104.1
+	tailscale.com v1.104.2
 )
 
 require (
