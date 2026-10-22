@@ -34,7 +34,7 @@ cosign = "3.1.4"
 yq = "4.54.1"
 
 # Pins GitHub Actions to commit SHAs (see the update-gha task)
-pinact = "5.0.0"
+pinact = "5.0.1"
 
 # Code generation: the CRD, the deepcopy functions and the RBAC role
 # (controller-gen), and the OpenAPI spec of the server's API (swag, which must
