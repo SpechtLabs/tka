@@ -54,7 +54,7 @@ jobs:
       # agree. markdownlint-cli2 is an npm package, and mise installs it with
       # the node .mise.toml pins, so node comes first.
       - name: Set up mise
-        uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: ${{ env.MISE_VERSION }}
           install_args: node markdownlint-cli2
@@ -72,7 +72,7 @@ jobs:
       # docs-build generates the CLI reference with go before building the
       # site.
       - name: Set up mise
-        uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: ${{ env.MISE_VERSION }}
           install_args: go bun
@@ -143,7 +143,7 @@ jobs:
           path: ./dist
 
       - name: Upload to Static Pages
-        uses: SpechtLabs/StaticPages-Upload@40fec5485bd3e45714deaf9b9a054ba36283d240 # main
+        uses: SpechtLabs/StaticPages-Upload@d174c6d2e969cd48b8986355ad4193b162129e77 # main
         with:
           endpoint: https://pages.specht-labs.de
           site-dir: dist/
