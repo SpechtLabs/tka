@@ -31,7 +31,7 @@
   "devDependencies": {
     "@vuepress/bundler-vite": "2.0.0-rc.31",
     "http-server": "^14.1.1",
-    "sass-embedded": "^1.106.1",
+    "sass-embedded": "^1.107.0",
     "typescript": "^6.0.3",
     "vue": "^3.5.44",
     "vuepress": "2.0.0-rc.31",
@@ -46,7 +46,7 @@
     "vue-template-compiler": "^2.7.16"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.65.1",
+    "@rollup/rollup-linux-x64-gnu": "^4.66.0",
     "sass-embedded-linux-x64": "latest"
   },
   "scripts": {
