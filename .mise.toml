@@ -44,7 +44,7 @@ swag = "1.16.6"
 
 # A local cluster to run the server against
 kind = "0.33.0"
-kubectl = "1.37.1"
+kubectl = "1.37.2"
 
 # Documentation website (docs/): VuePress builds under bun, and markdownlint-cli2
 # is the same version the docs workflow runs. markdownlint-cli2 is an npm
