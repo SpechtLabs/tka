@@ -50,7 +50,7 @@ kubectl = "1.37.2"
 # is the same version the docs workflow runs. markdownlint-cli2 is an npm
 # package, which mise installs with node.
 bun = "1.4.4"
-node = "24.22.1"
+node = "24.22.2"
 markdownlint-cli2 = "0.24.0"
 [tasks.build]
 description = "Build the tka CLI and the server into bin/"
