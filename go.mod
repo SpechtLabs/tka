@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/gin-contrib/zap v1.1.9
+	github.com/gin-contrib/zap v1.1.10
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-logr/zapr v1.3.0
 	github.com/mattn/go-isatty v0.0.24
