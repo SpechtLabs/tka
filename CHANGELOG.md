@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/SpechtLabs/tka/compare/v0.3.1...v0.3.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **deps:** update module tailscale.com to v1.104.2 ([#507](https://github.com/SpechtLabs/tka/issues/507)) ([b0784fd](https://github.com/SpechtLabs/tka/commit/b0784fd38f3be1ab1c16c0a279d2a4f2c5fab408))
+
 ## [0.3.1](https://github.com/SpechtLabs/tka/compare/v0.3.0...v0.3.1) (2026-10-12)
 
 
