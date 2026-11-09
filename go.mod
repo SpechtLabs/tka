@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/gin-contrib/zap v1.1.10
+	github.com/gin-contrib/zap v1.1.11
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-logr/zapr v1.3.0
 	github.com/mattn/go-isatty v0.0.24
@@ -22,7 +22,7 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
-	github.com/zsais/go-gin-prometheus v1.0.3
+	github.com/zsais/go-gin-prometheus v1.0.4
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.72.0
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
