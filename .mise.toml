@@ -31,7 +31,7 @@ goreleaser = "2.20.0"
 cosign = "3.1.4"
 # Rewrites the image tags in a copy of .goreleaser.yaml for the main image (see
 # the image-main task).
-yq = "4.54.2"
+yq = "4.54.3"
 
 # Pins GitHub Actions to commit SHAs (see the update-gha task)
 pinact = "5.0.2"
